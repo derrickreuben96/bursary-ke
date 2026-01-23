@@ -124,8 +124,9 @@ Deno.serve(async (req) => {
     );
   } catch (error: unknown) {
     console.error("[CRON] Error checking deadlines:", error);
+    const message = error instanceof Error ? error.message : "Unknown error";
     return new Response(
-      JSON.stringify({ success: false, error: "Deadline processing failed. Please try again later." }),
+      JSON.stringify({ success: false, error: message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

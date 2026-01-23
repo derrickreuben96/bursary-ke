@@ -81,8 +81,9 @@ Deno.serve(async (req) => {
     );
   } catch (error: unknown) {
     console.error("Error setting up admin:", error);
+    const message = error instanceof Error ? error.message : "Unknown error";
     return new Response(
-      JSON.stringify({ success: false, error: "User setup failed. Please contact system administrator." }),
+      JSON.stringify({ success: false, error: message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
