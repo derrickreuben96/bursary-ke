@@ -37,38 +37,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    let mounted = true;
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!mounted) return;
+        
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          // Use setTimeout to avoid potential race conditions
-          setTimeout(async () => {
-            const adminStatus = await checkAdminRole(session.user.id);
+          // Check admin role immediately, not in setTimeout
+          const adminStatus = await checkAdminRole(session.user.id);
+          if (mounted) {
             setIsAdmin(adminStatus);
-          }, 0);
+            setIsLoading(false);
+          }
         } else {
           setIsAdmin(false);
+          setIsLoading(false);
         }
-        setIsLoading(false);
       }
     );
 
     // THEN check for existing session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!mounted) return;
+      
       setSession(session);
       setUser(session?.user ?? null);
 
       if (session?.user) {
         const adminStatus = await checkAdminRole(session.user.id);
-        setIsAdmin(adminStatus);
+        if (mounted) {
+          setIsAdmin(adminStatus);
+        }
       }
       setIsLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {

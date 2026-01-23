@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { Shield, Loader2, Eye, EyeOff } from "lucide-react";
 
 export default function AdminLogin() {
@@ -23,23 +24,38 @@ export default function AdminLogin() {
   // Watch for auth state changes after login attempt
   useEffect(() => {
     if (loginAttempted && user) {
-      if (isAdmin) {
-        toast({
-          title: "Welcome Back",
-          description: "You have successfully logged in as an administrator.",
-        });
-        navigate("/admin");
-      } else {
-        toast({
-          title: "Access Denied",
-          description: "You do not have administrator privileges.",
-          variant: "destructive",
-        });
-      }
-      setIsLoading(false);
-      setLoginAttempted(false);
+      // Add a small delay to ensure isAdmin state is updated
+      const checkAccess = async () => {
+        // Re-check admin status directly from database
+        const { data } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .eq("role", "admin")
+          .maybeSingle();
+        
+        const hasAdminRole = !!data;
+        
+        if (hasAdminRole) {
+          toast({
+            title: "Welcome Back",
+            description: "You have successfully logged in as an administrator.",
+          });
+          navigate("/admin");
+        } else {
+          toast({
+            title: "Access Denied",
+            description: "You do not have administrator privileges.",
+            variant: "destructive",
+          });
+        }
+        setIsLoading(false);
+        setLoginAttempted(false);
+      };
+      
+      checkAccess();
     }
-  }, [loginAttempted, user, isAdmin, navigate, toast]);
+  }, [loginAttempted, user, navigate, toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
