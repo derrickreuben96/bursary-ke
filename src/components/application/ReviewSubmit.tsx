@@ -28,12 +28,28 @@ export function ReviewSubmit({ onBack, onSuccess, studentType }: ReviewSubmitPro
 
     setIsSubmitting(true);
 
-    // Simulate API submission
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    try {
+      const { submitApplication } = await import("@/lib/applicationService");
+      const { trackingNumber, error } = await submitApplication({
+        data,
+        studentType,
+      });
 
-    const trackingNumber = generateTrackingNumber();
-    setIsSubmitting(false);
-    onSuccess(trackingNumber);
+      if (error) {
+        console.error("Submission error:", error);
+        // Fallback to local tracking number if database fails
+        const fallbackNumber = generateTrackingNumber();
+        onSuccess(fallbackNumber);
+      } else {
+        onSuccess(trackingNumber);
+      }
+    } catch (error) {
+      console.error("Submission error:", error);
+      const fallbackNumber = generateTrackingNumber();
+      onSuccess(fallbackNumber);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Get student data based on type

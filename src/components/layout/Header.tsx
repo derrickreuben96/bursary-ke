@@ -49,10 +49,10 @@ export function Header() {
           
           {/* Admin Access Button */}
           <Link
-            to="/admin"
+            to="/admin/login"
             className={cn(
               "ml-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300 hover:scale-105 flex items-center gap-2 border",
-              location.pathname === "/admin"
+              location.pathname.startsWith("/admin")
                 ? "bg-accent text-accent-foreground border-accent"
                 : "text-accent hover:bg-accent/10 border-accent/30 hover:border-accent"
             )}
@@ -95,11 +95,11 @@ export function Header() {
             ))}
             {/* Admin Access Button (Mobile) */}
             <Link
-              to="/admin"
+              to="/admin/login"
               onClick={() => setMobileMenuOpen(false)}
               className={cn(
                 "px-4 py-3 text-sm font-medium rounded-lg transition-colors flex items-center gap-2 border",
-                location.pathname === "/admin"
+                location.pathname.startsWith("/admin")
                   ? "bg-accent text-accent-foreground border-accent"
                   : "text-accent hover:bg-accent/10 border-accent/30"
               )}
