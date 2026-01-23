@@ -89,35 +89,7 @@ export function BursaryAdverts() {
   }
 
   if (adverts.length === 0) {
-    return (
-      <section className="py-16 bg-gradient-to-b from-background to-secondary/30">
-        <div className="container">
-          <div className="text-center mb-10">
-            <Badge className="mb-4 bg-primary/10 text-primary border-primary/30">
-              Coming Soon
-            </Badge>
-            <h2 className="text-3xl font-bold text-foreground mb-3">
-              County Bursary Programs
-            </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              New bursary opportunities will be announced soon. Check back regularly or subscribe to notifications.
-            </p>
-          </div>
-          <div className="max-w-md mx-auto">
-            <Card className="border-dashed border-2 border-muted">
-              <CardContent className="p-8 text-center">
-                <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="font-semibold text-lg mb-2">No Active Programs</h3>
-                <p className="text-sm text-muted-foreground">
-                  Bursary applications open periodically based on county funding cycles. 
-                  Please check back soon for new opportunities.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-    );
+    return null;
   }
 
   return (
