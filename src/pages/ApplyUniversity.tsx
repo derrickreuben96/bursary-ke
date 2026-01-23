@@ -74,6 +74,7 @@ function ApplicationFormContent() {
               <ReviewSubmit
                 onBack={() => setCurrentStep(3)}
                 onSuccess={handleSuccess}
+                studentType="university"
               />
             )}
           </Card>
