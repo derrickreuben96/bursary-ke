@@ -41,21 +41,38 @@ export function BursaryAdverts() {
 
   useEffect(() => {
     const fetchAdverts = async () => {
-      const { data, error } = await supabase
-        .from("bursary_adverts")
-        .select("*")
-        .eq("is_active", true)
-        .gte("deadline", new Date().toISOString())
-        .order("deadline", { ascending: true });
+      try {
+        console.log("[BursaryAdverts] Fetching active bursary adverts...");
+        
+        const { data, error } = await supabase
+          .from("bursary_adverts")
+          .select("*")
+          .eq("is_active", true)
+          .gte("deadline", new Date().toISOString())
+          .order("deadline", { ascending: true });
 
-      if (!error && data) {
-        setAdverts(data.map(d => ({
-          ...d,
-          venues: (d.venues as unknown as Venue[]) || [],
-          required_documents: d.required_documents || []
-        })));
+        console.log("[BursaryAdverts] Query result:", { data, error });
+
+        if (error) {
+          console.error("[BursaryAdverts] Error fetching adverts:", error);
+          setIsLoading(false);
+          return;
+        }
+
+        if (data && data.length > 0) {
+          setAdverts(data.map(d => ({
+            ...d,
+            venues: (d.venues as unknown as Venue[]) || [],
+            required_documents: d.required_documents || []
+          })));
+        } else {
+          console.log("[BursaryAdverts] No active adverts found");
+        }
+      } catch (err) {
+        console.error("[BursaryAdverts] Unexpected error:", err);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
     fetchAdverts();
