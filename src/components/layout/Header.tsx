@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X, GraduationCap } from "lucide-react";
+import { Menu, X, GraduationCap, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
@@ -37,7 +37,7 @@ export function Header() {
               key={link.href}
               to={link.href}
               className={cn(
-                "px-4 py-2 text-sm font-medium rounded-lg transition-colors",
+                "px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300 hover:scale-105",
                 location.pathname === link.href
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground hover:bg-secondary"
@@ -46,6 +46,20 @@ export function Header() {
               {link.label}
             </Link>
           ))}
+          
+          {/* Admin Access Button */}
+          <Link
+            to="/admin"
+            className={cn(
+              "ml-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300 hover:scale-105 flex items-center gap-2 border",
+              location.pathname === "/admin"
+                ? "bg-accent text-accent-foreground border-accent"
+                : "text-accent hover:bg-accent/10 border-accent/30 hover:border-accent"
+            )}
+          >
+            <Shield className="h-4 w-4" />
+            Admin
+          </Link>
         </nav>
 
         {/* Mobile Menu Button */}
@@ -79,6 +93,20 @@ export function Header() {
                 {link.label}
               </Link>
             ))}
+            {/* Admin Access Button (Mobile) */}
+            <Link
+              to="/admin"
+              onClick={() => setMobileMenuOpen(false)}
+              className={cn(
+                "px-4 py-3 text-sm font-medium rounded-lg transition-colors flex items-center gap-2 border",
+                location.pathname === "/admin"
+                  ? "bg-accent text-accent-foreground border-accent"
+                  : "text-accent hover:bg-accent/10 border-accent/30"
+              )}
+            >
+              <Shield className="h-4 w-4" />
+              Admin Access
+            </Link>
           </nav>
         </div>
       )}

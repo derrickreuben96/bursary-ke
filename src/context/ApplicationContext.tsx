@@ -1,9 +1,17 @@
 import React, { createContext, useContext, useState, ReactNode } from "react";
 import type { ParentGuardianFormData, UniversityStudentFormData, PovertyQuestionnaireFormData } from "@/lib/validationSchemas";
 
+export interface SecondaryStudentFormData {
+  nemisId: string;
+  studentName: string;
+  classForm: string;
+  school: string;
+}
+
 export interface ApplicationData {
   parentGuardian?: ParentGuardianFormData;
   universityStudent?: UniversityStudentFormData;
+  secondaryStudent?: SecondaryStudentFormData;
   povertyQuestionnaire?: PovertyQuestionnaireFormData;
   trackingNumber?: string;
 }

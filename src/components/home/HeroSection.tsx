@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Search } from "lucide-react";
+import heroImage from "@/assets/hero-african-students.jpg";
 
 export function HeroSection() {
   return (
@@ -9,7 +10,7 @@ export function HeroSection() {
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
-          backgroundImage: `url('https://images.unsplash.com/photo-1509062522246-3755977927d7?q=80&w=2070&auto=format&fit=crop')`,
+          backgroundImage: `url('${heroImage}')`,
         }}
       >
         <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/60 to-black/80" />
@@ -41,7 +42,7 @@ export function HeroSection() {
             <Button
               asChild
               size="lg"
-              className="bg-primary hover:bg-primary/90 text-primary-foreground text-lg px-8 h-14 shadow-kenya"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground text-lg px-8 h-14 shadow-kenya hover:scale-105 hover:shadow-xl transition-all duration-300"
             >
               <Link to="/apply/secondary">
                 Apply Now
@@ -52,7 +53,7 @@ export function HeroSection() {
               asChild
               size="lg"
               variant="outline"
-              className="border-white/30 bg-white/10 hover:bg-white/20 text-white text-lg px-8 h-14"
+              className="border-white/30 bg-white/10 hover:bg-white/20 text-white text-lg px-8 h-14 hover:scale-105 hover:shadow-xl transition-all duration-300"
             >
               <Link to="/track">
                 <Search className="mr-2 h-5 w-5" />
