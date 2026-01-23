@@ -13,6 +13,10 @@ import FAQ from "./pages/FAQ";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminLogin from "./pages/AdminLogin";
 import AdminAllocation from "./pages/AdminAllocation";
+import TreasuryLogin from "./pages/TreasuryLogin";
+import TreasuryDashboard from "./pages/TreasuryDashboard";
+import CommissionerLogin from "./pages/CommissionerLogin";
+import CommissionerDashboard from "./pages/CommissionerDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,6 +35,10 @@ const App = () => (
             <Route path="/apply/secondary" element={<ApplySecondary />} />
             <Route path="/faq" element={<FAQ />} />
             <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/treasury/login" element={<TreasuryLogin />} />
+            <Route path="/treasury" element={<TreasuryDashboard />} />
+            <Route path="/commissioner/login" element={<CommissionerLogin />} />
+            <Route path="/commissioner" element={<CommissionerDashboard />} />
             <Route
               path="/admin"
               element={

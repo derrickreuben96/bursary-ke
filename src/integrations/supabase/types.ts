@@ -14,14 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
+      bursary_adverts: {
+        Row: {
+          budget_amount: number | null
+          county: string
+          created_at: string | null
+          deadline: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          required_documents: string[] | null
+          title: string
+          updated_at: string | null
+          venues: Json | null
+          ward: string | null
+        }
+        Insert: {
+          budget_amount?: number | null
+          county: string
+          created_at?: string | null
+          deadline: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          required_documents?: string[] | null
+          title: string
+          updated_at?: string | null
+          venues?: Json | null
+          ward?: string | null
+        }
+        Update: {
+          budget_amount?: number | null
+          county?: string
+          created_at?: string | null
+          deadline?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          required_documents?: string[] | null
+          title?: string
+          updated_at?: string | null
+          venues?: Json | null
+          ward?: string | null
+        }
+        Relationships: []
+      }
       bursary_applications: {
         Row: {
+          advert_id: string | null
+          ai_decision_reason: string | null
+          allocated_amount: number | null
+          allocation_date: string | null
           class_form: string | null
           created_at: string
+          duplicate_of: string | null
+          ecitizen_ref: string | null
           household_dependents: number
           household_income: number
           id: string
           institution_name: string
+          is_duplicate: boolean | null
           parent_county: string
           parent_email: string | null
           parent_full_name: string
@@ -32,6 +84,8 @@ export type Database = {
           reviewed_at: string | null
           reviewed_by: string | null
           sms_consent: boolean
+          sms_sent: boolean | null
+          sms_sent_at: string | null
           status: Database["public"]["Enums"]["application_status"]
           student_full_name: string
           student_id: string | null
@@ -41,12 +95,19 @@ export type Database = {
           year_of_study: string | null
         }
         Insert: {
+          advert_id?: string | null
+          ai_decision_reason?: string | null
+          allocated_amount?: number | null
+          allocation_date?: string | null
           class_form?: string | null
           created_at?: string
+          duplicate_of?: string | null
+          ecitizen_ref?: string | null
           household_dependents: number
           household_income: number
           id?: string
           institution_name: string
+          is_duplicate?: boolean | null
           parent_county: string
           parent_email?: string | null
           parent_full_name: string
@@ -57,6 +118,8 @@ export type Database = {
           reviewed_at?: string | null
           reviewed_by?: string | null
           sms_consent?: boolean
+          sms_sent?: boolean | null
+          sms_sent_at?: string | null
           status?: Database["public"]["Enums"]["application_status"]
           student_full_name: string
           student_id?: string | null
@@ -66,12 +129,19 @@ export type Database = {
           year_of_study?: string | null
         }
         Update: {
+          advert_id?: string | null
+          ai_decision_reason?: string | null
+          allocated_amount?: number | null
+          allocation_date?: string | null
           class_form?: string | null
           created_at?: string
+          duplicate_of?: string | null
+          ecitizen_ref?: string | null
           household_dependents?: number
           household_income?: number
           id?: string
           institution_name?: string
+          is_duplicate?: boolean | null
           parent_county?: string
           parent_email?: string | null
           parent_full_name?: string
@@ -82,6 +152,8 @@ export type Database = {
           reviewed_at?: string | null
           reviewed_by?: string | null
           sms_consent?: boolean
+          sms_sent?: boolean | null
+          sms_sent_at?: string | null
           status?: Database["public"]["Enums"]["application_status"]
           student_full_name?: string
           student_id?: string | null
@@ -90,7 +162,22 @@ export type Database = {
           updated_at?: string
           year_of_study?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "bursary_applications_advert_id_fkey"
+            columns: ["advert_id"]
+            isOneToOne: false
+            referencedRelation: "bursary_adverts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bursary_applications_duplicate_of_fkey"
+            columns: ["duplicate_of"]
+            isOneToOne: false
+            referencedRelation: "bursary_applications"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -128,7 +215,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "user"
+      app_role: "admin" | "user" | "county_treasury" | "county_commissioner"
       application_status:
         | "received"
         | "review"
@@ -265,7 +352,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user"],
+      app_role: ["admin", "user", "county_treasury", "county_commissioner"],
       application_status: [
         "received",
         "review",
