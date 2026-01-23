@@ -64,17 +64,17 @@ const kenyanSchools = [
   "Other (specify)",
 ];
 
-// Enhanced validation schema with NEMIS format validation
+// Enhanced validation schema with NEMIS format validation (11 digits)
 const secondaryStudentSchema = z.object({
   nemisId: z
     .string()
     .min(1, "NEMIS ID is required")
-    .length(14, "NEMIS ID must be exactly 14 digits")
-    .regex(/^\d{14}$/, "NEMIS ID must contain only digits")
+    .length(11, "NEMIS ID must be exactly 11 digits")
+    .regex(/^\d{11}$/, "NEMIS ID must contain only digits")
     .refine((val) => {
-      const countyCode = parseInt(val.substring(0, 2), 10);
+      const countyCode = parseInt(val.substring(0, 3), 10);
       return countyCode >= 1 && countyCode <= 47;
-    }, "Invalid county code. First 2 digits must be 01-47"),
+    }, "Invalid county code. First 3 digits must be 001-047"),
   studentName: z.string().min(2, "Student name is required"),
   classForm: z.string().min(1, "Class/Form is required"),
   school: z.string().min(1, "School is required"),
@@ -116,8 +116,8 @@ export function SecondaryStudentForm({ onNext, onBack }: SecondaryStudentFormPro
     // Clear previous state
     setLookupError(null);
     
-    // Only validate format when we have 14 digits
-    if (nemisId.length < 14) {
+    // Only validate format when we have 11 digits
+    if (nemisId.length < 11) {
       setSimulatedStudent(null);
       form.setValue("studentName", "");
       form.setValue("school", "");
@@ -195,14 +195,14 @@ export function SecondaryStudentForm({ onNext, onBack }: SecondaryStudentFormPro
                   <FormControl>
                     <div className="relative">
                       <Input
-                        placeholder="e.g., 47100100001234"
+                        placeholder="e.g., 04710011234"
                         {...field}
                         onChange={(e) => {
                           const value = e.target.value.replace(/\D/g, "");
                           field.onChange(value);
                           handleNemisLookup(value);
                         }}
-                        maxLength={14}
+                        maxLength={11}
                         className={cn(
                           isLookingUp && "pr-10",
                           lookupError && "border-destructive focus-visible:ring-destructive"
@@ -216,13 +216,13 @@ export function SecondaryStudentForm({ onNext, onBack }: SecondaryStudentFormPro
                     </div>
                   </FormControl>
                   <FormDescription>
-                    Format: CC-SSSS-NNNNNNNN (County-School-Student)
-                    {field.value.length > 0 && field.value.length < 14 && (
+                    Format: CCC-SSSS-NNNN (County-School-Student)
+                    {field.value.length > 0 && field.value.length < 11 && (
                       <span className="ml-2 text-muted-foreground">
-                        ({field.value.length}/14 digits)
+                        ({field.value.length}/11 digits)
                       </span>
                     )}
-                    {field.value.length === 14 && (
+                    {field.value.length === 11 && (
                       <span className="ml-2 text-primary font-medium">
                         {formatNemisId(field.value)}
                       </span>
