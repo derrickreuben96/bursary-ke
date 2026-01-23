@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ProgressTimeline } from "@/components/tracking/ProgressTimeline";
 import { Search, AlertCircle, Loader2, FileSearch, GraduationCap, School } from "lucide-react";
 import { isValidTrackingNumber } from "@/lib/maskData";
+import { lookupApplication, type TrackingResult } from "@/lib/applicationService";
 import { sampleTrackingData, type TrackingInfo } from "@/lib/mockData";
 
 export default function Track() {
@@ -41,18 +42,39 @@ export default function Track() {
 
     setIsLoading(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1200));
-
-    const data = sampleTrackingData[normalizedNumber];
-    
-    if (data) {
-      setResult(data);
-    } else {
-      setNotFound(true);
+    try {
+      // First try to lookup in database
+      const dbResult = await lookupApplication(normalizedNumber);
+      
+      if (dbResult) {
+        // Convert database result to TrackingInfo format
+        setResult({
+          trackingNumber: dbResult.trackingNumber,
+          studentType: dbResult.studentType,
+          currentStage: dbResult.stages.findIndex(s => s.status === "current") + 1 || 1,
+          stages: dbResult.stages,
+        });
+      } else {
+        // Fallback to sample data for demo
+        const sampleData = sampleTrackingData[normalizedNumber];
+        if (sampleData) {
+          setResult(sampleData);
+        } else {
+          setNotFound(true);
+        }
+      }
+    } catch (err) {
+      console.error("Tracking lookup error:", err);
+      // Fallback to sample data
+      const sampleData = sampleTrackingData[normalizedNumber];
+      if (sampleData) {
+        setResult(sampleData);
+      } else {
+        setNotFound(true);
+      }
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   };
 
   return (
@@ -95,7 +117,7 @@ export default function Track() {
               <Button
                 onClick={handleTrack}
                 disabled={isLoading}
-                className="h-12 px-8"
+                className="h-12 px-8 hover:scale-105 transition-transform"
               >
                 {isLoading ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
@@ -215,7 +237,7 @@ export default function Track() {
                     setTrackingNumber("BKE-ABC123");
                     setError("");
                   }}
-                  className="font-mono"
+                  className="font-mono hover:scale-105 transition-transform"
                 >
                   BKE-ABC123
                 </Button>
@@ -226,7 +248,7 @@ export default function Track() {
                     setTrackingNumber("BKE-XYZ789");
                     setError("");
                   }}
-                  className="font-mono"
+                  className="font-mono hover:scale-105 transition-transform"
                 >
                   BKE-XYZ789
                 </Button>

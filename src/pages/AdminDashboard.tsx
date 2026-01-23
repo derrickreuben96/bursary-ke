@@ -1,8 +1,13 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { fetchDashboardStats } from "@/lib/applicationService";
 import { adminDashboardData } from "@/lib/mockData";
 import { formatKES, formatNumber, formatPercentage } from "@/lib/formatters";
+import { useAuth } from "@/hooks/useAuth";
 import {
   Users,
   CheckCircle,
@@ -12,6 +17,8 @@ import {
   TrendingUp,
   BarChart3,
   PieChart,
+  LogOut,
+  Loader2,
 } from "lucide-react";
 import {
   PieChart as RechartsPie,
@@ -62,7 +69,37 @@ function StatCard({ title, value, icon, trend, trendUp }: StatCardProps) {
   );
 }
 
+type DashboardData = typeof adminDashboardData;
+
 export default function AdminDashboard() {
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(true);
+  const [dashboardData, setDashboardData] = useState<DashboardData>(adminDashboardData);
+
+  useEffect(() => {
+    async function loadData() {
+      setIsLoading(true);
+      try {
+        const data = await fetchDashboardStats();
+        if (data) {
+          setDashboardData(data);
+        }
+      } catch (error) {
+        console.error("Failed to load dashboard data:", error);
+        // Fallback to mock data
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/");
+  };
+
   const {
     totalApplications,
     approvedApplications,
@@ -72,19 +109,46 @@ export default function AdminDashboard() {
     povertyDistribution,
     applicationsByCounty,
     monthlyTrends,
-  } = adminDashboardData;
+  } = dashboardData;
 
-  const approvalRate = (approvedApplications / totalApplications) * 100;
+  const approvalRate = totalApplications > 0 
+    ? (approvedApplications / totalApplications) * 100 
+    : 0;
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-secondary/30">
+        <Header />
+        <main className="flex-1 container py-8 flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading dashboard data...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-secondary/30">
       <Header />
       <main className="flex-1 container py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
-          <p className="text-muted-foreground mt-2">
-            Overview of bursary applications and fund distribution (aggregated data only - no PII visible)
-          </p>
+        <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
+            <p className="text-muted-foreground mt-2">
+              Welcome, {user?.email} | Overview of bursary applications (aggregated data only)
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={handleLogout}
+            className="hover:scale-105 transition-transform"
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            Logout
+          </Button>
         </div>
 
         {/* Summary Cards */}
