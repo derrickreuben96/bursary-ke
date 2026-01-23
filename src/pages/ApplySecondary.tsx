@@ -8,6 +8,7 @@ import { SecondaryStudentForm } from "@/components/application/SecondaryStudentF
 import { PovertyQuestionnaire } from "@/components/application/PovertyQuestionnaire";
 import { ReviewSubmit } from "@/components/application/ReviewSubmit";
 import { SuccessModal } from "@/components/application/SuccessModal";
+import { FormAssistant } from "@/components/chat/FormAssistant";
 import { GraduationCap, Shield, Lock } from "lucide-react";
 
 const steps = ["Parent/Guardian", "Student Info", "Assessment", "Review"];
@@ -40,8 +41,8 @@ function ApplicationFormContent() {
             Complete the form below to apply for educational funding. Your information is encrypted and protected.
           </p>
           
-          {/* Security badges */}
-          <div className="flex justify-center gap-4 mt-4">
+          {/* Security badges and AI helper */}
+          <div className="flex justify-center items-center gap-6 mt-4">
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <Shield className="h-4 w-4 text-primary" />
               <span>Secure Form</span>
@@ -50,6 +51,7 @@ function ApplicationFormContent() {
               <Lock className="h-4 w-4 text-primary" />
               <span>Data Encrypted</span>
             </div>
+            <FormAssistant context="Secondary school bursary application form" />
           </div>
         </div>
 
