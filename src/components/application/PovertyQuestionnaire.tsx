@@ -1,7 +1,8 @@
+import { useState, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -21,59 +22,89 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, ArrowRight, ClipboardCheck, Lock } from "lucide-react";
-import { povertyQuestionnaireSchema, type PovertyQuestionnaireFormData } from "@/lib/validationSchemas";
+import { ArrowLeft, ArrowRight, ClipboardCheck, Lock, Shuffle } from "lucide-react";
 import { useApplication } from "@/context/ApplicationContext";
-import { formatKES } from "@/lib/formatters";
+import { getRandomizedQuestions, calculatePovertyScoreFromAnswers, type PovertyQuestion } from "@/lib/povertyQuestions";
 
 interface PovertyQuestionnaireProps {
   onNext: () => void;
   onBack: () => void;
 }
 
-const incomeLabels = [
-  { value: 0, label: "Below KES 10,000" },
-  { value: 25, label: "KES 10,000 - 30,000" },
-  { value: 50, label: "KES 30,000 - 60,000" },
-  { value: 75, label: "KES 60,000 - 100,000" },
-  { value: 100, label: "Above KES 100,000" },
-];
-
-function getIncomeLabel(value: number): string {
-  const closest = incomeLabels.reduce((prev, curr) =>
-    Math.abs(curr.value - value) < Math.abs(prev.value - value) ? curr : prev
-  );
-  return closest.label;
-}
-
 export function PovertyQuestionnaire({ onNext, onBack }: PovertyQuestionnaireProps) {
   const { data, updateData } = useApplication();
+  
+  // Generate randomized questions once per session
+  const questions = useMemo(() => getRandomizedQuestions(8), []);
+  
+  // Build dynamic schema based on questions
+  const dynamicSchema = useMemo(() => {
+    const schemaFields: Record<string, z.ZodTypeAny> = {};
+    questions.forEach(q => {
+      schemaFields[q.id] = z.string().min(1, "Please select an option");
+    });
+    schemaFields.additionalCircumstances = z.string().max(500).optional();
+    return z.object(schemaFields);
+  }, [questions]);
 
-  const form = useForm<PovertyQuestionnaireFormData>({
-    resolver: zodResolver(povertyQuestionnaireSchema),
-    defaultValues: {
-      householdIncome: data.povertyQuestionnaire?.householdIncome ?? 50,
-      numberOfDependents: data.povertyQuestionnaire?.numberOfDependents ?? 4,
-      housingType: data.povertyQuestionnaire?.housingType,
-      accessToUtilities: data.povertyQuestionnaire?.accessToUtilities ?? {
-        electricity: true,
-        water: true,
-        internet: false,
-      },
-      parentalEmployment: data.povertyQuestionnaire?.parentalEmployment,
-      otherChildrenInSchool: data.povertyQuestionnaire?.otherChildrenInSchool ?? 2,
-      receivesOtherAid: data.povertyQuestionnaire?.receivesOtherAid ?? false,
-      additionalCircumstances: data.povertyQuestionnaire?.additionalCircumstances || "",
-    },
+  type DynamicFormData = z.infer<typeof dynamicSchema>;
+
+  // Build default values
+  const defaultValues = useMemo(() => {
+    const values: Record<string, string> = {};
+    questions.forEach(q => {
+      values[q.id] = (data.povertyQuestionnaire as any)?.[q.id] || "";
+    });
+    values.additionalCircumstances = (data.povertyQuestionnaire as any)?.additionalCircumstances || "";
+    return values;
+  }, [questions, data.povertyQuestionnaire]);
+
+  const form = useForm<DynamicFormData>({
+    resolver: zodResolver(dynamicSchema),
+    defaultValues,
   });
 
-  const householdIncome = form.watch("householdIncome");
-  const numberOfDependents = form.watch("numberOfDependents");
-  const otherChildrenInSchool = form.watch("otherChildrenInSchool");
-
-  const onSubmit = (formData: PovertyQuestionnaireFormData) => {
-    updateData({ povertyQuestionnaire: formData });
+  const onSubmit = (formData: DynamicFormData) => {
+    // Calculate poverty score from answers
+    const { percentage } = calculatePovertyScoreFromAnswers(formData, questions);
+    
+    // Store the raw answers plus calculated metrics
+    updateData({ 
+      povertyQuestionnaire: {
+        ...formData,
+        householdIncome: percentage, // Store as percentage for backward compatibility
+        numberOfDependents: 4, // Default for backward compatibility
+        housingType: "Other" as const,
+        accessToUtilities: { electricity: true, water: true, internet: false },
+        parentalEmployment: "One Employed" as const,
+        otherChildrenInSchool: 2,
+        receivesOtherAid: false,
+        _rawAnswers: formData,
+        _questions: questions.map(q => q.id),
+        _calculatedScore: percentage,
+      } as any
+    });
     onNext();
+  };
+
+  // Group questions by category for better UX
+  const groupedQuestions = useMemo(() => {
+    const groups: Record<string, PovertyQuestion[]> = {};
+    questions.forEach(q => {
+      if (!groups[q.category]) groups[q.category] = [];
+      groups[q.category].push(q);
+    });
+    return groups;
+  }, [questions]);
+
+  const categoryLabels: Record<string, string> = {
+    income: "💰 Income & Financial Situation",
+    housing: "🏠 Housing & Living Conditions",
+    employment: "💼 Employment Status",
+    health: "🏥 Health & Disability",
+    education: "📚 Education",
+    assets: "📦 Household Assets",
+    vulnerability: "🛡️ Vulnerability Factors",
   };
 
   return (
@@ -93,221 +124,48 @@ export function PovertyQuestionnaire({ onNext, onBack }: PovertyQuestionnairePro
           </div>
         </Card>
 
-        {/* Household Income Slider */}
-        <FormField
-          control={form.control}
-          name="householdIncome"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Monthly Household Income</FormLabel>
-              <FormControl>
-                <div className="pt-2">
-                  <Slider
-                    min={0}
-                    max={100}
-                    step={5}
-                    value={[field.value]}
-                    onValueChange={(value) => field.onChange(value[0])}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between mt-2 text-sm text-muted-foreground">
-                    <span>Low</span>
-                    <span className="font-medium text-foreground">
-                      {getIncomeLabel(householdIncome)}
-                    </span>
-                    <span>High</span>
-                  </div>
-                </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {/* Randomization Notice */}
+        <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
+          <Shuffle className="h-4 w-4" />
+          <span>Questions are randomized for each applicant to ensure fair assessment</span>
+        </div>
 
-        {/* Number of Dependents */}
-        <FormField
-          control={form.control}
-          name="numberOfDependents"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Total Household Members (including yourself)</FormLabel>
-              <FormControl>
-                <div className="pt-2">
-                  <Slider
-                    min={1}
-                    max={15}
-                    step={1}
-                    value={[field.value]}
-                    onValueChange={(value) => field.onChange(value[0])}
-                    className="w-full"
-                  />
-                  <div className="text-center mt-2">
-                    <span className="font-semibold text-lg text-foreground">
-                      {numberOfDependents}
-                    </span>
-                    <span className="text-muted-foreground"> members</span>
-                  </div>
-                </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Housing Type */}
-        <FormField
-          control={form.control}
-          name="housingType"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Type of Housing</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger className="bg-background">
-                    <SelectValue placeholder="Select housing type" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent className="bg-background z-50">
-                  <SelectItem value="Owned">Owned (family owns the house)</SelectItem>
-                  <SelectItem value="Rented">Rented accommodation</SelectItem>
-                  <SelectItem value="Informal">Informal settlement</SelectItem>
-                  <SelectItem value="Other">Other arrangement</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Access to Utilities */}
-        <FormField
-          control={form.control}
-          name="accessToUtilities"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Access to Utilities (select all that apply)</FormLabel>
-              <div className="space-y-3 pt-2">
-                <div className="flex items-center space-x-3">
-                  <Checkbox
-                    id="electricity"
-                    checked={field.value.electricity}
-                    onCheckedChange={(checked) =>
-                      field.onChange({ ...field.value, electricity: checked })
-                    }
-                  />
-                  <label htmlFor="electricity" className="text-sm">
-                    Electricity
-                  </label>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Checkbox
-                    id="water"
-                    checked={field.value.water}
-                    onCheckedChange={(checked) =>
-                      field.onChange({ ...field.value, water: checked })
-                    }
-                  />
-                  <label htmlFor="water" className="text-sm">
-                    Piped Water
-                  </label>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Checkbox
-                    id="internet"
-                    checked={field.value.internet}
-                    onCheckedChange={(checked) =>
-                      field.onChange({ ...field.value, internet: checked })
-                    }
-                  />
-                  <label htmlFor="internet" className="text-sm">
-                    Internet Access
-                  </label>
-                </div>
-              </div>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Parental Employment */}
-        <FormField
-          control={form.control}
-          name="parentalEmployment"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Parental/Guardian Employment Status</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger className="bg-background">
-                    <SelectValue placeholder="Select employment status" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent className="bg-background z-50">
-                  <SelectItem value="Both Employed">Both parents employed</SelectItem>
-                  <SelectItem value="One Employed">One parent employed</SelectItem>
-                  <SelectItem value="Self-Employed">Self-employed/Casual work</SelectItem>
-                  <SelectItem value="Both Unemployed">Both parents unemployed</SelectItem>
-                  <SelectItem value="Deceased/N/A">Deceased/Not applicable</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Other Children in School */}
-        <FormField
-          control={form.control}
-          name="otherChildrenInSchool"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Other Children in School/College</FormLabel>
-              <FormControl>
-                <div className="pt-2">
-                  <Slider
-                    min={0}
-                    max={10}
-                    step={1}
-                    value={[field.value]}
-                    onValueChange={(value) => field.onChange(value[0])}
-                    className="w-full"
-                  />
-                  <div className="text-center mt-2">
-                    <span className="font-semibold text-lg text-foreground">
-                      {otherChildrenInSchool}
-                    </span>
-                    <span className="text-muted-foreground"> other children</span>
-                  </div>
-                </div>
-              </FormControl>
-              <FormDescription>
-                Number of other siblings or dependents currently in school
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Receives Other Aid */}
-        <FormField
-          control={form.control}
-          name="receivesOtherAid"
-          render={({ field }) => (
-            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-              <FormControl>
-                <Checkbox
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              </FormControl>
-              <div className="space-y-1 leading-none">
-                <FormLabel className="font-normal">
-                  I/We currently receive other forms of financial aid or bursaries
-                </FormLabel>
-              </div>
-            </FormItem>
-          )}
-        />
+        {/* Dynamic Questions grouped by category */}
+        {Object.entries(groupedQuestions).map(([category, categoryQuestions]) => (
+          <div key={category} className="space-y-4">
+            <h3 className="text-sm font-semibold text-muted-foreground border-b pb-2">
+              {categoryLabels[category] || category}
+            </h3>
+            
+            {categoryQuestions.map((question) => (
+              <FormField
+                key={question.id}
+                control={form.control}
+                name={question.id as keyof DynamicFormData}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-foreground">{question.question}</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value as string}>
+                      <FormControl>
+                        <SelectTrigger className="bg-background">
+                          <SelectValue placeholder="Select an option" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="bg-background z-50">
+                        {question.options?.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            ))}
+          </div>
+        ))}
 
         {/* Additional Circumstances */}
         <FormField
@@ -318,7 +176,7 @@ export function PovertyQuestionnaire({ onNext, onBack }: PovertyQuestionnairePro
               <FormLabel>Additional Circumstances (Optional)</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Describe any special circumstances that affect your financial situation (e.g., medical conditions, recent loss of income, natural disaster)"
+                  placeholder="Describe any special circumstances that affect your financial situation (e.g., medical conditions, recent loss of income, natural disaster, disability details)"
                   className="resize-none"
                   rows={3}
                   {...field}

@@ -12,6 +12,7 @@ import ApplySecondary from "./pages/ApplySecondary";
 import FAQ from "./pages/FAQ";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminLogin from "./pages/AdminLogin";
+import AdminAllocation from "./pages/AdminAllocation";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,14 @@ const App = () => (
               element={
                 <ProtectedRoute requireAdmin>
                   <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/allocation"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <AdminAllocation />
                 </ProtectedRoute>
               }
             />

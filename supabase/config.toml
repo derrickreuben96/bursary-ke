@@ -1,1 +1,10 @@
 project_id = "adhoebapzgtjrexhwame"
+
+[functions.bursary-assistant]
+verify_jwt = false
+
+[functions.allocate-bursary]
+verify_jwt = false
+
+[functions.setup-admin]
+verify_jwt = false
