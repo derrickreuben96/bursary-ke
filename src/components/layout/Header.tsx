@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X, GraduationCap, Shield } from "lucide-react";
+import { Menu, X, GraduationCap, Shield, Building2, UserCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
@@ -10,6 +10,12 @@ const navLinks = [
   { href: "/apply/university", label: "Apply (University)" },
   { href: "/track", label: "Track Application" },
   { href: "/faq", label: "FAQ" },
+];
+
+const portalLinks = [
+  { href: "/admin/login", label: "Admin", icon: Shield },
+  { href: "/treasury/login", label: "Treasury", icon: Building2 },
+  { href: "/commissioner/login", label: "Commissioner", icon: UserCheck },
 ];
 
 export function Header() {
@@ -47,19 +53,28 @@ export function Header() {
             </Link>
           ))}
           
-          {/* Admin Access Button */}
-          <Link
-            to="/admin/login"
-            className={cn(
-              "ml-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300 hover:scale-105 flex items-center gap-2 border",
-              location.pathname.startsWith("/admin")
-                ? "bg-accent text-accent-foreground border-accent"
-                : "text-accent hover:bg-accent/10 border-accent/30 hover:border-accent"
-            )}
-          >
-            <Shield className="h-4 w-4" />
-            Admin
-          </Link>
+          {/* Portal Access Buttons */}
+          <div className="flex items-center gap-1 ml-2 border-l border-border pl-2">
+            {portalLinks.map((portal) => {
+              const Icon = portal.icon;
+              const isActive = location.pathname.startsWith(portal.href.replace("/login", ""));
+              return (
+                <Link
+                  key={portal.href}
+                  to={portal.href}
+                  className={cn(
+                    "px-3 py-2 text-xs font-medium rounded-lg transition-all duration-300 hover:scale-105 flex items-center gap-1.5 border",
+                    isActive
+                      ? "bg-accent text-accent-foreground border-accent"
+                      : "text-muted-foreground hover:text-accent hover:bg-accent/10 border-transparent hover:border-accent/30"
+                  )}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  {portal.label}
+                </Link>
+              );
+            })}
+          </div>
         </nav>
 
         {/* Mobile Menu Button */}
@@ -93,20 +108,30 @@ export function Header() {
                 {link.label}
               </Link>
             ))}
-            {/* Admin Access Button (Mobile) */}
-            <Link
-              to="/admin/login"
-              onClick={() => setMobileMenuOpen(false)}
-              className={cn(
-                "px-4 py-3 text-sm font-medium rounded-lg transition-colors flex items-center gap-2 border",
-                location.pathname.startsWith("/admin")
-                  ? "bg-accent text-accent-foreground border-accent"
-                  : "text-accent hover:bg-accent/10 border-accent/30"
-              )}
-            >
-              <Shield className="h-4 w-4" />
-              Admin Access
-            </Link>
+            {/* Portal Access Buttons (Mobile) */}
+            <div className="border-t border-border pt-2 mt-2">
+              <p className="px-4 py-1 text-xs font-semibold text-muted-foreground uppercase">Portals</p>
+              {portalLinks.map((portal) => {
+                const Icon = portal.icon;
+                const isActive = location.pathname.startsWith(portal.href.replace("/login", ""));
+                return (
+                  <Link
+                    key={portal.href}
+                    to={portal.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={cn(
+                      "px-4 py-3 text-sm font-medium rounded-lg transition-colors flex items-center gap-2",
+                      isActive
+                        ? "bg-accent text-accent-foreground"
+                        : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {portal.label} Portal
+                  </Link>
+                );
+              })}
+            </div>
           </nav>
         </div>
       )}
