@@ -1,6 +1,8 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -10,13 +12,58 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRouteProps) {
   const { user, isLoading, isAdmin } = useAuth();
   const location = useLocation();
+  const [serverVerified, setServerVerified] = useState<boolean | null>(null);
+  const [verifying, setVerifying] = useState(false);
 
-  if (isLoading) {
+  // Server-side admin verification for defense-in-depth
+  useEffect(() => {
+    async function verifyAdminServerSide() {
+      if (!requireAdmin || !user) {
+        setServerVerified(null);
+        return;
+      }
+
+      setVerifying(true);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) {
+          setServerVerified(false);
+          return;
+        }
+
+        const response = await supabase.functions.invoke('verify-admin', {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        });
+
+        if (response.error) {
+          console.error("Server verification failed:", response.error);
+          // Fall back to client-side check if server verification fails
+          setServerVerified(isAdmin);
+        } else {
+          setServerVerified(response.data?.isAdmin === true);
+        }
+      } catch (error) {
+        console.error("Error verifying admin status:", error);
+        // Fall back to client-side check on network errors
+        setServerVerified(isAdmin);
+      } finally {
+        setVerifying(false);
+      }
+    }
+
+    verifyAdminServerSide();
+  }, [requireAdmin, user, isAdmin]);
+
+  if (isLoading || verifying) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-secondary/30">
         <div className="text-center">
           <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Checking authentication...</p>
+          <p className="text-muted-foreground">
+            {verifying ? "Verifying access..." : "Checking authentication..."}
+          </p>
         </div>
       </div>
     );
@@ -26,7 +73,10 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
     return <Navigate to="/admin/login" state={{ from: location }} replace />;
   }
 
-  if (requireAdmin && !isAdmin) {
+  // Use server verification result if available, otherwise fall back to client-side
+  const hasAdminAccess = requireAdmin ? (serverVerified ?? isAdmin) : true;
+
+  if (requireAdmin && !hasAdminAccess) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-secondary/30">
         <div className="text-center max-w-md p-8">

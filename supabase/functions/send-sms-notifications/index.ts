@@ -128,14 +128,14 @@ Deno.serve(async (req) => {
 
       if (useRealSMS) {
         // Send real SMS via Africa's Talking
-        console.log(`[SMS] Sending to: ${app.parent_phone}`);
+        console.log(`[SMS] Sending to: ${app.tracking_number}`); // Log tracking number instead of phone for privacy
         const smsResult = await sendSMSViaAfricasTalking(
           app.parent_phone,
           message,
           africasTalkingApiKey,
           africasTalkingUsername
         );
-        console.log(`[SMS] Result:`, smsResult);
+        console.log(`[SMS] Result for ${app.tracking_number}: ${smsResult.success ? "sent" : "failed"}`);
         smsSuccess = smsResult.success;
         smsMessageId = smsResult.messageId || "";
         smsError = smsResult.error;
@@ -185,9 +185,8 @@ Deno.serve(async (req) => {
     );
   } catch (error: unknown) {
     console.error("Error sending SMS notifications:", error);
-    const message = error instanceof Error ? error.message : "Unknown error";
     return new Response(
-      JSON.stringify({ success: false, error: message }),
+      JSON.stringify({ success: false, error: "SMS notification processing failed. Please try again later." }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

@@ -213,9 +213,8 @@ Deno.serve(async (req) => {
     );
   } catch (error: unknown) {
     console.error("Error processing allocations:", error);
-    const message = error instanceof Error ? error.message : "Unknown error";
     return new Response(
-      JSON.stringify({ success: false, error: message }),
+      JSON.stringify({ success: false, error: "Allocation processing failed. Please try again later." }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
