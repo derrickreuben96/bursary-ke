@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -35,11 +35,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { ArrowLeft, ArrowRight, Check, ChevronsUpDown, School, User } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, ChevronsUpDown, School, User, Loader2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { maskName } from "@/lib/maskData";
+import { validateNemisFormat, lookupNemisId, formatNemisId, type NemisLookupResult } from "@/lib/nemisApi";
 
-// Mock schools list
+// Fallback schools list for manual selection
 const kenyanSchools = [
   "Alliance High School",
   "Kenya High School",
@@ -63,11 +64,17 @@ const kenyanSchools = [
   "Other (specify)",
 ];
 
+// Enhanced validation schema with NEMIS format validation
 const secondaryStudentSchema = z.object({
   nemisId: z
     .string()
     .min(1, "NEMIS ID is required")
-    .regex(/^\d{10,14}$/, "NEMIS ID must be 10-14 digits"),
+    .length(14, "NEMIS ID must be exactly 14 digits")
+    .regex(/^\d{14}$/, "NEMIS ID must contain only digits")
+    .refine((val) => {
+      const countyCode = parseInt(val.substring(0, 2), 10);
+      return countyCode >= 1 && countyCode <= 47;
+    }, "Invalid county code. First 2 digits must be 01-47"),
   studentName: z.string().min(2, "Student name is required"),
   classForm: z.string().min(1, "Class/Form is required"),
   school: z.string().min(1, "School is required"),
@@ -80,10 +87,20 @@ interface SecondaryStudentFormProps {
   onBack: () => void;
 }
 
+interface StudentData {
+  name: string;
+  school: string;
+  countyName: string;
+  schoolCode: string;
+}
+
 export function SecondaryStudentForm({ onNext, onBack }: SecondaryStudentFormProps) {
   const { data, updateData } = useApplication();
   const [schoolOpen, setSchoolOpen] = useState(false);
-  const [simulatedStudent, setSimulatedStudent] = useState<{ name: string; school: string } | null>(null);
+  const [isLookingUp, setIsLookingUp] = useState(false);
+  const [lookupError, setLookupError] = useState<string | null>(null);
+  const [simulatedStudent, setSimulatedStudent] = useState<StudentData | null>(null);
+  
   const form = useForm<SecondaryStudentFormData>({
     resolver: zodResolver(secondaryStudentSchema),
     defaultValues: {
@@ -94,27 +111,56 @@ export function SecondaryStudentForm({ onNext, onBack }: SecondaryStudentFormPro
     },
   });
 
-  // Simulate NEMIS ID lookup - returns both student name and school
-  const handleNemisLookup = (nemisId: string) => {
-    if (nemisId.length >= 10) {
-      // Simulate API response with student data linked to NEMIS ID
-      const sampleStudents = [
-        { name: "John Kamau Mwangi", school: "Alliance High School" },
-        { name: "Mary Wanjiku Njoroge", school: "Kenya High School" },
-        { name: "Peter Ochieng Otieno", school: "Maseno School" },
-        { name: "Grace Akinyi Odhiambo", school: "Pangani Girls High School" },
-        { name: "David Kiprop Cheruiyot", school: "Moi Forces Academy" },
-      ];
-      const randomStudent = sampleStudents[Math.floor(Math.random() * sampleStudents.length)];
-      setSimulatedStudent(randomStudent);
-      form.setValue("studentName", randomStudent.name);
-      form.setValue("school", randomStudent.school);
-    } else {
+  // NEMIS API lookup with validation
+  const handleNemisLookup = useCallback(async (nemisId: string) => {
+    // Clear previous state
+    setLookupError(null);
+    
+    // Only validate format when we have 14 digits
+    if (nemisId.length < 14) {
       setSimulatedStudent(null);
       form.setValue("studentName", "");
       form.setValue("school", "");
+      return;
     }
-  };
+
+    // Validate format before API call
+    const validation = validateNemisFormat(nemisId);
+    if (!validation.isValid) {
+      setLookupError(validation.error || "Invalid NEMIS ID format");
+      setSimulatedStudent(null);
+      return;
+    }
+
+    // Perform API lookup
+    setIsLookingUp(true);
+    try {
+      const result: NemisLookupResult = await lookupNemisId(nemisId);
+      
+      if (result.success && result.data) {
+        const studentData: StudentData = {
+          name: result.data.studentName,
+          school: result.data.schoolName,
+          countyName: result.data.countyName,
+          schoolCode: result.data.schoolCode,
+        };
+        setSimulatedStudent(studentData);
+        form.setValue("studentName", result.data.studentName);
+        form.setValue("school", result.data.schoolName);
+        setLookupError(null);
+      } else {
+        setLookupError(result.error || "Student not found in NEMIS database");
+        setSimulatedStudent(null);
+        form.setValue("studentName", "");
+        form.setValue("school", "");
+      }
+    } catch (error) {
+      setLookupError("Failed to connect to NEMIS database. Please try again.");
+      setSimulatedStudent(null);
+    } finally {
+      setIsLookingUp(false);
+    }
+  }, [form]);
 
   const onSubmit = (formData: SecondaryStudentFormData) => {
     updateData({
@@ -147,20 +193,47 @@ export function SecondaryStudentForm({ onNext, onBack }: SecondaryStudentFormPro
                 <FormItem>
                   <FormLabel>NEMIS ID</FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder="Enter 10-14 digit NEMIS ID"
-                      {...field}
-                      onChange={(e) => {
-                        const value = e.target.value.replace(/\D/g, "");
-                        field.onChange(value);
-                        handleNemisLookup(value);
-                      }}
-                      maxLength={14}
-                    />
+                    <div className="relative">
+                      <Input
+                        placeholder="e.g., 47100100001234"
+                        {...field}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, "");
+                          field.onChange(value);
+                          handleNemisLookup(value);
+                        }}
+                        maxLength={14}
+                        className={cn(
+                          isLookingUp && "pr-10",
+                          lookupError && "border-destructive focus-visible:ring-destructive"
+                        )}
+                      />
+                      {isLookingUp && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        </div>
+                      )}
+                    </div>
                   </FormControl>
                   <FormDescription>
-                    Your National Education Management Information System ID
+                    Format: CC-SSSS-NNNNNNNN (County-School-Student)
+                    {field.value.length > 0 && field.value.length < 14 && (
+                      <span className="ml-2 text-muted-foreground">
+                        ({field.value.length}/14 digits)
+                      </span>
+                    )}
+                    {field.value.length === 14 && (
+                      <span className="ml-2 text-primary font-medium">
+                        {formatNemisId(field.value)}
+                      </span>
+                    )}
                   </FormDescription>
+                  {lookupError && (
+                    <div className="flex items-center gap-2 text-sm text-destructive mt-1">
+                      <AlertCircle className="h-4 w-4" />
+                      <span>{lookupError}</span>
+                    </div>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
@@ -168,10 +241,11 @@ export function SecondaryStudentForm({ onNext, onBack }: SecondaryStudentFormPro
 
             {/* Student Name (auto-filled, masked) */}
             {simulatedStudent && (
-              <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
+              <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg animate-in fade-in-50 duration-300">
                 <div className="flex items-center gap-2 mb-2">
                   <User className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-medium text-foreground">Student Identified</span>
+                  <span className="text-sm font-medium text-foreground">Student Verified via NEMIS</span>
+                  <Check className="h-4 w-4 text-primary" />
                 </div>
                 <p className="text-lg font-semibold text-foreground">
                   {maskName(simulatedStudent.name)}
@@ -179,6 +253,7 @@ export function SecondaryStudentForm({ onNext, onBack }: SecondaryStudentFormPro
                 <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
                   <School className="h-4 w-4" />
                   <span>{simulatedStudent.school}</span>
+                  <span className="text-xs">({simulatedStudent.countyName} County)</span>
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">
                   Name masked for privacy. Full details stored securely.
