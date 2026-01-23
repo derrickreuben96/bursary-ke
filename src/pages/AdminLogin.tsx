@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
@@ -15,9 +15,31 @@ export default function AdminLogin() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn, isAdmin } = useAuth();
+  const [loginAttempted, setLoginAttempted] = useState(false);
+  const { signIn, isAdmin, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Watch for auth state changes after login attempt
+  useEffect(() => {
+    if (loginAttempted && user) {
+      if (isAdmin) {
+        toast({
+          title: "Welcome Back",
+          description: "You have successfully logged in as an administrator.",
+        });
+        navigate("/admin");
+      } else {
+        toast({
+          title: "Access Denied",
+          description: "You do not have administrator privileges.",
+          variant: "destructive",
+        });
+      }
+      setIsLoading(false);
+      setLoginAttempted(false);
+    }
+  }, [loginAttempted, user, isAdmin, navigate, toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,24 +57,8 @@ export default function AdminLogin() {
       return;
     }
 
-    // Check admin status after successful login
-    // Small delay to allow auth state to update
-    setTimeout(() => {
-      if (isAdmin) {
-        toast({
-          title: "Welcome Back",
-          description: "You have successfully logged in as an administrator.",
-        });
-        navigate("/admin");
-      } else {
-        toast({
-          title: "Access Denied",
-          description: "You do not have administrator privileges.",
-          variant: "destructive",
-        });
-      }
-      setIsLoading(false);
-    }, 500);
+    // Mark that login was attempted - the useEffect will handle navigation
+    setLoginAttempted(true);
   };
 
   return (
