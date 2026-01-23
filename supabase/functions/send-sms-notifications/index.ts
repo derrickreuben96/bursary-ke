@@ -18,6 +18,59 @@ interface AfricasTalkingResponse {
   };
 }
 
+// Helper function to verify admin role
+async function verifyAdminRole(req: Request): Promise<{ user: { id: string } } | Response> {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized - Authentication required' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // Create authenticated client to verify JWT
+  const supabaseClient = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_ANON_KEY')!,
+    {
+      global: { headers: { Authorization: authHeader } },
+    }
+  );
+
+  const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+  if (userError || !user) {
+    return new Response(
+      JSON.stringify({ error: 'Invalid or expired token' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // Check admin role using service role client for RLS bypass
+  const supabaseAdmin = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    {
+      auth: { autoRefreshToken: false, persistSession: false },
+    }
+  );
+
+  const { data: roleData } = await supabaseAdmin
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', user.id)
+    .eq('role', 'admin')
+    .maybeSingle();
+
+  if (!roleData) {
+    return new Response(
+      JSON.stringify({ error: 'Forbidden - Admin role required' }),
+      { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  return { user };
+}
+
 async function sendSMSViaAfricasTalking(
   phone: string,
   message: string,
@@ -82,6 +135,12 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Verify admin authentication
+    const authResult = await verifyAdminRole(req);
+    if (authResult instanceof Response) {
+      return authResult;
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const africasTalkingApiKey = Deno.env.get("AFRICASTALKING_API_KEY");

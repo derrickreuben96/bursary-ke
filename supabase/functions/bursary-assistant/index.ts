@@ -1,9 +1,19 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Input validation schema
+const BursaryAssistantSchema = z.object({
+  messages: z.array(z.object({
+    role: z.enum(['user', 'assistant', 'system']),
+    content: z.string().max(2000),
+  })).max(50),
+  type: z.enum(['faq', 'form']).optional().default('faq'),
+});
 
 const SYSTEM_PROMPTS = {
   faq: `You are a helpful assistant for the Kenya Bursary Application Portal. You answer questions about:
@@ -33,7 +43,18 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, type = "faq" } = await req.json();
+    // Parse and validate input
+    const rawBody = await req.json();
+    const parseResult = BursaryAssistantSchema.safeParse(rawBody);
+    
+    if (!parseResult.success) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid input', details: parseResult.error.errors }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { messages, type } = parseResult.data;
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
