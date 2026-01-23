@@ -86,9 +86,9 @@ function ApplicationFormContent() {
 
         {/* Success Modal */}
         <SuccessModal
-          open={showSuccess}
-          onOpenChange={setShowSuccess}
+          isOpen={showSuccess}
           trackingNumber={trackingNumber}
+          onClose={() => setShowSuccess(false)}
         />
       </main>
       <Footer />
