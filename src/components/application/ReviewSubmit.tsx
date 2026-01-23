@@ -161,28 +161,15 @@ export function ReviewSubmit({ onBack, onSuccess, studentType }: ReviewSubmitPro
           </div>
           <h3 className="font-semibold text-lg">Assessment Summary</h3>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-          <div>
-            <p className="text-muted-foreground">Housing Type</p>
-            <p className="font-medium">{data.povertyQuestionnaire?.housingType}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground">Household Members</p>
-            <p className="font-medium">{data.povertyQuestionnaire?.numberOfDependents}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground">Employment Status</p>
-            <p className="font-medium">{data.povertyQuestionnaire?.parentalEmployment}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground">Priority Level</p>
-            <p className={`font-semibold ${
-              povertyTier === "High" ? "text-accent" :
-              povertyTier === "Medium" ? "text-yellow-600" : "text-primary"
-            }`}>
-              {povertyTier} Priority
-            </p>
-          </div>
+        <div className="text-sm text-muted-foreground">
+          <p className="mb-2">
+            Your poverty assessment has been completed. The responses you provided will be 
+            used to determine your eligibility and priority for bursary allocation.
+          </p>
+          <p className="flex items-center gap-2 text-xs">
+            <Shield className="h-4 w-4 text-primary" />
+            Assessment details are confidential and processed by our AI allocation system
+          </p>
         </div>
       </Card>
 

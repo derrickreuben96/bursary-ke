@@ -298,36 +298,8 @@ const schoolDatabase: Record<string, { name: string; county: string }> = {
   "0471009": { name: "Pangani Girls High School", county: "Nairobi" },
 };
 
-// Simulated student database linked to NEMIS IDs
-const studentDatabase: Record<string, { name: string; schoolCode: string }> = {
-  // Nairobi schools
-  "04710011234": { name: "John Kamau Mwangi", schoolCode: "0471001" },
-  "04710015678": { name: "Peter Wafula Simiyu", schoolCode: "0471001" },
-  "04710021234": { name: "Mary Wanjiku Njoroge", schoolCode: "0471002" },
-  "04710025678": { name: "Grace Muthoni Kariuki", schoolCode: "0471002" },
-  "04710031234": { name: "James Omondi Otieno", schoolCode: "0471003" },
-  "04710041234": { name: "Daniel Kipchoge Korir", schoolCode: "0471004" },
-  "04710051234": { name: "Faith Nyambura Mwangi", schoolCode: "0471005" },
-  "04710091234": { name: "Grace Akinyi Odhiambo", schoolCode: "0471009" },
-  // Kiambu schools
-  "02210011234": { name: "Samuel Njoroge Maina", schoolCode: "0221001" },
-  "02210021234": { name: "Angela Wambui Kamau", schoolCode: "0221002" },
-  // Kisumu schools
-  "04210011234": { name: "Peter Ochieng Otieno", schoolCode: "0421001" },
-  // Uasin Gishu schools
-  "02710011234": { name: "Mercy Chebet Kiplagat", schoolCode: "0271001" },
-  "02710021234": { name: "David Kiprop Cheruiyot", schoolCode: "0271002" },
-  // Other counties
-  "02910011234": { name: "Brian Kibet Koech", schoolCode: "0291001" },
-  "04510011234": { name: "Edwin Nyakundi Mogeni", schoolCode: "0451001" },
-  // Mombasa
-  "00110011234": { name: "Hassan Omar Ali", schoolCode: "0011001" },
-  "00110021234": { name: "Fatuma Mwanaisha", schoolCode: "0011002" },
-  // Siaya
-  "04110011234": { name: "Kevin Otieno Ouma", schoolCode: "0411001" },
-  // Kakamega
-  "03710011234": { name: "Sharon Nekesa Wanyama", schoolCode: "0371001" },
-};
+// Import the generated student database
+import { nemisStudentDatabase, lookupStudentByNemisId as lookupFromDatabase } from "./nemisStudentDatabase";
 
 export interface NemisValidationResult {
   isValid: boolean;
@@ -409,8 +381,8 @@ export async function lookupNemisId(nemisId: string): Promise<NemisLookupResult>
     setTimeout(resolve, 300 + Math.random() * 500)
   );
 
-  // Check if student exists in our simulated database
-  const student = studentDatabase[nemisId];
+  // Check if student exists in our generated NEMIS database
+  const student = lookupFromDatabase(nemisId);
   
   if (student) {
     const school = schoolDatabase[student.schoolCode];
