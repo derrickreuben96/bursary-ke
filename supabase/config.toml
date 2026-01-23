@@ -6,9 +6,6 @@ verify_jwt = false
 [functions.allocate-bursary]
 verify_jwt = false
 
-[functions.setup-admin]
-verify_jwt = false
-
 [functions.process-allocations]
 verify_jwt = false
 
@@ -16,7 +13,4 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.check-deadlines]
-verify_jwt = false
-
-[functions.setup-users]
 verify_jwt = false
