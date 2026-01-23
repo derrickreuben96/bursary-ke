@@ -9,6 +9,7 @@ import { PovertyQuestionnaire } from "@/components/application/PovertyQuestionna
 import { ReviewSubmit } from "@/components/application/ReviewSubmit";
 import { SuccessModal } from "@/components/application/SuccessModal";
 import { ApplicationProvider, useApplication } from "@/context/ApplicationContext";
+import { FormAssistant } from "@/components/chat/FormAssistant";
 import { GraduationCap } from "lucide-react";
 
 const steps = ["Parent Info", "Student Info", "Assessment", "Review"];
@@ -45,9 +46,10 @@ function ApplicationFormContent() {
             <h1 className="text-3xl font-bold text-foreground mb-2">
               University/College Bursary Application
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground mb-4">
               Apply for financial assistance for your higher education
             </p>
+            <FormAssistant context="University/College bursary application form" />
           </div>
 
           {/* Stepper */}

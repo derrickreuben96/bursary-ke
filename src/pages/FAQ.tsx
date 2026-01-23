@@ -9,12 +9,14 @@ import {
 } from "@/components/ui/accordion";
 import { Input } from "@/components/ui/input";
 import { faqItems } from "@/lib/mockData";
-import { HelpCircle, Search, MessageCircle, Phone, Mail } from "lucide-react";
+import { HelpCircle, Search, MessageCircle, Phone, Mail, Sparkles } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { AIChatWidget } from "@/components/chat/AIChatWidget";
 
 export default function FAQ() {
+  const [showAIChat, setShowAIChat] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredFaqs = faqItems.filter(
@@ -123,21 +125,27 @@ export default function FAQ() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-              <Card className="text-center hover:shadow-kenya transition-all duration-300 hover:-translate-y-1">
+              <Card className="text-center hover:shadow-kenya transition-all duration-300 hover:-translate-y-1 border-primary/20">
                 <CardHeader>
                   <div className="flex justify-center mb-2">
                     <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                      <MessageCircle className="h-6 w-6 text-primary" />
+                      <Sparkles className="h-6 w-6 text-primary" />
                     </div>
                   </div>
-                  <CardTitle className="text-lg">Live Chat</CardTitle>
+                  <CardTitle className="text-lg">AI Assistant</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Chat with our support team in real-time
+                    Get instant answers powered by AI
                   </p>
-                  <Button variant="outline" size="sm" className="hover:scale-105 transition-transform">
-                    Start Chat
+                  <Button 
+                    variant="default" 
+                    size="sm" 
+                    className="hover:scale-105 transition-transform"
+                    onClick={() => setShowAIChat(true)}
+                  >
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Ask AI
                   </Button>
                 </CardContent>
               </Card>
@@ -202,6 +210,9 @@ export default function FAQ() {
         </section>
       </main>
       <Footer />
+      
+      {/* AI Chat Widget */}
+      {showAIChat && <AIChatWidget type="faq" title="Bursary AI Assistant" />}
     </div>
   );
 }
