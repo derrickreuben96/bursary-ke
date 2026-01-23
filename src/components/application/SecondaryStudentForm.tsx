@@ -83,8 +83,7 @@ interface SecondaryStudentFormProps {
 export function SecondaryStudentForm({ onNext, onBack }: SecondaryStudentFormProps) {
   const { data, updateData } = useApplication();
   const [schoolOpen, setSchoolOpen] = useState(false);
-  const [simulatedName, setSimulatedName] = useState("");
-
+  const [simulatedStudent, setSimulatedStudent] = useState<{ name: string; school: string } | null>(null);
   const form = useForm<SecondaryStudentFormData>({
     resolver: zodResolver(secondaryStudentSchema),
     defaultValues: {
@@ -95,22 +94,25 @@ export function SecondaryStudentForm({ onNext, onBack }: SecondaryStudentFormPro
     },
   });
 
-  // Simulate NEMIS ID lookup
+  // Simulate NEMIS ID lookup - returns both student name and school
   const handleNemisLookup = (nemisId: string) => {
     if (nemisId.length >= 10) {
-      // Simulate API response with a random Kenyan name
-      const sampleNames = [
-        "John Kamau Mwangi",
-        "Mary Wanjiku Njoroge",
-        "Peter Ochieng Otieno",
-        "Grace Akinyi Odhiambo",
-        "David Kiprop Cheruiyot",
+      // Simulate API response with student data linked to NEMIS ID
+      const sampleStudents = [
+        { name: "John Kamau Mwangi", school: "Alliance High School" },
+        { name: "Mary Wanjiku Njoroge", school: "Kenya High School" },
+        { name: "Peter Ochieng Otieno", school: "Maseno School" },
+        { name: "Grace Akinyi Odhiambo", school: "Pangani Girls High School" },
+        { name: "David Kiprop Cheruiyot", school: "Moi Forces Academy" },
       ];
-      const randomName = sampleNames[Math.floor(Math.random() * sampleNames.length)];
-      setSimulatedName(randomName);
-      form.setValue("studentName", randomName);
+      const randomStudent = sampleStudents[Math.floor(Math.random() * sampleStudents.length)];
+      setSimulatedStudent(randomStudent);
+      form.setValue("studentName", randomStudent.name);
+      form.setValue("school", randomStudent.school);
     } else {
-      setSimulatedName("");
+      setSimulatedStudent(null);
+      form.setValue("studentName", "");
+      form.setValue("school", "");
     }
   };
 
@@ -165,17 +167,21 @@ export function SecondaryStudentForm({ onNext, onBack }: SecondaryStudentFormPro
             />
 
             {/* Student Name (auto-filled, masked) */}
-            {simulatedName && (
+            {simulatedStudent && (
               <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
                   <User className="h-4 w-4 text-primary" />
                   <span className="text-sm font-medium text-foreground">Student Identified</span>
                 </div>
                 <p className="text-lg font-semibold text-foreground">
-                  {maskName(simulatedName)}
+                  {maskName(simulatedStudent.name)}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Name masked for privacy. Full name stored securely.
+                <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                  <School className="h-4 w-4" />
+                  <span>{simulatedStudent.school}</span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Name masked for privacy. Full details stored securely.
                 </p>
               </div>
             )}
@@ -208,62 +214,122 @@ export function SecondaryStudentForm({ onNext, onBack }: SecondaryStudentFormPro
               )}
             />
 
-            {/* School (searchable) */}
+            {/* School (auto-filled from NEMIS, with option to change) */}
             <FormField
               control={form.control}
               name="school"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
                   <FormLabel>School</FormLabel>
-                  <Popover open={schoolOpen} onOpenChange={setSchoolOpen}>
-                    <PopoverTrigger asChild>
-                      <FormControl>
+                  {simulatedStudent ? (
+                    <div className="p-3 bg-muted/50 border rounded-md">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <School className="h-4 w-4 text-primary" />
+                          <span className="font-medium">{field.value}</span>
+                        </div>
                         <Button
-                          variant="outline"
-                          role="combobox"
-                          aria-expanded={schoolOpen}
-                          className={cn(
-                            "w-full justify-between hover:scale-[1.02] transition-transform",
-                            !field.value && "text-muted-foreground"
-                          )}
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setSchoolOpen(true)}
+                          className="text-xs text-muted-foreground hover:text-foreground"
                         >
-                          {field.value
-                            ? kenyanSchools.find((school) => school === field.value) || field.value
-                            : "Search for your school..."}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          Change
                         </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-full p-0" align="start">
-                      <Command>
-                        <CommandInput placeholder="Search schools..." />
-                        <CommandList>
-                          <CommandEmpty>No school found.</CommandEmpty>
-                          <CommandGroup>
-                            {kenyanSchools.map((school) => (
-                              <CommandItem
-                                key={school}
-                                value={school}
-                                onSelect={() => {
-                                  form.setValue("school", school);
-                                  setSchoolOpen(false);
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    field.value === school ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                {school}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Auto-detected from NEMIS ID
+                      </p>
+                    </div>
+                  ) : (
+                    <Popover open={schoolOpen} onOpenChange={setSchoolOpen}>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={schoolOpen}
+                            className={cn(
+                              "w-full justify-between hover:scale-[1.02] transition-transform",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value
+                              ? kenyanSchools.find((school) => school === field.value) || field.value
+                              : "Search for your school..."}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="Search schools..." />
+                          <CommandList>
+                            <CommandEmpty>No school found.</CommandEmpty>
+                            <CommandGroup>
+                              {kenyanSchools.map((school) => (
+                                <CommandItem
+                                  key={school}
+                                  value={school}
+                                  onSelect={() => {
+                                    form.setValue("school", school);
+                                    setSchoolOpen(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      field.value === school ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  {school}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  )}
                   <FormMessage />
+                  
+                  {/* Hidden popover for changing school when auto-filled */}
+                  {simulatedStudent && (
+                    <Popover open={schoolOpen} onOpenChange={setSchoolOpen}>
+                      <PopoverTrigger asChild>
+                        <span className="hidden" />
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80 p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="Search schools..." />
+                          <CommandList>
+                            <CommandEmpty>No school found.</CommandEmpty>
+                            <CommandGroup>
+                              {kenyanSchools.map((school) => (
+                                <CommandItem
+                                  key={school}
+                                  value={school}
+                                  onSelect={() => {
+                                    form.setValue("school", school);
+                                    setSchoolOpen(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      field.value === school ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  {school}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  )}
                 </FormItem>
               )}
             />
@@ -282,7 +348,7 @@ export function SecondaryStudentForm({ onNext, onBack }: SecondaryStudentFormPro
               <Button 
                 type="submit"
                 className="hover:scale-105 transition-transform"
-                disabled={!simulatedName}
+                disabled={!simulatedStudent}
               >
                 Continue
                 <ArrowRight className="ml-2 h-4 w-4" />
