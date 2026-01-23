@@ -4,15 +4,16 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
 import { ArrowLeft, Send, Loader2, User, GraduationCap, ClipboardCheck, Shield } from "lucide-react";
 import { useApplication } from "@/context/ApplicationContext";
-import { maskId, maskPhone, maskEmail, maskStudentId, generateTrackingNumber } from "@/lib/maskData";
+import { maskId, maskPhone, maskEmail, maskStudentId, generateTrackingNumber, maskName } from "@/lib/maskData";
 import { calculatePovertyScore, getPovertyTier } from "@/lib/validationSchemas";
 
 interface ReviewSubmitProps {
   onBack: () => void;
   onSuccess: (trackingNumber: string) => void;
+  studentType: "secondary" | "university";
 }
 
-export function ReviewSubmit({ onBack, onSuccess }: ReviewSubmitProps) {
+export function ReviewSubmit({ onBack, onSuccess, studentType }: ReviewSubmitProps) {
   const { data } = useApplication();
   const [confirmed, setConfirmed] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -34,6 +35,9 @@ export function ReviewSubmit({ onBack, onSuccess }: ReviewSubmitProps) {
     setIsSubmitting(false);
     onSuccess(trackingNumber);
   };
+
+  // Get student data based on type
+  const studentData = studentType === "university" ? data.universityStudent : data.secondaryStudent;
 
   return (
     <div className="space-y-6">
@@ -74,7 +78,7 @@ export function ReviewSubmit({ onBack, onSuccess }: ReviewSubmitProps) {
             </div>
           )}
           <div>
-            <p className="text-muted-foreground">Notification Consent</p>
+            <p className="text-muted-foreground">SMS Consent</p>
             <p className="font-medium">
               {data.parentGuardian?.consentNotifications ? "Yes" : "No"}
             </p>
@@ -91,22 +95,45 @@ export function ReviewSubmit({ onBack, onSuccess }: ReviewSubmitProps) {
           <h3 className="font-semibold text-lg">Student Information</h3>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-          <div>
-            <p className="text-muted-foreground">Student ID</p>
-            <p className="font-medium">{maskStudentId(data.universityStudent?.studentId || "")}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground">Institution</p>
-            <p className="font-medium">{data.universityStudent?.institution}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground">Course</p>
-            <p className="font-medium">{data.universityStudent?.course}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground">Year of Study</p>
-            <p className="font-medium">{data.universityStudent?.yearOfStudy}</p>
-          </div>
+          {studentType === "university" ? (
+            <>
+              <div>
+                <p className="text-muted-foreground">Student ID</p>
+                <p className="font-medium">{maskStudentId(data.universityStudent?.studentId || "")}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Institution</p>
+                <p className="font-medium">{data.universityStudent?.institution}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Course</p>
+                <p className="font-medium">{data.universityStudent?.course}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Year of Study</p>
+                <p className="font-medium">{data.universityStudent?.yearOfStudy}</p>
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <p className="text-muted-foreground">NEMIS ID</p>
+                <p className="font-medium">{maskStudentId(data.secondaryStudent?.nemisId || "")}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Student Name</p>
+                <p className="font-medium">{maskName(data.secondaryStudent?.studentName || "")}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">School</p>
+                <p className="font-medium">{data.secondaryStudent?.school}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Class/Form</p>
+                <p className="font-medium">{data.secondaryStudent?.classForm?.replace("form", "Form ")}</p>
+              </div>
+            </>
+          )}
         </div>
       </Card>
 
@@ -158,7 +185,7 @@ export function ReviewSubmit({ onBack, onSuccess }: ReviewSubmitProps) {
 
       {/* Action Buttons */}
       <div className="flex justify-between pt-4">
-        <Button type="button" variant="outline" size="lg" onClick={onBack}>
+        <Button type="button" variant="outline" size="lg" onClick={onBack} className="hover:scale-105 transition-transform">
           <ArrowLeft className="mr-2 h-5 w-5" />
           Back
         </Button>
@@ -166,7 +193,7 @@ export function ReviewSubmit({ onBack, onSuccess }: ReviewSubmitProps) {
           size="lg"
           disabled={!confirmed || isSubmitting}
           onClick={handleSubmit}
-          className="min-w-[180px]"
+          className="min-w-[180px] hover:scale-105 transition-transform"
         >
           {isSubmitting ? (
             <>
