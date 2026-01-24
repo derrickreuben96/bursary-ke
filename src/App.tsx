@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Track from "./pages/Track";
 import ApplyUniversity from "./pages/ApplyUniversity";
 import ApplySecondary from "./pages/ApplySecondary";
+import Bursaries from "./pages/Bursaries";
 import FAQ from "./pages/FAQ";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminLogin from "./pages/AdminLogin";
@@ -31,6 +32,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/track" element={<Track />} />
+            <Route path="/bursaries" element={<Bursaries />} />
             <Route path="/apply/university" element={<ApplyUniversity />} />
             <Route path="/apply/secondary" element={<ApplySecondary />} />
             <Route path="/faq" element={<FAQ />} />
