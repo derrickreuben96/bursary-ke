@@ -177,6 +177,13 @@ export type Database = {
             referencedRelation: "bursary_applications"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "bursary_applications_duplicate_of_fkey"
+            columns: ["duplicate_of"]
+            isOneToOne: false
+            referencedRelation: "bursary_applications_treasury"
+            referencedColumns: ["id"]
+          },
         ]
       }
       user_roles: {
@@ -202,7 +209,51 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      bursary_applications_treasury: {
+        Row: {
+          allocated_amount: number | null
+          allocation_date: string | null
+          county: string | null
+          created_at: string | null
+          ecitizen_ref: string | null
+          id: string | null
+          institution_name: string | null
+          status: Database["public"]["Enums"]["application_status"] | null
+          student_name_masked: string | null
+          student_type: Database["public"]["Enums"]["student_type"] | null
+          tracking_number: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          allocated_amount?: number | null
+          allocation_date?: string | null
+          county?: never
+          created_at?: string | null
+          ecitizen_ref?: string | null
+          id?: string | null
+          institution_name?: string | null
+          status?: Database["public"]["Enums"]["application_status"] | null
+          student_name_masked?: never
+          student_type?: Database["public"]["Enums"]["student_type"] | null
+          tracking_number?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          allocated_amount?: number | null
+          allocation_date?: string | null
+          county?: never
+          created_at?: string | null
+          ecitizen_ref?: string | null
+          id?: string | null
+          institution_name?: string | null
+          status?: Database["public"]["Enums"]["application_status"] | null
+          student_name_masked?: never
+          student_type?: Database["public"]["Enums"]["student_type"] | null
+          tracking_number?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       generate_tracking_number: { Args: never; Returns: string }
