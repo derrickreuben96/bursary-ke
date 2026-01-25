@@ -20,8 +20,8 @@ interface AllocationResult {
   allocatedAmount?: number;
 }
 
-// Helper function to verify admin role
-async function verifyAdminRole(req: Request): Promise<{ user: { id: string } } | Response> {
+// Helper function to verify admin role or service role key (for internal cron calls)
+async function verifyAdminOrServiceRole(req: Request): Promise<{ isServiceRole: boolean; user?: { id: string } } | Response> {
   const authHeader = req.headers.get('Authorization');
   if (!authHeader) {
     return new Response(
@@ -30,7 +30,16 @@ async function verifyAdminRole(req: Request): Promise<{ user: { id: string } } |
     );
   }
 
-  // Create authenticated client to verify JWT
+  const token = authHeader.replace('Bearer ', '');
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+  // Check if this is an internal service role call (from cron jobs)
+  if (token === serviceRoleKey) {
+    console.log('[AUTH] Service role key authenticated - internal cron call');
+    return { isServiceRole: true };
+  }
+
+  // Otherwise verify as user JWT
   const supabaseClient = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_ANON_KEY')!,
@@ -50,7 +59,7 @@ async function verifyAdminRole(req: Request): Promise<{ user: { id: string } } |
   // Check admin role using service role client for RLS bypass
   const supabaseAdmin = createClient(
     Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    serviceRoleKey,
     {
       auth: { autoRefreshToken: false, persistSession: false },
     }
@@ -70,7 +79,7 @@ async function verifyAdminRole(req: Request): Promise<{ user: { id: string } } |
     );
   }
 
-  return { user };
+  return { isServiceRole: false, user };
 }
 
 Deno.serve(async (req) => {
@@ -79,8 +88,8 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Verify admin authentication
-    const authResult = await verifyAdminRole(req);
+    // Verify admin authentication or service role (for cron)
+    const authResult = await verifyAdminOrServiceRole(req);
     if (authResult instanceof Response) {
       return authResult;
     }

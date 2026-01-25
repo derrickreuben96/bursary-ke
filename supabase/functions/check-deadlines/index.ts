@@ -13,7 +13,6 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
@@ -52,14 +51,14 @@ Deno.serve(async (req) => {
       console.log(`[CRON] Processing advert: ${advert.title} (${advert.county})`);
 
       try {
-        // Call the process-allocations function
+        // Call the process-allocations function with service role key for internal server-to-server calls
         const allocationResponse = await fetch(
           `${supabaseUrl}/functions/v1/process-allocations`,
           {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "Authorization": `Bearer ${anonKey}`,
+              "Authorization": `Bearer ${serviceRoleKey}`,
             },
             body: JSON.stringify({
               advertId: advert.id,
@@ -77,14 +76,14 @@ Deno.serve(async (req) => {
           .update({ is_active: false })
           .eq("id", advert.id);
 
-        // Trigger SMS notifications for approved applicants
+        // Trigger SMS notifications for approved applicants with service role key
         const smsResponse = await fetch(
           `${supabaseUrl}/functions/v1/send-sms-notifications`,
           {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "Authorization": `Bearer ${anonKey}`,
+              "Authorization": `Bearer ${serviceRoleKey}`,
             },
           }
         );
