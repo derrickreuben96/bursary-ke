@@ -19,12 +19,12 @@ import { maskName } from "@/lib/maskData";
 interface ApprovedApplication {
   id: string;
   tracking_number: string;
-  student_full_name: string;
+  student_name_masked: string;
   institution_name: string;
   student_type: string;
   allocated_amount: number;
   ecitizen_ref: string;
-  parent_county: string;
+  county: string;
   allocation_date: string;
 }
 
@@ -38,10 +38,11 @@ export default function TreasuryDashboard() {
 
   const fetchApprovedApplications = async () => {
     setIsLoading(true);
+    // Use restricted treasury view that only exposes payment-related fields
+    // This view masks PII and excludes sensitive personal details
     const { data, error } = await supabase
-      .from("bursary_applications")
-      .select("id, tracking_number, student_full_name, institution_name, student_type, allocated_amount, ecitizen_ref, parent_county, allocation_date")
-      .eq("status", "approved")
+      .from("bursary_applications_treasury")
+      .select("id, tracking_number, student_name_masked, institution_name, student_type, allocated_amount, ecitizen_ref, county, allocation_date")
       .order("allocation_date", { ascending: false });
 
     if (error) {
@@ -98,7 +99,7 @@ export default function TreasuryDashboard() {
   const filteredApplications = applications.filter(app =>
     app.tracking_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
     app.institution_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    app.parent_county.toLowerCase().includes(searchTerm.toLowerCase())
+    app.county.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const totalAmount = applications.reduce((sum, app) => sum + (app.allocated_amount || 0), 0);
@@ -111,7 +112,7 @@ export default function TreasuryDashboard() {
       app.student_type,
       app.allocated_amount?.toString() || "0",
       app.ecitizen_ref || "",
-      app.parent_county,
+      app.county,
       app.allocation_date ? new Date(app.allocation_date).toLocaleDateString() : ""
     ]);
 
@@ -262,7 +263,7 @@ export default function TreasuryDashboard() {
                             {app.student_type}
                           </Badge>
                         </TableCell>
-                        <TableCell>{app.parent_county}</TableCell>
+                        <TableCell>{app.county}</TableCell>
                         <TableCell className="text-right font-medium">
                           {(app.allocated_amount || 0).toLocaleString()}
                         </TableCell>
