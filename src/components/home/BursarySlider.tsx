@@ -1,16 +1,18 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { 
   MapPin, FileText, Building2, Phone, GraduationCap, 
-  ChevronLeft, ChevronRight, ExternalLink
+  ExternalLink, Bell
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 import { CountdownTimer } from "./CountdownTimer";
+import { SubscribeNotifications } from "./SubscribeNotifications";
 import { Skeleton } from "@/components/ui/skeleton";
 import Autoplay from "embla-carousel-autoplay";
+import Fade from "embla-carousel-fade";
 import {
   Carousel,
   CarouselContent,
@@ -44,6 +46,14 @@ export function BursarySlider() {
   const [isLoading, setIsLoading] = useState(true);
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
+  
+  const autoplayPlugin = useRef(
+    Autoplay({
+      delay: 6000,
+      stopOnInteraction: true,
+      stopOnMouseEnter: true,
+    })
+  );
 
   useEffect(() => {
     const fetchAdverts = async () => {
@@ -122,38 +132,41 @@ export function BursarySlider() {
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-3">
             County Bursary Programs
           </h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-muted-foreground max-w-2xl mx-auto mb-4">
             Don't miss out! Apply now for active bursary opportunities in your county.
           </p>
+          {/* Subscribe Button */}
+          <SubscribeNotifications />
         </div>
 
-        {/* Auto-Sliding Carousel */}
+        {/* Auto-Sliding Carousel with Fade Transition */}
         <Carousel
           setApi={setApi}
           opts={{
             align: "center",
             loop: true,
           }}
-          plugins={[
-            Autoplay({
-              delay: 5000,
-              stopOnInteraction: true,
-              stopOnMouseEnter: true,
-            }),
-          ]}
+          plugins={[autoplayPlugin.current, Fade()]}
           className="w-full max-w-5xl mx-auto"
         >
           <CarouselContent className="-ml-4">
-            {adverts.map((advert) => (
-              <CarouselItem key={advert.id} className="pl-4 md:basis-1/1 lg:basis-1/1">
-                <Card className="border-2 border-primary/20 shadow-xl bg-gradient-to-br from-card to-card/95 overflow-hidden hover:shadow-2xl transition-all duration-300">
+            {adverts.map((advert, index) => (
+              <CarouselItem 
+                key={advert.id} 
+                className="pl-4 transition-all duration-700 ease-in-out"
+                style={{
+                  opacity: current === index ? 1 : 0.3,
+                  transform: current === index ? 'scale(1)' : 'scale(0.95)',
+                }}
+              >
+                <Card className="border-2 border-primary/20 shadow-xl bg-gradient-to-br from-card to-card/95 overflow-hidden hover:shadow-2xl transition-all duration-500">
                   <CardContent className="p-0">
                     <div className="grid md:grid-cols-2 gap-0">
                       {/* Left: Main Info */}
                       <div className="p-6 md:p-8 space-y-5">
                         {/* County Badge */}
                         <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="bg-background shadow-sm text-sm py-1">
+                          <Badge variant="outline" className="bg-background shadow-sm text-sm py-1 animate-fade-in">
                             <MapPin className="h-3.5 w-3.5 mr-1 text-primary" />
                             {advert.county}
                             {advert.ward && ` • ${advert.ward}`}
@@ -195,7 +208,7 @@ export function BursarySlider() {
                           <Button asChild variant="outline" size="lg" className="hover:scale-105 transition-transform">
                             <Link to="/bursaries">
                               <ExternalLink className="h-4 w-4 mr-2" />
-                              View All Bursaries
+                              View All
                             </Link>
                           </Button>
                         </div>
@@ -247,6 +260,15 @@ export function BursarySlider() {
                             </div>
                           </div>
                         )}
+
+                        {/* Notify Me Link */}
+                        <div className="pt-2">
+                          <p className="text-sm text-muted-foreground flex items-center gap-2">
+                            <Bell className="h-4 w-4" />
+                            Want alerts for {advert.county}? 
+                            <SubscribeNotifications variant="inline" />
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </CardContent>
@@ -256,20 +278,20 @@ export function BursarySlider() {
           </CarouselContent>
 
           {/* Navigation Arrows */}
-          <CarouselPrevious className="hidden md:flex -left-4 lg:-left-12 h-12 w-12 bg-background shadow-lg border-2 hover:bg-primary hover:text-primary-foreground transition-colors" />
-          <CarouselNext className="hidden md:flex -right-4 lg:-right-12 h-12 w-12 bg-background shadow-lg border-2 hover:bg-primary hover:text-primary-foreground transition-colors" />
+          <CarouselPrevious className="hidden md:flex -left-4 lg:-left-12 h-12 w-12 bg-background shadow-lg border-2 hover:bg-primary hover:text-primary-foreground transition-all duration-300" />
+          <CarouselNext className="hidden md:flex -right-4 lg:-right-12 h-12 w-12 bg-background shadow-lg border-2 hover:bg-primary hover:text-primary-foreground transition-all duration-300" />
         </Carousel>
 
-        {/* Pagination Dots */}
+        {/* Pagination Dots with Animation */}
         {adverts.length > 1 && (
           <div className="flex justify-center gap-2 mt-6">
             {adverts.map((_, index) => (
               <button
                 key={index}
                 onClick={() => scrollTo(index)}
-                className={`h-2.5 rounded-full transition-all duration-300 ${
+                className={`h-2.5 rounded-full transition-all duration-500 ease-out ${
                   current === index 
-                    ? 'w-8 bg-primary' 
+                    ? 'w-10 bg-primary shadow-lg shadow-primary/30' 
                     : 'w-2.5 bg-muted-foreground/30 hover:bg-muted-foreground/50'
                 }`}
                 aria-label={`Go to slide ${index + 1}`}
