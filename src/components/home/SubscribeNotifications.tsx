@@ -113,6 +113,11 @@ export function SubscribeNotifications({ variant = "button" }: SubscribeNotifica
       toast({
         title: "Subscribed successfully!",
         description: `You'll receive alerts when new bursaries open in ${county}.`,
+        action: (
+          <a href="/unsubscribe" className="underline text-xs">
+            Manage subscriptions
+          </a>
+        ),
       });
 
       setTimeout(() => {
