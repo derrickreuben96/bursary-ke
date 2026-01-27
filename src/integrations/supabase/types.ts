@@ -287,6 +287,23 @@ export type Database = {
     }
     Functions: {
       generate_tracking_number: { Args: never; Returns: string }
+      get_treasury_applications: {
+        Args: never
+        Returns: {
+          allocated_amount: number
+          allocation_date: string
+          county: string
+          created_at: string
+          ecitizen_ref: string
+          id: string
+          institution_name: string
+          status: string
+          student_name_masked: string
+          student_type: string
+          tracking_number: string
+          updated_at: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
