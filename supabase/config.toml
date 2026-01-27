@@ -14,3 +14,9 @@ verify_jwt = false
 
 [functions.check-deadlines]
 verify_jwt = false
+
+[functions.track-application]
+verify_jwt = false
+
+[functions.manage-subscription]
+verify_jwt = false
