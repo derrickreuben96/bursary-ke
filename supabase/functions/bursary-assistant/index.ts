@@ -1,9 +1,21 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+import { 
+  checkRateLimit, 
+  getClientIp, 
+  rateLimitExceededResponse,
+  maybeCleanup 
+} from "../_shared/rateLimiter.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+// Rate limit config: 20 requests per minute per IP (more generous for chat)
+const RATE_LIMIT_CONFIG = {
+  windowMs: 60 * 1000, // 1 minute
+  maxRequests: 20,
 };
 
 // Input validation schema
@@ -40,6 +52,15 @@ Be concise and practical. Give specific examples when helpful.`
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Apply rate limiting
+  const clientIp = getClientIp(req);
+  const rateLimitResult = checkRateLimit(clientIp, RATE_LIMIT_CONFIG);
+  maybeCleanup(RATE_LIMIT_CONFIG.windowMs);
+
+  if (!rateLimitResult.allowed) {
+    return rateLimitExceededResponse(corsHeaders, rateLimitResult, RATE_LIMIT_CONFIG);
   }
 
   try {
