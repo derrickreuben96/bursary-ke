@@ -1,10 +1,22 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+import { 
+  checkRateLimit, 
+  getClientIp, 
+  rateLimitExceededResponse,
+  maybeCleanup 
+} from "../_shared/rateLimiter.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+// Rate limit config: 5 requests per minute per IP (stricter for admin operations)
+const RATE_LIMIT_CONFIG = {
+  windowMs: 60 * 1000, // 1 minute
+  maxRequests: 5,
 };
 
 // Input validation schemas
@@ -94,6 +106,15 @@ async function verifyAdminRole(req: Request): Promise<{ user: { id: string } } |
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Apply rate limiting
+  const clientIp = getClientIp(req);
+  const rateLimitResult = checkRateLimit(clientIp, RATE_LIMIT_CONFIG);
+  maybeCleanup(RATE_LIMIT_CONFIG.windowMs);
+
+  if (!rateLimitResult.allowed) {
+    return rateLimitExceededResponse(corsHeaders, rateLimitResult, RATE_LIMIT_CONFIG);
   }
 
   try {

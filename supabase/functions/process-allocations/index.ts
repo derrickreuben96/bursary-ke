@@ -1,9 +1,21 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+import { 
+  checkRateLimit, 
+  getClientIp, 
+  rateLimitExceededResponse,
+  maybeCleanup 
+} from "../_shared/rateLimiter.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+// Rate limit config: 5 requests per minute per IP (stricter for admin operations)
+const RATE_LIMIT_CONFIG = {
+  windowMs: 60 * 1000, // 1 minute
+  maxRequests: 5,
 };
 
 // Input validation schema
@@ -85,6 +97,21 @@ async function verifyAdminOrServiceRole(req: Request): Promise<{ isServiceRole: 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Apply rate limiting (skip for service role calls from cron)
+  const authHeader = req.headers.get('Authorization');
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const isServiceRole = authHeader?.replace('Bearer ', '') === serviceRoleKey;
+  
+  if (!isServiceRole) {
+    const clientIp = getClientIp(req);
+    const rateLimitResult = checkRateLimit(clientIp, RATE_LIMIT_CONFIG);
+    maybeCleanup(RATE_LIMIT_CONFIG.windowMs);
+
+    if (!rateLimitResult.allowed) {
+      return rateLimitExceededResponse(corsHeaders, rateLimitResult, RATE_LIMIT_CONFIG);
+    }
   }
 
   try {
