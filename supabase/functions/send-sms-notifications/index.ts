@@ -80,6 +80,12 @@ async function verifyAdminOrServiceRole(req: Request): Promise<{ isServiceRole: 
   return { isServiceRole: false, user };
 }
 
+// Helper function to mask phone numbers for logging
+function maskPhone(phone: string): string {
+  if (!phone || phone.length < 6) return "***";
+  return phone.substring(0, 6) + "****";
+}
+
 async function sendSMSViaAfricasTalking(
   phone: string,
   message: string,
@@ -116,7 +122,7 @@ async function sendSMSViaAfricasTalking(
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Africa's Talking API error:", errorText);
+      console.error("[SMS] API error - request failed");
       return { success: false, error: errorText };
     }
 
@@ -133,7 +139,7 @@ async function sendSMSViaAfricasTalking(
 
     return { success: false, error: "Unexpected response format" };
   } catch (error) {
-    console.error("SMS send error:", error);
+    console.error("[SMS] Send error occurred");
     return { success: false, error: error instanceof Error ? error.message : "Unknown error" };
   }
 }
@@ -195,21 +201,21 @@ Deno.serve(async (req) => {
       let smsError: string | undefined;
 
       if (useRealSMS) {
-        // Send real SMS via Africa's Talking
-        console.log(`[SMS] Sending to: ${app.parent_phone}`);
+        // Send real SMS via Africa's Talking - use tracking number for logging, not PII
+        console.log(`[SMS] Sending notification for: ${app.tracking_number}`);
         const smsResult = await sendSMSViaAfricasTalking(
           app.parent_phone,
           message,
           africasTalkingApiKey,
           africasTalkingUsername
         );
-        console.log(`[SMS] Result:`, smsResult);
+        console.log(`[SMS] Result for ${app.tracking_number}: ${smsResult.success ? 'sent' : 'failed'}`);
         smsSuccess = smsResult.success;
         smsMessageId = smsResult.messageId || "";
         smsError = smsResult.error;
       } else {
-        // Simulation mode - log the message
-        console.log(`[SMS SIMULATION] To: ${app.parent_phone}, Message: ${message}`);
+        // Simulation mode - log with masked phone number to avoid PII exposure
+        console.log(`[SMS SIMULATION] For: ${app.tracking_number}, To: ${maskPhone(app.parent_phone)}`);
       }
 
       if (smsSuccess) {
