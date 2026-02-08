@@ -117,7 +117,50 @@ export function BursarySlider() {
   }
 
   if (adverts.length === 0) {
-    return null;
+    return (
+      <section className="py-16 bg-gradient-to-br from-primary/5 via-background to-secondary/20">
+        <div className="container">
+          <div className="text-center mb-10">
+            <Badge className="mb-4 bg-primary text-primary-foreground shadow-lg animate-fade-in">
+              <GraduationCap className="h-3 w-3 mr-1" />
+              Bursary Programs
+            </Badge>
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-3">
+              County Bursary Programs
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto mb-6">
+              No active bursary programs at the moment. Subscribe to get notified when new opportunities open.
+            </p>
+          </div>
+          
+          {/* Empty State Card */}
+          <Card className="max-w-2xl mx-auto border-2 border-dashed border-primary/20 bg-card/50">
+            <CardContent className="p-8 text-center space-y-6">
+              <div className="w-20 h-20 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
+                <Bell className="h-10 w-10 text-primary" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-semibold text-foreground">
+                  Stay Informed
+                </h3>
+                <p className="text-muted-foreground max-w-md mx-auto">
+                  Subscribe to receive instant notifications when new bursary opportunities become available in your county.
+                </p>
+              </div>
+              <SubscribeNotifications />
+              <div className="pt-4 border-t border-border">
+                <Button asChild variant="outline">
+                  <Link to="/bursaries">
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    View Past Bursaries
+                  </Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+    );
   }
 
   return (
