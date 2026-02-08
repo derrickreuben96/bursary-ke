@@ -17,18 +17,17 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Bell, Search, Loader2, Trash2, MapPin, Mail, Phone, CheckCircle2, XCircle } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { Bell, Search, Loader2, Trash2, MapPin, CheckCircle2, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Subscription {
   id: string;
   county: string;
-  phone: string | null;
-  email: string | null;
-  is_active: boolean;
-  created_at: string;
+  contact: string;
+  isActive: boolean;
+  createdAt: string;
 }
 
 const Unsubscribe = () => {
@@ -66,19 +65,21 @@ const Unsubscribe = () => {
     setHasSearched(true);
 
     try {
-      let query = supabase.from("bursary_subscriptions").select("*");
+      // Use secure edge function instead of direct database query
+      const contactValue = searchType === "phone" 
+        ? formatPhoneForSearch(searchValue) 
+        : searchValue.trim().toLowerCase();
 
-      if (searchType === "phone") {
-        const formattedPhone = formatPhoneForSearch(searchValue);
-        query = query.eq("phone", formattedPhone);
-      } else {
-        query = query.eq("email", searchValue.trim().toLowerCase());
-      }
-
-      const { data, error } = await query.order("created_at", { ascending: false });
+      const { data: responseData, error } = await supabase.functions.invoke("manage-subscription", {
+        body: {
+          action: "lookup",
+          contactValue,
+          contactType: searchType,
+        },
+      });
 
       if (error) {
-        console.error("[Unsubscribe] Search error:", error);
+        console.error("[Unsubscribe] Edge function error:", error);
         toast({
           title: "Search failed",
           description: "Unable to find subscriptions. Please try again.",
@@ -87,9 +88,19 @@ const Unsubscribe = () => {
         return;
       }
 
-      setSubscriptions(data || []);
+      if (!responseData?.success) {
+        toast({
+          title: "Search failed",
+          description: responseData?.error || "Unable to find subscriptions.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-      if (!data || data.length === 0) {
+      const subs = responseData.subscriptions || [];
+      setSubscriptions(subs);
+
+      if (subs.length === 0) {
         toast({
           title: "No subscriptions found",
           description: `No subscriptions found for this ${searchType === "phone" ? "phone number" : "email address"}.`,
@@ -111,16 +122,34 @@ const Unsubscribe = () => {
     setDeletingId(id);
 
     try {
-      const { error } = await supabase
-        .from("bursary_subscriptions")
-        .delete()
-        .eq("id", id);
+      // Use secure edge function for deletion with ownership verification
+      const contactValue = searchType === "phone" 
+        ? formatPhoneForSearch(searchValue) 
+        : searchValue.trim().toLowerCase();
+
+      const { data: responseData, error } = await supabase.functions.invoke("manage-subscription", {
+        body: {
+          action: "delete",
+          subscriptionId: id,
+          contactValue,
+          contactType: searchType,
+        },
+      });
 
       if (error) {
-        console.error("[Unsubscribe] Delete error:", error);
+        console.error("[Unsubscribe] Edge function error:", error);
         toast({
           title: "Unsubscribe failed",
           description: "Unable to remove subscription. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!responseData?.success) {
+        toast({
+          title: "Unsubscribe failed",
+          description: responseData?.error || "Unable to remove subscription.",
           variant: "destructive",
         });
         return;
@@ -141,15 +170,6 @@ const Unsubscribe = () => {
     } finally {
       setDeletingId(null);
     }
-  };
-
-  const maskContact = (value: string | null, type: "phone" | "email"): string => {
-    if (!value) return "—";
-    if (type === "phone") {
-      return value.slice(0, 4) + "***" + value.slice(-3);
-    }
-    const [local, domain] = value.split("@");
-    return local.slice(0, 2) + "***@" + domain;
   };
 
   return (
@@ -188,7 +208,6 @@ const Unsubscribe = () => {
                     size="sm"
                     onClick={() => setSearchType("phone")}
                   >
-                    <Phone className="h-4 w-4 mr-2" />
                     Phone Number
                   </Button>
                   <Button
@@ -197,7 +216,6 @@ const Unsubscribe = () => {
                     size="sm"
                     onClick={() => setSearchType("email")}
                   >
-                    <Mail className="h-4 w-4 mr-2" />
                     Email Address
                   </Button>
                 </div>
@@ -259,7 +277,7 @@ const Unsubscribe = () => {
                                 <MapPin className="h-3 w-3 mr-1" />
                                 {sub.county}
                               </Badge>
-                              {sub.is_active ? (
+                              {sub.isActive ? (
                                 <Badge className="bg-primary/10 text-primary border-primary/30">
                                   <CheckCircle2 className="h-3 w-3 mr-1" />
                                   Active
@@ -269,25 +287,14 @@ const Unsubscribe = () => {
                               )}
                             </div>
 
-                            {/* Contact Info */}
-                            <div className="text-sm text-muted-foreground space-y-1">
-                              {sub.phone && (
-                                <p className="flex items-center gap-2">
-                                  <Phone className="h-3.5 w-3.5" />
-                                  {maskContact(sub.phone, "phone")}
-                                </p>
-                              )}
-                              {sub.email && (
-                                <p className="flex items-center gap-2">
-                                  <Mail className="h-3.5 w-3.5" />
-                                  {maskContact(sub.email, "email")}
-                                </p>
-                              )}
-                            </div>
+                            {/* Masked Contact Info */}
+                            <p className="text-sm text-muted-foreground">
+                              Contact: {sub.contact}
+                            </p>
 
                             {/* Date */}
                             <p className="text-xs text-muted-foreground">
-                              Subscribed on {format(new Date(sub.created_at), "MMM d, yyyy")}
+                              Subscribed on {format(new Date(sub.createdAt), "MMM d, yyyy")}
                             </p>
                           </div>
 
