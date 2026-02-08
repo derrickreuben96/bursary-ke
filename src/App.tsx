@@ -39,10 +39,24 @@ const App = () => (
             <Route path="/faq" element={<FAQ />} />
             <Route path="/unsubscribe" element={<Unsubscribe />} />
             <Route path="/admin/login" element={<AdminLogin />} />
-            <Route path="/treasury/login" element={<TreasuryLogin />} />
-            <Route path="/treasury" element={<TreasuryDashboard />} />
+<Route path="/treasury/login" element={<TreasuryLogin />} />
+            <Route
+              path="/treasury"
+              element={
+                <ProtectedRoute requiredRole="county_treasury">
+                  <TreasuryDashboard />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/commissioner/login" element={<CommissionerLogin />} />
-            <Route path="/commissioner" element={<CommissionerDashboard />} />
+            <Route
+              path="/commissioner"
+              element={
+                <ProtectedRoute requiredRole="county_commissioner">
+                  <CommissionerDashboard />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/admin"
               element={
