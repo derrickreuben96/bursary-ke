@@ -181,6 +181,13 @@ export type Database = {
             foreignKeyName: "bursary_applications_duplicate_of_fkey"
             columns: ["duplicate_of"]
             isOneToOne: false
+            referencedRelation: "bursary_applications_commissioner"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bursary_applications_duplicate_of_fkey"
+            columns: ["duplicate_of"]
+            isOneToOne: false
             referencedRelation: "bursary_applications_treasury"
             referencedColumns: ["id"]
           },
@@ -239,6 +246,89 @@ export type Database = {
       }
     }
     Views: {
+      bursary_applications_commissioner: {
+        Row: {
+          advert_id: string | null
+          ai_decision_reason: string | null
+          allocated_amount: number | null
+          allocation_date: string | null
+          class_form: string | null
+          created_at: string | null
+          household_dependents: number | null
+          household_income: number | null
+          id: string | null
+          institution_name: string | null
+          is_duplicate: boolean | null
+          parent_county: string | null
+          parent_name_masked: string | null
+          poverty_score: number | null
+          poverty_tier: string | null
+          reviewed_at: string | null
+          status: string | null
+          student_name_masked: string | null
+          student_type: string | null
+          tracking_number: string | null
+          updated_at: string | null
+          year_of_study: string | null
+        }
+        Insert: {
+          advert_id?: string | null
+          ai_decision_reason?: string | null
+          allocated_amount?: number | null
+          allocation_date?: string | null
+          class_form?: string | null
+          created_at?: string | null
+          household_dependents?: number | null
+          household_income?: number | null
+          id?: string | null
+          institution_name?: string | null
+          is_duplicate?: boolean | null
+          parent_county?: string | null
+          parent_name_masked?: never
+          poverty_score?: number | null
+          poverty_tier?: never
+          reviewed_at?: string | null
+          status?: never
+          student_name_masked?: never
+          student_type?: never
+          tracking_number?: string | null
+          updated_at?: string | null
+          year_of_study?: string | null
+        }
+        Update: {
+          advert_id?: string | null
+          ai_decision_reason?: string | null
+          allocated_amount?: number | null
+          allocation_date?: string | null
+          class_form?: string | null
+          created_at?: string | null
+          household_dependents?: number | null
+          household_income?: number | null
+          id?: string | null
+          institution_name?: string | null
+          is_duplicate?: boolean | null
+          parent_county?: string | null
+          parent_name_masked?: never
+          poverty_score?: number | null
+          poverty_tier?: never
+          reviewed_at?: string | null
+          status?: never
+          student_name_masked?: never
+          student_type?: never
+          tracking_number?: string | null
+          updated_at?: string | null
+          year_of_study?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bursary_applications_advert_id_fkey"
+            columns: ["advert_id"]
+            isOneToOne: false
+            referencedRelation: "bursary_adverts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bursary_applications_treasury: {
         Row: {
           allocated_amount: number | null
@@ -287,6 +377,33 @@ export type Database = {
     }
     Functions: {
       generate_tracking_number: { Args: never; Returns: string }
+      get_commissioner_applications: {
+        Args: never
+        Returns: {
+          advert_id: string
+          ai_decision_reason: string
+          allocated_amount: number
+          allocation_date: string
+          class_form: string
+          created_at: string
+          household_dependents: number
+          household_income: number
+          id: string
+          institution_name: string
+          is_duplicate: boolean
+          parent_county: string
+          parent_name_masked: string
+          poverty_score: number
+          poverty_tier: string
+          reviewed_at: string
+          status: string
+          student_name_masked: string
+          student_type: string
+          tracking_number: string
+          updated_at: string
+          year_of_study: string
+        }[]
+      }
       get_treasury_applications: {
         Args: never
         Returns: {

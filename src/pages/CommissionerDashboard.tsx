@@ -27,6 +27,8 @@ interface Application {
   parent_county: string;
   created_at: string;
   is_duplicate: boolean;
+  student_name_masked: string;
+  parent_name_masked: string;
 }
 
 interface Stats {
@@ -52,9 +54,7 @@ export default function CommissionerDashboard() {
   const fetchApplications = async () => {
     setIsLoading(true);
     const { data, error } = await supabase
-      .from("bursary_applications")
-      .select("id, tracking_number, student_type, status, poverty_tier, ai_decision_reason, allocated_amount, parent_county, created_at, is_duplicate")
-      .order("created_at", { ascending: false });
+      .rpc("get_commissioner_applications");
 
     if (error) {
       console.error("Error fetching applications:", error);
@@ -64,10 +64,10 @@ export default function CommissionerDashboard() {
         variant: "destructive",
       });
     } else {
-      const apps = data || [];
-      setApplications(apps);
-      
-      // Calculate stats
+      const apps = (data || []).map((d: any) => ({
+        ...d,
+        parent_county: d.parent_county || '',
+      })) as Application[];
       setStats({
         total: apps.length,
         approved: apps.filter(a => a.status === "approved").length,
