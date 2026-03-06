@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
@@ -16,50 +16,16 @@ export default function AdminLogin() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [loginAttempted, setLoginAttempted] = useState(false);
-  const { signIn, isAdmin, user } = useAuth();
+  const { signIn } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-
-  // Watch for auth state changes after login attempt
-  useEffect(() => {
-    if (loginAttempted && user) {
-      // Add a small delay to ensure isAdmin state is updated
-      const checkAccess = async () => {
-        // Re-check admin status directly from database
-        const { data } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", user.id)
-          .eq("role", "admin")
-          .maybeSingle();
-        
-        const hasAdminRole = !!data;
-        
-        if (hasAdminRole) {
-          toast({
-            title: "Welcome Back",
-            description: "You have successfully logged in as an administrator.",
-          });
-          navigate("/admin");
-        } else {
-          toast({
-            title: "Access Denied",
-            description: "You do not have administrator privileges.",
-            variant: "destructive",
-          });
-        }
-        setIsLoading(false);
-        setLoginAttempted(false);
-      };
-      
-      checkAccess();
-    }
-  }, [loginAttempted, user, navigate, toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+
+    // Sign out first to clear any existing session
+    await supabase.auth.signOut();
 
     const { error } = await signIn(email, password);
 
@@ -73,8 +39,41 @@ export default function AdminLogin() {
       return;
     }
 
-    // Mark that login was attempted - the useEffect will handle navigation
-    setLoginAttempted(true);
+    // Get the fresh session to check the correct user
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session?.user) {
+      toast({
+        title: "Login Failed",
+        description: "Could not establish a session.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    // Check admin role for the newly logged-in user
+    const { data } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", session.user.id)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    if (data) {
+      toast({
+        title: "Welcome Back",
+        description: "You have successfully logged in as an administrator.",
+      });
+      navigate("/admin");
+    } else {
+      toast({
+        title: "Access Denied",
+        description: "You do not have administrator privileges.",
+        variant: "destructive",
+      });
+    }
+    setIsLoading(false);
   };
 
   return (
