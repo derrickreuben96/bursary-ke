@@ -62,6 +62,45 @@ export default function AdminAllocation() {
   const [treasuryReport, setTreasuryReport] = useState<string>("");
   const [fairnessResult, setFairnessResult] = useState<any>(null);
 
+  const runFairnessEvaluation = async () => {
+    setIsEvaluatingFairness(true);
+    try {
+      // Get active adverts to evaluate
+      const { data: adverts, error: advertError } = await supabase
+        .from("bursary_adverts")
+        .select("id, county, title")
+        .eq("is_active", true);
+
+      if (advertError) throw advertError;
+      if (!adverts?.length) {
+        toast({ title: "No Active Adverts", description: "No active bursary adverts found to evaluate", variant: "destructive" });
+        return;
+      }
+
+      const allResults: any[] = [];
+      for (const advert of adverts) {
+        const { data, error } = await supabase.functions.invoke("fairness-engine", {
+          body: { action: "evaluate", advertId: advert.id },
+        });
+        if (error) throw error;
+        allResults.push({ advert: advert.title, county: advert.county, ...data });
+      }
+
+      setFairnessResult(allResults);
+      const totalEvaluated = allResults.reduce((s, r) => s + (r.results?.length || 0), 0);
+      const totalPriority = allResults.reduce((s, r) => s + (r.results?.filter((x: any) => x.isFairnessPriorityCandidate)?.length || 0), 0);
+      toast({
+        title: "Fairness Evaluation Complete",
+        description: `Evaluated ${totalEvaluated} applications. ${totalPriority} priority candidates identified.`,
+      });
+    } catch (error) {
+      console.error("Fairness evaluation error:", error);
+      toast({ title: "Fairness Evaluation Failed", description: "Could not run fairness evaluation", variant: "destructive" });
+    } finally {
+      setIsEvaluatingFairness(false);
+    }
+  };
+
   const analyzeApplications = async () => {
     setIsAnalyzing(true);
     try {
