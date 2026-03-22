@@ -29,6 +29,17 @@ interface Application {
   is_duplicate: boolean;
   student_name_masked: string;
   parent_name_masked: string;
+  poverty_score: number | null;
+  household_income: number | null;
+  household_dependents: number | null;
+}
+
+interface FairnessInfo {
+  applicationId: string;
+  isFairnessPriority: boolean;
+  historicalStatus: string;
+  fraudRiskLevel: string;
+  fairnessPriorityScore: number;
 }
 
 interface Stats {
@@ -38,6 +49,8 @@ interface Stats {
   pending: number;
   duplicates: number;
   totalAllocated: number;
+  fairnessPriorityCandidates: number;
+  redFlagged: number;
 }
 
 const COLORS = ["#10b981", "#ef4444", "#f59e0b", "#6366f1"];
