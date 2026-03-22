@@ -44,6 +44,7 @@ export async function submitApplication({ data, studentType }: SubmitApplication
         parent_phone: data.parentGuardian?.phoneNumber || "",
         parent_email: data.parentGuardian?.email || null,
         parent_county: data.parentGuardian?.county || "Not Specified",
+        parent_ward: data.parentGuardian?.ward || null,
         sms_consent: data.parentGuardian?.consentNotifications || false,
         // Student info
         student_full_name: studentType === "university" 
