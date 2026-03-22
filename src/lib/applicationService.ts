@@ -40,10 +40,10 @@ export async function submitApplication({ data, studentType }: SubmitApplication
         advert_id: data.advertId || null,
         // Parent/Guardian info
         parent_national_id: data.parentGuardian?.nationalId || "",
-        parent_full_name: "Guardian", // Not collected in current form
+        parent_full_name: data.parentGuardian?.fullName || "Guardian",
         parent_phone: data.parentGuardian?.phoneNumber || "",
         parent_email: data.parentGuardian?.email || null,
-        parent_county: "Not Specified", // Not collected in current form
+        parent_county: data.parentGuardian?.county || "Not Specified",
         sms_consent: data.parentGuardian?.consentNotifications || false,
         // Student info
         student_full_name: studentType === "university" 
