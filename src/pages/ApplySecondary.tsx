@@ -58,6 +58,11 @@ function ApplicationFormContent() {
           <h1 className="text-3xl font-bold text-foreground mb-2">
             Secondary School Bursary Application
           </h1>
+          {advertTitle && (
+            <p className="text-sm text-primary font-medium mb-1">
+              Applying to: {advertTitle}
+            </p>
+          )}
           <p className="text-muted-foreground max-w-2xl mx-auto">
             Complete the form below to apply for educational funding. Your information is encrypted and protected.
           </p>
