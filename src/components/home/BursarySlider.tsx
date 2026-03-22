@@ -208,8 +208,14 @@ export function BursarySlider() {
                     <div className="grid md:grid-cols-2 gap-0">
                       {/* Left: Main Info */}
                       <div className="p-6 md:p-8 space-y-5">
-                        {/* County Badge */}
-                        <div className="flex items-center gap-2">
+                        {/* County Badge with Emblem */}
+                        <div className="flex items-center gap-3">
+                          {(() => {
+                            const emblem = getCountyEmblem(advert.county);
+                            return emblem ? (
+                              <img src={emblem} alt={`${advert.county} County`} className="w-12 h-12 object-contain" />
+                            ) : null;
+                          })()}
                           <Badge variant="outline" className="bg-background shadow-sm text-sm py-1 animate-fade-in">
                             <MapPin className="h-3.5 w-3.5 mr-1 text-primary" />
                             {advert.county}
