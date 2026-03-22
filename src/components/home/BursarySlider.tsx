@@ -1,13 +1,15 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { 
   MapPin, FileText, Building2, Phone, GraduationCap, 
-  ExternalLink, Bell
+  ExternalLink, Bell, Search, X
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { wardsByCounty } from "@/lib/kenyanWards";
 import { CountdownTimer } from "./CountdownTimer";
 import { SubscribeNotifications } from "./SubscribeNotifications";
 import { getCountyEmblem } from "@/lib/countyEmblems";
