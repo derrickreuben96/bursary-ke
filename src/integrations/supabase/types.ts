@@ -213,6 +213,7 @@ export type Database = {
           parent_full_name: string
           parent_national_id: string
           parent_phone: string
+          parent_ward: string | null
           poverty_score: number
           poverty_tier: Database["public"]["Enums"]["poverty_tier"]
           reviewed_at: string | null
@@ -251,6 +252,7 @@ export type Database = {
           parent_full_name: string
           parent_national_id: string
           parent_phone: string
+          parent_ward?: string | null
           poverty_score: number
           poverty_tier: Database["public"]["Enums"]["poverty_tier"]
           reviewed_at?: string | null
@@ -289,6 +291,7 @@ export type Database = {
           parent_full_name?: string
           parent_national_id?: string
           parent_phone?: string
+          parent_ward?: string | null
           poverty_score?: number
           poverty_tier?: Database["public"]["Enums"]["poverty_tier"]
           reviewed_at?: string | null
