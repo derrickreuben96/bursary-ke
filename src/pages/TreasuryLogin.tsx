@@ -100,8 +100,8 @@ export default function TreasuryLogin() {
       <main className="flex-1 container py-12 flex items-center justify-center">
         <Card className="w-full max-w-md shadow-kenya">
           <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-500/10">
-              <Landmark className="h-8 w-8 text-amber-600" />
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-accent/10">
+              <Landmark className="h-8 w-8 text-accent-foreground" />
             </div>
             <CardTitle className="text-2xl">County Treasury Portal</CardTitle>
             <CardDescription>
