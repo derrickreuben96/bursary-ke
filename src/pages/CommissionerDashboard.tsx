@@ -62,9 +62,28 @@ export default function CommissionerDashboard() {
   const [stats, setStats] = useState<Stats>({ total: 0, approved: 0, rejected: 0, pending: 0, duplicates: 0, totalAllocated: 0, fairnessPriorityCandidates: 0, redFlagged: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("summary");
-  const { signOut } = useAuth();
+  const [assignedWard, setAssignedWard] = useState<string | null>(null);
+  const [assignedCounty, setAssignedCounty] = useState<string | null>(null);
+  const { signOut, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Fetch assigned ward from profile
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("assigned_ward, assigned_county")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (data) {
+        setAssignedWard(data.assigned_ward);
+        setAssignedCounty(data.assigned_county);
+      }
+    };
+    fetchProfile();
+  }, [user]);
 
   const fetchApplications = async () => {
     setIsLoading(true);
