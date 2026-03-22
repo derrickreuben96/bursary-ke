@@ -13,7 +13,6 @@ const Index = () => {
       <Header />
       <main className="flex-1">
         <HeroSection />
-        <BursaryTicker />
         <BursarySlider />
         <StatsSection />
         <ReviewCarousel />
