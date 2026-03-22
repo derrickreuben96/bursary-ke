@@ -12,7 +12,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   GraduationCap, LogOut, CheckCircle2, XCircle, Clock, 
-  Loader2, RefreshCw, AlertTriangle, BarChart3, Users, Banknote
+  Loader2, RefreshCw, AlertTriangle, BarChart3, Users, Banknote,
+  ShieldAlert, Star, History
 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 
