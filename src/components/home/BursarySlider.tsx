@@ -106,6 +106,35 @@ export function BursarySlider() {
     api?.scrollTo(index);
   }, [api]);
 
+  // Available counties from adverts
+  const availableCounties = useMemo(() => 
+    [...new Set(adverts.map(a => a.county))].sort(), 
+    [adverts]
+  );
+
+  // Available wards based on selected county
+  const availableWards = useMemo(() => {
+    if (!filterCounty) return [];
+    return wardsByCounty[filterCounty] || [];
+  }, [filterCounty]);
+
+  // Filtered adverts
+  const filteredAdverts = useMemo(() => {
+    let result = adverts;
+    if (filterCounty) {
+      result = result.filter(a => a.county === filterCounty);
+    }
+    if (filterWard) {
+      result = result.filter(a => a.ward === filterWard);
+    }
+    return result;
+  }, [adverts, filterCounty, filterWard]);
+
+  const handleClearFilters = () => {
+    setFilterCounty("");
+    setFilterWard("");
+  };
+
   if (isLoading) {
     return (
       <section className="py-16 bg-gradient-to-br from-primary/5 via-background to-secondary/20">
