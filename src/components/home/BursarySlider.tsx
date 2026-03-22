@@ -251,7 +251,7 @@ export function BursarySlider() {
                         {/* CTA Buttons */}
                         <div className="flex flex-wrap gap-3 pt-2">
                           <Button asChild size="lg" className="shadow-lg hover:scale-105 transition-transform">
-                            <Link to="/apply/secondary">
+                            <Link to={`/apply/secondary?advert=${advert.id}`}>
                               Apply Now
                             </Link>
                           </Button>
