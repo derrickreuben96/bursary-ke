@@ -13,22 +13,11 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { kenyanCounties } from "@/lib/mockData";
+import { wardsByCounty } from "@/lib/kenyanWards";
 import {
   UserPlus, LogOut, Loader2, Trash2, ArrowLeft, Users, Shield,
   GraduationCap, Landmark, RefreshCw, Eye, EyeOff,
 } from "lucide-react";
-
-// Sample wards per county (extensible)
-const wardsByCounty: Record<string, string[]> = {
-  "Nairobi": ["Westlands", "Dagoretti North", "Dagoretti South", "Langata", "Kibra", "Roysambu", "Kasarani", "Ruaraka", "Embakasi South", "Embakasi North", "Embakasi Central", "Embakasi East", "Embakasi West", "Makadara", "Kamukunji", "Starehe", "Mathare"],
-  "Mombasa": ["Changamwe", "Jomvu", "Kisauni", "Nyali", "Likoni", "Mvita"],
-  "Kisumu": ["Kisumu East", "Kisumu West", "Kisumu Central", "Seme", "Nyando", "Muhoroni", "Nyakach"],
-  "Nakuru": ["Nakuru Town East", "Nakuru Town West", "Naivasha", "Gilgil", "Subukia", "Rongai", "Bahati", "Molo", "Njoro", "Kuresoi North", "Kuresoi South"],
-  "Kiambu": ["Thika Town", "Ruiru", "Juja", "Gatundu South", "Gatundu North", "Githunguri", "Kiambu", "Kiambaa", "Kabete", "Kikuyu", "Limuru", "Lari"],
-  "Machakos": ["Machakos Town", "Mavoko", "Masinga", "Yatta", "Kangundo", "Matungulu", "Kathiani", "Mwala"],
-  "Kakamega": ["Lugari", "Likuyani", "Malava", "Lurambi", "Navakholo", "Mumias West", "Mumias East", "Matungu", "Butere", "Khwisero", "Shinyalu", "Ikolomani"],
-  "Uasin Gishu": ["Soy", "Turbo", "Moiben", "Ainabkoi", "Kapseret", "Kesses"],
-};
 
 interface ManagedUser {
   user_id: string;
