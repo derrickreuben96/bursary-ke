@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
@@ -16,9 +16,7 @@ export default function TreasuryLogin() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [loginAttempted, setLoginAttempted] = useState(false);
-  const [isTreasury, setIsTreasury] = useState(false);
-  const { signIn, user } = useAuth();
+  const { signIn } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -34,49 +32,66 @@ export default function TreasuryLogin() {
       console.error("Error checking treasury role:", error);
       return false;
     }
+
     return !!data;
   };
-
-  useEffect(() => {
-    if (loginAttempted && user) {
-      checkTreasuryRole(user.id).then((hasTreasuryRole) => {
-        if (hasTreasuryRole) {
-          setIsTreasury(true);
-          toast({
-            title: "Welcome",
-            description: "You have successfully logged in to the Treasury Portal.",
-          });
-          navigate("/treasury");
-        } else {
-          toast({
-            title: "Access Denied",
-            description: "You do not have County Treasury access privileges.",
-            variant: "destructive",
-          });
-        }
-        setIsLoading(false);
-        setLoginAttempted(false);
-      });
-    }
-  }, [loginAttempted, user, navigate, toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    const { error } = await signIn(email, password);
+    try {
+      await supabase.auth.signOut().catch(() => {});
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
-    if (error) {
+      const { error } = await signIn(email, password);
+
+      if (error) {
+        toast({
+          title: "Login Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session?.user) {
+        toast({
+          title: "Login Failed",
+          description: "Could not establish a session.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const hasTreasuryRole = await checkTreasuryRole(session.user.id);
+
+      if (hasTreasuryRole) {
+        toast({
+          title: "Welcome",
+          description: "You have successfully logged in to the Treasury Portal.",
+        });
+        navigate("/treasury");
+      } else {
+        toast({
+          title: "Access Denied",
+          description: "You do not have County Treasury access privileges.",
+          variant: "destructive",
+        });
+        await supabase.auth.signOut();
+      }
+    } catch (err) {
+      console.error("Treasury login error:", err);
       toast({
         title: "Login Failed",
-        description: error.message,
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
+    } finally {
       setIsLoading(false);
-      return;
     }
-
-    setLoginAttempted(true);
   };
 
   return (

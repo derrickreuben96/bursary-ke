@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
@@ -16,8 +16,7 @@ export default function CommissionerLogin() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [loginAttempted, setLoginAttempted] = useState(false);
-  const { signIn, user } = useAuth();
+  const { signIn } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -33,48 +32,66 @@ export default function CommissionerLogin() {
       console.error("Error checking commissioner role:", error);
       return false;
     }
+
     return !!data;
   };
-
-  useEffect(() => {
-    if (loginAttempted && user) {
-      checkCommissionerRole(user.id).then((hasRole) => {
-        if (hasRole) {
-          toast({
-            title: "Welcome",
-            description: "You have successfully logged in to the Commissioner Portal.",
-          });
-          navigate("/commissioner");
-        } else {
-          toast({
-            title: "Access Denied",
-            description: "You do not have County Education Commissioner access privileges.",
-            variant: "destructive",
-          });
-        }
-        setIsLoading(false);
-        setLoginAttempted(false);
-      });
-    }
-  }, [loginAttempted, user, navigate, toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    const { error } = await signIn(email, password);
+    try {
+      await supabase.auth.signOut().catch(() => {});
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
-    if (error) {
+      const { error } = await signIn(email, password);
+
+      if (error) {
+        toast({
+          title: "Login Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session?.user) {
+        toast({
+          title: "Login Failed",
+          description: "Could not establish a session.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const hasRole = await checkCommissionerRole(session.user.id);
+
+      if (hasRole) {
+        toast({
+          title: "Welcome",
+          description: "You have successfully logged in to the Commissioner Portal.",
+        });
+        navigate("/commissioner");
+      } else {
+        toast({
+          title: "Access Denied",
+          description: "You do not have County Education Commissioner access privileges.",
+          variant: "destructive",
+        });
+        await supabase.auth.signOut();
+      }
+    } catch (err) {
+      console.error("Commissioner login error:", err);
       toast({
         title: "Login Failed",
-        description: error.message,
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
+    } finally {
       setIsLoading(false);
-      return;
     }
-
-    setLoginAttempted(true);
   };
 
   return (
