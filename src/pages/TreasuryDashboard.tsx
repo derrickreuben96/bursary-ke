@@ -195,7 +195,9 @@ export default function TreasuryDashboard() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-foreground">County Treasury Portal</h1>
-              <p className="text-muted-foreground">Approved Bursary Disbursements</p>
+              <p className="text-muted-foreground">
+                {assignedCounty ? `${assignedCounty} County` : ""} | Approved Bursary Disbursements
+              </p>
             </div>
           </div>
           <div className="flex gap-2">
