@@ -193,7 +193,7 @@ export default function CommissionerDashboard() {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-8">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -249,6 +249,28 @@ export default function CommissionerDashboard() {
               <div className="text-lg font-bold text-blue-600">
                 KES {stats.totalAllocated.toLocaleString()}
               </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-purple-600 flex items-center gap-2">
+                <Star className="h-4 w-4" />
+                Fairness Priority
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-purple-600">{stats.fairnessPriorityCandidates}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-red-600 flex items-center gap-2">
+                <ShieldAlert className="h-4 w-4" />
+                Red Flagged
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-red-600">{stats.redFlagged}</div>
             </CardContent>
           </Card>
         </div>
