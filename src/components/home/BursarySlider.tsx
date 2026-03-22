@@ -1,13 +1,15 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { 
   MapPin, FileText, Building2, Phone, GraduationCap, 
-  ExternalLink, Bell
+  ExternalLink, Bell, Search, X
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { wardsByCounty } from "@/lib/kenyanWards";
 import { CountdownTimer } from "./CountdownTimer";
 import { SubscribeNotifications } from "./SubscribeNotifications";
 import { getCountyEmblem } from "@/lib/countyEmblems";
@@ -47,6 +49,8 @@ export function BursarySlider() {
   const [isLoading, setIsLoading] = useState(true);
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
+  const [filterCounty, setFilterCounty] = useState<string>("");
+  const [filterWard, setFilterWard] = useState<string>("");
   
   const autoplayPlugin = useRef(
     Autoplay({
@@ -101,6 +105,35 @@ export function BursarySlider() {
   const scrollTo = useCallback((index: number) => {
     api?.scrollTo(index);
   }, [api]);
+
+  // Available counties from adverts
+  const availableCounties = useMemo(() => 
+    [...new Set(adverts.map(a => a.county))].sort(), 
+    [adverts]
+  );
+
+  // Available wards based on selected county
+  const availableWards = useMemo(() => {
+    if (!filterCounty) return [];
+    return wardsByCounty[filterCounty] || [];
+  }, [filterCounty]);
+
+  // Filtered adverts
+  const filteredAdverts = useMemo(() => {
+    let result = adverts;
+    if (filterCounty) {
+      result = result.filter(a => a.county === filterCounty);
+    }
+    if (filterWard) {
+      result = result.filter(a => a.ward === filterWard);
+    }
+    return result;
+  }, [adverts, filterCounty, filterWard]);
+
+  const handleClearFilters = () => {
+    setFilterCounty("");
+    setFilterWard("");
+  };
 
   if (isLoading) {
     return (
@@ -183,6 +216,56 @@ export function BursarySlider() {
           <SubscribeNotifications />
         </div>
 
+        {/* Quick Search */}
+        <div className="max-w-3xl mx-auto mb-8">
+          <div className="flex flex-col sm:flex-row items-center gap-3 bg-card border border-border rounded-xl p-4 shadow-md">
+            <div className="flex items-center gap-2 text-muted-foreground shrink-0">
+              <Search className="h-5 w-5 text-primary" />
+              <span className="font-medium text-sm text-foreground">Quick Search:</span>
+            </div>
+            <Select value={filterCounty} onValueChange={(val) => { setFilterCounty(val); setFilterWard(""); }}>
+              <SelectTrigger className="w-full sm:w-[200px]">
+                <SelectValue placeholder="Select County" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableCounties.map(county => (
+                  <SelectItem key={county} value={county}>{county}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={filterWard} onValueChange={setFilterWard} disabled={!filterCounty}>
+              <SelectTrigger className="w-full sm:w-[200px]">
+                <SelectValue placeholder="Select Ward" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableWards.map(ward => (
+                  <SelectItem key={ward} value={ward}>{ward}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {(filterCounty || filterWard) && (
+              <Button variant="ghost" size="sm" onClick={handleClearFilters} className="shrink-0">
+                <X className="h-4 w-4 mr-1" />
+                Clear
+              </Button>
+            )}
+          </div>
+          {(filterCounty || filterWard) && (
+            <p className="text-sm text-muted-foreground text-center mt-2">
+              Showing {filteredAdverts.length} result{filteredAdverts.length !== 1 ? 's' : ''}
+              {filterCounty && ` in ${filterCounty}`}
+              {filterWard && ` • ${filterWard}`}
+            </p>
+          )}
+        </div>
+
+        {filteredAdverts.length === 0 && (filterCounty || filterWard) ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground mb-3">No bursaries found for this selection.</p>
+            <Button variant="outline" onClick={handleClearFilters}>Clear Filters</Button>
+          </div>
+        ) : (
+        <>
         {/* Auto-Sliding Carousel with Fade Transition */}
         <Carousel
           setApi={setApi}
@@ -194,7 +277,7 @@ export function BursarySlider() {
           className="w-full max-w-5xl mx-auto"
         >
           <CarouselContent className="-ml-4">
-            {adverts.map((advert, index) => (
+            {filteredAdverts.map((advert, index) => (
               <CarouselItem 
                 key={advert.id} 
                 className="pl-4 transition-all duration-700 ease-in-out"
@@ -333,9 +416,9 @@ export function BursarySlider() {
         </Carousel>
 
         {/* Pagination Dots with Animation */}
-        {adverts.length > 1 && (
+        {filteredAdverts.length > 1 && (
           <div className="flex justify-center gap-2 mt-6">
-            {adverts.map((_, index) => (
+            {filteredAdverts.map((_, index) => (
               <button
                 key={index}
                 onClick={() => scrollTo(index)}
@@ -353,12 +436,14 @@ export function BursarySlider() {
         {/* Footer */}
         <div className="mt-8 text-center">
           <p className="text-sm text-muted-foreground">
-            Showing {adverts.length} active bursary program{adverts.length !== 1 ? 's' : ''}. 
+            Showing {filteredAdverts.length} active bursary program{filteredAdverts.length !== 1 ? 's' : ''}. 
             <Link to="/bursaries" className="text-primary hover:underline ml-1 font-medium">
               Browse all opportunities →
             </Link>
           </p>
         </div>
+        </>
+        )}
       </div>
     </section>
   );
