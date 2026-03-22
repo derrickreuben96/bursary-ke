@@ -48,9 +48,13 @@ export const trackingNumberSchema = z
 
 // Parent/Guardian Information Schema
 export const parentGuardianSchema = z.object({
+  fullName: z.string().min(2, "Full name is required"),
   nationalId: nationalIdSchema,
   phoneNumber: phoneSchema,
   email: optionalEmailSchema,
+  county: z.string().min(1, "County is required"),
+  ward: z.string().min(1, "Ward is required"),
+  selectedAdvertId: z.string().min(1, "Please select a bursary to apply for"),
   consentNotifications: z.boolean().default(false),
   consentDataUsage: z.boolean().refine((val) => val === true, {
     message: "You must agree to the data usage policy",
