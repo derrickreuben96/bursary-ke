@@ -54,11 +54,13 @@ export default function AdminAllocation() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isAllocating, setIsAllocating] = useState(false);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [isEvaluatingFairness, setIsEvaluatingFairness] = useState(false);
   const [budget, setBudget] = useState("10000000");
   const [fiscalYear, setFiscalYear] = useState("2024/2025");
   const [analysisResult, setAnalysisResult] = useState<any>(null);
   const [allocationReport, setAllocationReport] = useState<TreasuryReport | null>(null);
   const [treasuryReport, setTreasuryReport] = useState<string>("");
+  const [fairnessResult, setFairnessResult] = useState<any>(null);
 
   const analyzeApplications = async () => {
     setIsAnalyzing(true);
