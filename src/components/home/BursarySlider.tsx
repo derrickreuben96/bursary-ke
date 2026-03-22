@@ -216,6 +216,56 @@ export function BursarySlider() {
           <SubscribeNotifications />
         </div>
 
+        {/* Quick Search */}
+        <div className="max-w-3xl mx-auto mb-8">
+          <div className="flex flex-col sm:flex-row items-center gap-3 bg-card border border-border rounded-xl p-4 shadow-md">
+            <div className="flex items-center gap-2 text-muted-foreground shrink-0">
+              <Search className="h-5 w-5 text-primary" />
+              <span className="font-medium text-sm text-foreground">Quick Search:</span>
+            </div>
+            <Select value={filterCounty} onValueChange={(val) => { setFilterCounty(val); setFilterWard(""); }}>
+              <SelectTrigger className="w-full sm:w-[200px]">
+                <SelectValue placeholder="Select County" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableCounties.map(county => (
+                  <SelectItem key={county} value={county}>{county}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={filterWard} onValueChange={setFilterWard} disabled={!filterCounty}>
+              <SelectTrigger className="w-full sm:w-[200px]">
+                <SelectValue placeholder="Select Ward" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableWards.map(ward => (
+                  <SelectItem key={ward} value={ward}>{ward}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {(filterCounty || filterWard) && (
+              <Button variant="ghost" size="sm" onClick={handleClearFilters} className="shrink-0">
+                <X className="h-4 w-4 mr-1" />
+                Clear
+              </Button>
+            )}
+          </div>
+          {(filterCounty || filterWard) && (
+            <p className="text-sm text-muted-foreground text-center mt-2">
+              Showing {filteredAdverts.length} result{filteredAdverts.length !== 1 ? 's' : ''}
+              {filterCounty && ` in ${filterCounty}`}
+              {filterWard && ` • ${filterWard}`}
+            </p>
+          )}
+        </div>
+
+        {filteredAdverts.length === 0 && (filterCounty || filterWard) ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground mb-3">No bursaries found for this selection.</p>
+            <Button variant="outline" onClick={handleClearFilters}>Clear Filters</Button>
+          </div>
+        ) : (
+        <>
         {/* Auto-Sliding Carousel with Fade Transition */}
         <Carousel
           setApi={setApi}
