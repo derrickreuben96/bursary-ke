@@ -416,9 +416,9 @@ export function BursarySlider() {
         </Carousel>
 
         {/* Pagination Dots with Animation */}
-        {adverts.length > 1 && (
+        {filteredAdverts.length > 1 && (
           <div className="flex justify-center gap-2 mt-6">
-            {adverts.map((_, index) => (
+            {filteredAdverts.map((_, index) => (
               <button
                 key={index}
                 onClick={() => scrollTo(index)}
@@ -436,12 +436,14 @@ export function BursarySlider() {
         {/* Footer */}
         <div className="mt-8 text-center">
           <p className="text-sm text-muted-foreground">
-            Showing {adverts.length} active bursary program{adverts.length !== 1 ? 's' : ''}. 
+            Showing {filteredAdverts.length} active bursary program{filteredAdverts.length !== 1 ? 's' : ''}. 
             <Link to="/bursaries" className="text-primary hover:underline ml-1 font-medium">
               Browse all opportunities →
             </Link>
           </p>
         </div>
+        </>
+        )}
       </div>
     </section>
   );
