@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
@@ -13,11 +13,19 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Shield, ArrowRight } from "lucide-react";
 import { parentGuardianSchema, type ParentGuardianFormData } from "@/lib/validationSchemas";
 import { useApplication } from "@/context/ApplicationContext";
 import { PhoneConsentModal } from "./PhoneConsentModal";
+import { wardsByCounty } from "@/lib/kenyanWards";
 
 interface ParentGuardianFormProps {
   onNext: () => void;
@@ -28,30 +36,40 @@ export function ParentGuardianForm({ onNext }: ParentGuardianFormProps) {
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [pendingFormData, setPendingFormData] = useState<ParentGuardianFormData | null>(null);
 
+  const counties = useMemo(() => Object.keys(wardsByCounty).sort(), []);
+
   const form = useForm<ParentGuardianFormData>({
     resolver: zodResolver(parentGuardianSchema),
     defaultValues: {
       nationalId: data.parentGuardian?.nationalId || "",
+      fullName: data.parentGuardian?.fullName || "",
       phoneNumber: data.parentGuardian?.phoneNumber || "",
       email: data.parentGuardian?.email || "",
+      county: data.parentGuardian?.county || "",
+      ward: data.parentGuardian?.ward || "",
       consentNotifications: data.parentGuardian?.consentNotifications || false,
       consentDataUsage: data.parentGuardian?.consentDataUsage || false,
     },
   });
 
+  const selectedCounty = form.watch("county");
+  const wards = useMemo(
+    () => (selectedCounty ? wardsByCounty[selectedCounty] || [] : []),
+    [selectedCounty]
+  );
+
   const onSubmit = (formData: ParentGuardianFormData) => {
-    // Store the form data and show consent modal before proceeding
     setPendingFormData(formData);
     setShowConsentModal(true);
   };
 
   const handleConsent = () => {
     if (pendingFormData) {
-      updateData({ 
-        parentGuardian: { 
-          ...pendingFormData, 
-          consentNotifications: true 
-        } 
+      updateData({
+        parentGuardian: {
+          ...pendingFormData,
+          consentNotifications: true,
+        },
       });
       setShowConsentModal(false);
       onNext();
@@ -60,11 +78,11 @@ export function ParentGuardianForm({ onNext }: ParentGuardianFormProps) {
 
   const handleDecline = () => {
     if (pendingFormData) {
-      updateData({ 
-        parentGuardian: { 
-          ...pendingFormData, 
-          consentNotifications: false 
-        } 
+      updateData({
+        parentGuardian: {
+          ...pendingFormData,
+          consentNotifications: false,
+        },
       });
       setShowConsentModal(false);
       onNext();
@@ -89,6 +107,21 @@ export function ParentGuardianForm({ onNext }: ParentGuardianFormProps) {
               </div>
             </div>
           </Card>
+
+          {/* Full Name */}
+          <FormField
+            control={form.control}
+            name="fullName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Full Name *</FormLabel>
+                <FormControl>
+                  <Input placeholder="Enter your full name" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
           {/* National ID */}
           <FormField
@@ -158,6 +191,72 @@ export function ParentGuardianForm({ onNext }: ParentGuardianFormProps) {
               </FormItem>
             )}
           />
+
+          {/* County & Ward Selection */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="county"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>County *</FormLabel>
+                  <Select
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      form.setValue("ward", "");
+                    }}
+                    value={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select county" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {counties.map((county) => (
+                        <SelectItem key={county} value={county}>
+                          {county}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="ward"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Ward / Sub-County *</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value}
+                    disabled={!selectedCounty}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder={selectedCounty ? "Select ward" : "Select county first"} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {wards.map((ward) => (
+                        <SelectItem key={ward} value={ward}>
+                          {ward}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    Your application will be directed to the commissioner for this ward.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
 
           {/* Consent Data Usage */}
           <FormField

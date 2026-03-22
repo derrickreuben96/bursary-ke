@@ -80,6 +80,10 @@ export function ReviewSubmit({ onBack, onSuccess, studentType }: ReviewSubmitPro
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
           <div>
+            <p className="text-muted-foreground">Full Name</p>
+            <p className="font-medium">{maskName(data.parentGuardian?.fullName || "")}</p>
+          </div>
+          <div>
             <p className="text-muted-foreground">National ID</p>
             <p className="font-medium">{maskId(data.parentGuardian?.nationalId || "")}</p>
           </div>
@@ -93,6 +97,14 @@ export function ReviewSubmit({ onBack, onSuccess, studentType }: ReviewSubmitPro
               <p className="font-medium">{maskEmail(data.parentGuardian.email)}</p>
             </div>
           )}
+          <div>
+            <p className="text-muted-foreground">County</p>
+            <p className="font-medium">{data.parentGuardian?.county || "N/A"}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground">Ward / Sub-County</p>
+            <p className="font-medium">{data.parentGuardian?.ward || "N/A"}</p>
+          </div>
           <div>
             <p className="text-muted-foreground">SMS Consent</p>
             <p className="font-medium">
