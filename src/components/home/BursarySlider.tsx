@@ -277,7 +277,7 @@ export function BursarySlider() {
           className="w-full max-w-5xl mx-auto"
         >
           <CarouselContent className="-ml-4">
-            {adverts.map((advert, index) => (
+            {filteredAdverts.map((advert, index) => (
               <CarouselItem 
                 key={advert.id} 
                 className="pl-4 transition-all duration-700 ease-in-out"
