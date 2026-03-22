@@ -14,6 +14,7 @@ export interface ApplicationData {
   secondaryStudent?: SecondaryStudentFormData;
   povertyQuestionnaire?: PovertyQuestionnaireFormData;
   trackingNumber?: string;
+  advertId?: string;
 }
 
 interface ApplicationContextType {

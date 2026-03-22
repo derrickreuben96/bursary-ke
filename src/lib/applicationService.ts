@@ -36,6 +36,8 @@ export async function submitApplication({ data, studentType }: SubmitApplication
         tracking_number: trackingNumber,
         student_type: studentType,
         status: "received",
+        // Link to bursary advert
+        advert_id: data.advertId || null,
         // Parent/Guardian info
         parent_national_id: data.parentGuardian?.nationalId || "",
         parent_full_name: "Guardian", // Not collected in current form
