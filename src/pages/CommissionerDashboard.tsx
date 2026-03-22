@@ -62,9 +62,28 @@ export default function CommissionerDashboard() {
   const [stats, setStats] = useState<Stats>({ total: 0, approved: 0, rejected: 0, pending: 0, duplicates: 0, totalAllocated: 0, fairnessPriorityCandidates: 0, redFlagged: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("summary");
-  const { signOut } = useAuth();
+  const [assignedWard, setAssignedWard] = useState<string | null>(null);
+  const [assignedCounty, setAssignedCounty] = useState<string | null>(null);
+  const { signOut, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Fetch assigned ward from profile
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("assigned_ward, assigned_county")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (data) {
+        setAssignedWard(data.assigned_ward);
+        setAssignedCounty(data.assigned_county);
+      }
+    };
+    fetchProfile();
+  }, [user]);
 
   const fetchApplications = async () => {
     setIsLoading(true);
@@ -79,10 +98,20 @@ export default function CommissionerDashboard() {
         variant: "destructive",
       });
     } else {
-      const apps = (data || []).map((d: any) => ({
+      let apps = (data || []).map((d: any) => ({
         ...d,
         parent_county: d.parent_county || '',
       })) as Application[];
+
+      // Filter by assigned ward if commissioner has one
+      if (assignedWard) {
+        // Ward filtering - commissioner only sees their ward's applications
+        // Since we don't have a ward column directly, we filter by county for now
+        // and the ward assignment is used as an indicator
+      }
+      if (assignedCounty) {
+        apps = apps.filter(a => a.parent_county === assignedCounty);
+      }
       setApplications(apps);
 
       // Fetch fairness tracking data for all apps
@@ -178,7 +207,10 @@ export default function CommissionerDashboard() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-foreground">County Education Commissioner</h1>
-              <p className="text-muted-foreground">Application Summary & AI Decisions (Read-Only)</p>
+              <p className="text-muted-foreground">
+                {assignedWard ? `Ward: ${assignedWard}` : assignedCounty ? `County: ${assignedCounty}` : ""}
+                {" "}| Application Summary & AI Decisions (Read-Only)
+              </p>
             </div>
           </div>
           <div className="flex gap-2">

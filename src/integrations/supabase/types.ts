@@ -494,6 +494,39 @@ export type Database = {
           },
         ]
       }
+      profiles: {
+        Row: {
+          assigned_county: string | null
+          assigned_ward: string | null
+          created_at: string
+          display_name: string | null
+          email: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assigned_county?: string | null
+          assigned_ward?: string | null
+          created_at?: string
+          display_name?: string | null
+          email: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assigned_county?: string | null
+          assigned_ward?: string | null
+          created_at?: string
+          display_name?: string | null
+          email?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -692,6 +725,8 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_user_assigned_county: { Args: { p_user_id: string }; Returns: string }
+      get_user_assigned_ward: { Args: { p_user_id: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

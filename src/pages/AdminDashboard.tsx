@@ -141,14 +141,23 @@ export default function AdminDashboard() {
               Welcome, {user?.email} | Overview of bursary applications (aggregated data only)
             </p>
           </div>
-          <Button
-            variant="outline"
-            onClick={handleLogout}
-            className="hover:scale-105 transition-transform"
-          >
-            <LogOut className="mr-2 h-4 w-4" />
-            Logout
-          </Button>
+          <div className="flex gap-2 flex-wrap">
+            <Button
+              onClick={() => navigate("/admin/users")}
+              className="hover:scale-105 transition-transform"
+            >
+              <Users className="mr-2 h-4 w-4" />
+              Manage Users
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleLogout}
+              className="hover:scale-105 transition-transform"
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
+            </Button>
+          </div>
         </div>
 
         {/* Summary Cards */}

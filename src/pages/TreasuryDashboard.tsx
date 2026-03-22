@@ -32,9 +32,26 @@ export default function TreasuryDashboard() {
   const [applications, setApplications] = useState<ApprovedApplication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [assignedCounty, setAssignedCounty] = useState<string | null>(null);
   const { signOut, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Fetch assigned county from profile
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("assigned_county")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (data) {
+        setAssignedCounty(data.assigned_county);
+      }
+    };
+    fetchProfile();
+  }, [user]);
 
   const fetchApprovedApplications = async () => {
     setIsLoading(true);
@@ -53,7 +70,12 @@ export default function TreasuryDashboard() {
         variant: "destructive",
       });
     } else {
-      setApplications(data || []);
+      let apps = data || [];
+      // Filter by assigned county if treasury user has one
+      if (assignedCounty) {
+        apps = apps.filter((a: any) => a.county === assignedCounty);
+      }
+      setApplications(apps);
     }
     setIsLoading(false);
   };
@@ -173,7 +195,9 @@ export default function TreasuryDashboard() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-foreground">County Treasury Portal</h1>
-              <p className="text-muted-foreground">Approved Bursary Disbursements</p>
+              <p className="text-muted-foreground">
+                {assignedCounty ? `${assignedCounty} County` : ""} | Approved Bursary Disbursements
+              </p>
             </div>
           </div>
           <div className="flex gap-2">
