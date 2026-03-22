@@ -1,11 +1,76 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Search } from "lucide-react";
+import { ArrowRight, Search, MapPin, Clock } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import heroImage from "@/assets/hero-african-students.jpg";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { getCountyEmblem } from "@/lib/countyEmblems";
+import { useCountdown } from "@/hooks/useCountdown";
+
+interface TickerAdvert {
+  id: string;
+  county: string;
+  title: string;
+  deadline: string;
+  budget_amount: number | null;
+}
+
+function TickerItem({ advert }: { advert: TickerAdvert }) {
+  const { days, hours, isExpired } = useCountdown(advert.deadline);
+  const emblem = getCountyEmblem(advert.county);
+  const isUrgent = days <= 7;
+
+  if (isExpired) return null;
+
+  return (
+    <Link
+      to={`/apply/secondary?advert=${advert.id}`}
+      className="flex-shrink-0 flex items-center gap-3 px-4 py-2.5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl hover:bg-white/20 transition-all duration-300 group min-w-[280px]"
+    >
+      <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center overflow-hidden flex-shrink-0">
+        {emblem ? (
+          <img src={emblem} alt={advert.county} className="w-8 h-8 object-contain" />
+        ) : (
+          <MapPin className="h-4 w-4 text-white/70" />
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-white truncate">{advert.county} County</p>
+        <div className="flex items-center gap-2">
+          <span className={`text-xs font-medium flex items-center gap-1 ${isUrgent ? 'text-red-300' : 'text-primary'}`}>
+            <Clock className="h-3 w-3" />
+            {days}d {hours}h left
+          </span>
+          {advert.budget_amount && (
+            <span className="text-xs text-white/60">• KES {(advert.budget_amount / 1000000).toFixed(0)}M</span>
+          )}
+        </div>
+      </div>
+      <ArrowRight className="h-4 w-4 text-white/50 group-hover:text-primary transition-colors flex-shrink-0" />
+    </Link>
+  );
+}
 
 export function HeroSection() {
+  const [adverts, setAdverts] = useState<TickerAdvert[]>([]);
+
+  useEffect(() => {
+    supabase
+      .from("bursary_adverts")
+      .select("id, county, title, deadline, budget_amount")
+      .eq("is_active", true)
+      .gte("deadline", new Date().toISOString())
+      .order("deadline", { ascending: true })
+      .then(({ data }) => {
+        if (data) setAdverts(data);
+      });
+  }, []);
+
+  const tickerAdverts = [...adverts, ...adverts];
+
   return (
-    <section className="relative min-h-[600px] flex items-center justify-center overflow-hidden">
+    <section className="relative min-h-[600px] flex flex-col justify-center overflow-hidden">
       {/* Background with gradient overlay */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
@@ -17,7 +82,7 @@ export function HeroSection() {
       </div>
 
       {/* Content */}
-      <div className="container relative z-10 py-20 text-center text-white">
+      <div className="container relative z-10 py-20 text-center text-white flex-1 flex flex-col justify-center">
         <div className="max-w-3xl mx-auto space-y-6 animate-fade-in">
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/20 border border-primary/30 text-sm font-medium">
@@ -63,7 +128,7 @@ export function HeroSection() {
           </div>
 
           {/* Trust indicators */}
-          <div className="flex flex-wrap justify-center gap-6 pt-8 text-sm text-white/60">
+          <div className="flex flex-wrap justify-center gap-6 pt-4 text-sm text-white/60">
             <div className="flex items-center gap-2">
               <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -85,6 +150,29 @@ export function HeroSection() {
           </div>
         </div>
       </div>
+
+      {/* Running Bursary Ticker at bottom of hero */}
+      {adverts.length > 0 && (
+        <div className="relative z-10 py-4 bg-black/40 backdrop-blur-sm border-t border-white/10">
+          <div className="container mb-2">
+            <div className="flex items-center gap-3">
+              <Badge className="bg-destructive text-destructive-foreground animate-pulse text-[10px] px-2 py-0.5">
+                LIVE
+              </Badge>
+              <span className="text-xs font-medium text-white/70">
+                {adverts.length} Open Bursary Programs Across Kenya
+              </span>
+            </div>
+          </div>
+          <div className="overflow-hidden">
+            <div className="flex gap-4 animate-ticker hover:[animation-play-state:paused] px-4">
+              {tickerAdverts.map((advert, index) => (
+                <TickerItem key={`${advert.id}-${index}`} advert={advert} />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
