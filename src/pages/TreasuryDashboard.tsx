@@ -32,9 +32,26 @@ export default function TreasuryDashboard() {
   const [applications, setApplications] = useState<ApprovedApplication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [assignedCounty, setAssignedCounty] = useState<string | null>(null);
   const { signOut, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Fetch assigned county from profile
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("assigned_county")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (data) {
+        setAssignedCounty(data.assigned_county);
+      }
+    };
+    fetchProfile();
+  }, [user]);
 
   const fetchApprovedApplications = async () => {
     setIsLoading(true);
