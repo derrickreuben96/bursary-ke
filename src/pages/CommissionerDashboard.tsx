@@ -362,6 +362,16 @@ export default function CommissionerDashboard() {
                       {stats.duplicates} duplicate applications automatically discarded.
                     </p>
                   </div>
+                  <div className="p-4 bg-purple-50 dark:bg-purple-950/20 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Star className="h-5 w-5 text-purple-600" />
+                      <span className="font-medium text-purple-700 dark:text-purple-400">Fairness Continuity</span>
+                    </div>
+                    <p className="text-sm text-purple-600 dark:text-purple-400">
+                      {stats.fairnessPriorityCandidates} previously unfunded applicants received priority boost.
+                      {stats.redFlagged > 0 && ` ${stats.redFlagged} applicant(s) excluded due to red flags.`}
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
             </div>
