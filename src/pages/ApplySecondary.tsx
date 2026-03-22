@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
-import { ApplicationProvider } from "@/context/ApplicationContext";
+import { ApplicationProvider, useApplication } from "@/context/ApplicationContext";
 import { ApplicationStepper } from "@/components/application/ApplicationStepper";
 import { ParentGuardianForm } from "@/components/application/ParentGuardianForm";
 import { SecondaryStudentForm } from "@/components/application/SecondaryStudentForm";
@@ -10,13 +11,33 @@ import { ReviewSubmit } from "@/components/application/ReviewSubmit";
 import { SuccessModal } from "@/components/application/SuccessModal";
 import { FormAssistant } from "@/components/chat/FormAssistant";
 import { GraduationCap, Shield, Lock } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const steps = ["Parent/Guardian", "Student Info", "Assessment", "Review"];
 
 function ApplicationFormContent() {
+  const [searchParams] = useSearchParams();
+  const advertId = searchParams.get("advert");
+  const { updateData } = useApplication();
   const [currentStep, setCurrentStep] = useState(1);
   const [showSuccess, setShowSuccess] = useState(false);
   const [trackingNumber, setTrackingNumber] = useState("");
+  const [advertTitle, setAdvertTitle] = useState<string | null>(null);
+
+  // Set advert ID in context and fetch title
+  useEffect(() => {
+    if (advertId) {
+      updateData({ advertId });
+      supabase
+        .from("bursary_adverts")
+        .select("title, county")
+        .eq("id", advertId)
+        .single()
+        .then(({ data }) => {
+          if (data) setAdvertTitle(`${data.county} - ${data.title}`);
+        });
+    }
+  }, [advertId]);
 
   const handleSuccess = (tracking: string) => {
     setTrackingNumber(tracking);
