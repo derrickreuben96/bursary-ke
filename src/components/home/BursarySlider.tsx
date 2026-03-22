@@ -49,6 +49,8 @@ export function BursarySlider() {
   const [isLoading, setIsLoading] = useState(true);
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
+  const [filterCounty, setFilterCounty] = useState<string>("");
+  const [filterWard, setFilterWard] = useState<string>("");
   
   const autoplayPlugin = useRef(
     Autoplay({
