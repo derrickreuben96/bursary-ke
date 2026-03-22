@@ -36,14 +36,14 @@ export async function submitApplication({ data, studentType }: SubmitApplication
         tracking_number: trackingNumber,
         student_type: studentType,
         status: "received",
-        // Link to bursary advert
-        advert_id: data.advertId || null,
+        // Link to bursary advert (from county/ward selection)
+        advert_id: data.parentGuardian?.selectedAdvertId || data.advertId || null,
         // Parent/Guardian info
         parent_national_id: data.parentGuardian?.nationalId || "",
-        parent_full_name: "Guardian", // Not collected in current form
+        parent_full_name: data.parentGuardian?.fullName || "Guardian",
         parent_phone: data.parentGuardian?.phoneNumber || "",
         parent_email: data.parentGuardian?.email || null,
-        parent_county: "Not Specified", // Not collected in current form
+        parent_county: data.parentGuardian?.county || "Not Specified",
         sms_consent: data.parentGuardian?.consentNotifications || false,
         // Student info
         student_full_name: studentType === "university" 
