@@ -243,12 +243,130 @@ export default function AdminAllocation() {
           </Card>
 
           {/* Tabs for different actions */}
-          <Tabs defaultValue="analyze" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="analyze">1. Analyze</TabsTrigger>
-              <TabsTrigger value="allocate">2. Allocate</TabsTrigger>
-              <TabsTrigger value="report">3. Treasury Report</TabsTrigger>
+          <Tabs defaultValue="fairness" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="fairness">1. Fairness Check</TabsTrigger>
+              <TabsTrigger value="analyze">2. Analyze</TabsTrigger>
+              <TabsTrigger value="allocate">3. Allocate</TabsTrigger>
+              <TabsTrigger value="report">4. Treasury Report</TabsTrigger>
             </TabsList>
+
+            {/* Fairness Evaluation Tab */}
+            <TabsContent value="fairness">
+              <Card className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                      <Scale className="h-5 w-5 text-primary" />
+                      Fairness Continuity Evaluation
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Evaluate all pending applications against historical records to apply priority boosts and detect fraud
+                    </p>
+                  </div>
+                  <Button onClick={runFairnessEvaluation} disabled={isEvaluatingFairness}>
+                    {isEvaluatingFairness ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Evaluating...
+                      </>
+                    ) : (
+                      <>
+                        <Scale className="mr-2 h-4 w-4" />
+                        Run Fairness Evaluation
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                {fairnessResult && (
+                  <div className="space-y-6 mt-6">
+                    {fairnessResult.map((result: any, idx: number) => {
+                      const priorityCount = result.results?.filter((r: any) => r.isFairnessPriorityCandidate)?.length || 0;
+                      const redFlagCount = result.results?.filter((r: any) => r.historicalStatus === "red_flagged")?.length || 0;
+                      const highFraud = result.results?.filter((r: any) => r.fraudRiskLevel === "high")?.length || 0;
+
+                      return (
+                        <div key={idx} className="border rounded-lg p-4">
+                          <h4 className="font-semibold mb-3">{result.advert} — {result.county}</h4>
+                          <p className="text-sm text-muted-foreground mb-4">{result.message}</p>
+
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                            <Card className="p-3 bg-primary/5">
+                              <p className="text-xs text-muted-foreground">Evaluated</p>
+                              <p className="text-xl font-bold">{result.results?.length || 0}</p>
+                            </Card>
+                            <Card className="p-3 bg-accent/5">
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <Star className="h-3 w-3" /> Priority
+                              </div>
+                              <p className="text-xl font-bold text-primary">{priorityCount}</p>
+                            </Card>
+                            <Card className="p-3 bg-destructive/5">
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <ShieldAlert className="h-3 w-3" /> Red Flagged
+                              </div>
+                              <p className="text-xl font-bold text-destructive">{redFlagCount}</p>
+                            </Card>
+                            <Card className="p-3 bg-destructive/5">
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <AlertCircle className="h-3 w-3" /> High Fraud
+                              </div>
+                              <p className="text-xl font-bold text-destructive">{highFraud}</p>
+                            </Card>
+                          </div>
+
+                          {result.results?.length > 0 && (
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm">
+                                <thead>
+                                  <tr className="border-b text-left">
+                                    <th className="pb-2 pr-4">National ID</th>
+                                    <th className="pb-2 pr-4">Status</th>
+                                    <th className="pb-2 pr-4">Attempts</th>
+                                    <th className="pb-2 pr-4">Score</th>
+                                    <th className="pb-2 pr-4">Fraud Risk</th>
+                                    <th className="pb-2">Adjustments</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {result.results.map((r: any, i: number) => (
+                                    <tr key={i} className="border-b last:border-0">
+                                      <td className="py-2 pr-4 font-mono text-xs">{r.nationalId}</td>
+                                      <td className="py-2 pr-4">
+                                        <Badge variant={
+                                          r.historicalStatus === "red_flagged" ? "destructive" :
+                                          r.historicalStatus === "returning_unfunded" ? "default" :
+                                          "secondary"
+                                        }>
+                                          {r.historicalStatus}
+                                        </Badge>
+                                      </td>
+                                      <td className="py-2 pr-4">{r.previousAttempts}</td>
+                                      <td className="py-2 pr-4">
+                                        <span className={r.fairnessPriorityScore > 0 ? "text-primary font-bold" : r.fairnessPriorityScore < 0 ? "text-destructive font-bold" : ""}>
+                                          {r.fairnessPriorityScore > 0 ? "+" : ""}{r.fairnessPriorityScore}
+                                        </span>
+                                      </td>
+                                      <td className="py-2 pr-4">
+                                        <Badge variant={r.fraudRiskLevel === "high" ? "destructive" : r.fraudRiskLevel === "medium" ? "secondary" : "outline"}>
+                                          {r.fraudRiskLevel}
+                                        </Badge>
+                                      </td>
+                                      <td className="py-2 text-xs text-muted-foreground">{r.adjustments?.join("; ") || "None"}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </Card>
+            </TabsContent>
 
             {/* Analyze Tab */}
             <TabsContent value="analyze">
