@@ -164,7 +164,7 @@ export function HeroSection() {
               </span>
             </div>
           </div>
-          <div className="overflow-hidden">
+          <div className="overflow-hidden ticker-mask">
             <div className="flex gap-4 animate-ticker hover:[animation-play-state:paused] px-4">
               {tickerAdverts.map((advert, index) => (
                 <TickerItem key={`${advert.id}-${index}`} advert={advert} />
