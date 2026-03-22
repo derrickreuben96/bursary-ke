@@ -104,7 +104,27 @@ export default function TreasuryDashboard() {
 
   const totalAmount = applications.reduce((sum, app) => sum + (app.allocated_amount || 0), 0);
 
-  const exportToCSV = () => {
+  const exportToCSV = async () => {
+    // Fetch fairness summary for the report
+    const appIds = applications.map(a => a.id).filter(Boolean);
+    let fairnessStats = { firstTime: 0, repeatUnfunded: 0, repeatFunded: 0, priorityAdjusted: 0 };
+    
+    if (appIds.length > 0) {
+      const { data: fairnessData } = await supabase
+        .from("fairness_tracking")
+        .select("historical_status, priority_boost_applied")
+        .in("application_id", appIds);
+
+      if (fairnessData) {
+        fairnessStats = {
+          firstTime: fairnessData.filter(f => f.historical_status === "new").length,
+          repeatUnfunded: fairnessData.filter(f => f.historical_status === "returning_unfunded").length,
+          repeatFunded: fairnessData.filter(f => f.historical_status === "returning_funded").length,
+          priorityAdjusted: fairnessData.filter(f => f.priority_boost_applied).length,
+        };
+      }
+    }
+
     const headers = ["Tracking Number", "Institution", "Type", "Amount (KES)", "eCitizen Ref", "County", "Date"];
     const rows = applications.map(app => [
       app.tracking_number,
@@ -116,7 +136,17 @@ export default function TreasuryDashboard() {
       app.allocation_date ? new Date(app.allocation_date).toLocaleDateString() : ""
     ]);
 
-    const csv = [headers, ...rows].map(row => row.join(",")).join("\n");
+    // Add fairness distribution report section
+    const fairnessSection = [
+      [],
+      ["FAIRNESS DISTRIBUTION REPORT"],
+      ["First-time beneficiaries", fairnessStats.firstTime.toString()],
+      ["Repeat applicants (previously unfunded)", fairnessStats.repeatUnfunded.toString()],
+      ["Repeat applicants (previously funded)", fairnessStats.repeatFunded.toString()],
+      ["Priority-adjusted cases", fairnessStats.priorityAdjusted.toString()],
+    ];
+
+    const csv = [headers, ...rows, ...fairnessSection].map(row => row.join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -127,7 +157,7 @@ export default function TreasuryDashboard() {
 
     toast({
       title: "Exported",
-      description: "Disbursement list exported to CSV",
+      description: "Disbursement list with fairness report exported to CSV",
     });
   };
 

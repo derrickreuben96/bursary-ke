@@ -12,7 +12,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   GraduationCap, LogOut, CheckCircle2, XCircle, Clock, 
-  Loader2, RefreshCw, AlertTriangle, BarChart3, Users, Banknote
+  Loader2, RefreshCw, AlertTriangle, BarChart3, Users, Banknote,
+  ShieldAlert, Star, History
 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 
@@ -29,6 +30,17 @@ interface Application {
   is_duplicate: boolean;
   student_name_masked: string;
   parent_name_masked: string;
+  poverty_score: number | null;
+  household_income: number | null;
+  household_dependents: number | null;
+}
+
+interface FairnessInfo {
+  applicationId: string;
+  isFairnessPriority: boolean;
+  historicalStatus: string;
+  fraudRiskLevel: string;
+  fairnessPriorityScore: number;
 }
 
 interface Stats {
@@ -38,13 +50,16 @@ interface Stats {
   pending: number;
   duplicates: number;
   totalAllocated: number;
+  fairnessPriorityCandidates: number;
+  redFlagged: number;
 }
 
 const COLORS = ["#10b981", "#ef4444", "#f59e0b", "#6366f1"];
 
 export default function CommissionerDashboard() {
   const [applications, setApplications] = useState<Application[]>([]);
-  const [stats, setStats] = useState<Stats>({ total: 0, approved: 0, rejected: 0, pending: 0, duplicates: 0, totalAllocated: 0 });
+  const [fairnessMap, setFairnessMap] = useState<Map<string, FairnessInfo>>(new Map());
+  const [stats, setStats] = useState<Stats>({ total: 0, approved: 0, rejected: 0, pending: 0, duplicates: 0, totalAllocated: 0, fairnessPriorityCandidates: 0, redFlagged: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("summary");
   const { signOut } = useAuth();
@@ -68,13 +83,47 @@ export default function CommissionerDashboard() {
         ...d,
         parent_county: d.parent_county || '',
       })) as Application[];
+      setApplications(apps);
+
+      // Fetch fairness tracking data for all apps
+      const appIds = apps.map(a => a.id).filter(Boolean);
+      if (appIds.length > 0) {
+        const { data: fairnessData } = await supabase
+          .from("fairness_tracking")
+          .select("application_id, is_fairness_priority_candidate, historical_status, fraud_risk_level, fairness_priority_score")
+          .in("application_id", appIds);
+
+        const fMap = new Map<string, FairnessInfo>();
+        (fairnessData || []).forEach((f: any) => {
+          fMap.set(f.application_id, {
+            applicationId: f.application_id,
+            isFairnessPriority: f.is_fairness_priority_candidate,
+            historicalStatus: f.historical_status,
+            fraudRiskLevel: f.fraud_risk_level,
+            fairnessPriorityScore: f.fairness_priority_score,
+          });
+        });
+        setFairnessMap(fMap);
+      }
+
+      const fairnessPriorityCandidates = apps.filter(a => {
+        const f = fairnessMap.get(a.id);
+        return f?.isFairnessPriority;
+      }).length;
+      const redFlagged = apps.filter(a => {
+        const f = fairnessMap.get(a.id);
+        return f?.historicalStatus === "red_flagged";
+      }).length;
+
       setStats({
         total: apps.length,
         approved: apps.filter(a => a.status === "approved").length,
         rejected: apps.filter(a => a.status === "rejected").length,
         pending: apps.filter(a => a.status === "received" || a.status === "review" || a.status === "verification").length,
         duplicates: apps.filter(a => a.is_duplicate).length,
-        totalAllocated: apps.reduce((sum, a) => sum + (a.allocated_amount || 0), 0)
+        totalAllocated: apps.reduce((sum, a) => sum + (a.allocated_amount || 0), 0),
+        fairnessPriorityCandidates,
+        redFlagged,
       });
     }
     setIsLoading(false);
@@ -144,7 +193,7 @@ export default function CommissionerDashboard() {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-8">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -200,6 +249,28 @@ export default function CommissionerDashboard() {
               <div className="text-lg font-bold text-blue-600">
                 KES {stats.totalAllocated.toLocaleString()}
               </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-purple-600 flex items-center gap-2">
+                <Star className="h-4 w-4" />
+                Fairness Priority
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-purple-600">{stats.fairnessPriorityCandidates}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-red-600 flex items-center gap-2">
+                <ShieldAlert className="h-4 w-4" />
+                Red Flagged
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-red-600">{stats.redFlagged}</div>
             </CardContent>
           </Card>
         </div>
@@ -291,6 +362,16 @@ export default function CommissionerDashboard() {
                       {stats.duplicates} duplicate applications automatically discarded.
                     </p>
                   </div>
+                  <div className="p-4 bg-purple-50 dark:bg-purple-950/20 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Star className="h-5 w-5 text-purple-600" />
+                      <span className="font-medium text-purple-700 dark:text-purple-400">Fairness Continuity</span>
+                    </div>
+                    <p className="text-sm text-purple-600 dark:text-purple-400">
+                      {stats.fairnessPriorityCandidates} previously unfunded applicants received priority boost.
+                      {stats.redFlagged > 0 && ` ${stats.redFlagged} applicant(s) excluded due to red flags.`}
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -319,27 +400,52 @@ export default function CommissionerDashboard() {
                         <TableHead>Type</TableHead>
                         <TableHead>County</TableHead>
                         <TableHead>Priority</TableHead>
+                        <TableHead>Fairness</TableHead>
+                        <TableHead>Fraud Risk</TableHead>
                         <TableHead>Amount</TableHead>
                         <TableHead>AI Reason</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {approvedApps.map((app) => (
-                        <TableRow key={app.id}>
-                          <TableCell className="font-mono">{app.tracking_number}</TableCell>
-                          <TableCell className="capitalize">{app.student_type}</TableCell>
-                          <TableCell>{app.parent_county}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{app.poverty_tier}</Badge>
-                          </TableCell>
-                          <TableCell className="font-medium">
-                            KES {(app.allocated_amount || 0).toLocaleString()}
-                          </TableCell>
-                          <TableCell className="max-w-xs truncate text-sm text-muted-foreground">
-                            {app.ai_decision_reason || "—"}
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {approvedApps.map((app) => {
+                        const f = fairnessMap.get(app.id);
+                        return (
+                          <TableRow key={app.id}>
+                            <TableCell className="font-mono">{app.tracking_number}</TableCell>
+                            <TableCell className="capitalize">{app.student_type}</TableCell>
+                            <TableCell>{app.parent_county}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{app.poverty_tier}</Badge>
+                            </TableCell>
+                            <TableCell>
+                              {f?.isFairnessPriority ? (
+                                <Badge className="bg-purple-100 text-purple-700">
+                                  <Star className="h-3 w-3 mr-1" />
+                                  Priority +{f.fairnessPriorityScore}
+                                </Badge>
+                              ) : f?.historicalStatus === "returning_funded" ? (
+                                <Badge variant="outline" className="text-amber-600">
+                                  <History className="h-3 w-3 mr-1" />
+                                  Returning
+                                </Badge>
+                              ) : (
+                                <Badge variant="secondary">New</Badge>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={f?.fraudRiskLevel === "high" ? "destructive" : f?.fraudRiskLevel === "medium" ? "secondary" : "outline"}>
+                                {f?.fraudRiskLevel || "low"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="font-medium">
+                              KES {(app.allocated_amount || 0).toLocaleString()}
+                            </TableCell>
+                            <TableCell className="max-w-xs truncate text-sm text-muted-foreground">
+                              {app.ai_decision_reason || "—"}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 )}
@@ -370,23 +476,46 @@ export default function CommissionerDashboard() {
                         <TableHead>Status</TableHead>
                         <TableHead>Type</TableHead>
                         <TableHead>County</TableHead>
+                        <TableHead>Fraud Risk</TableHead>
+                        <TableHead>History</TableHead>
                         <TableHead>AI Reason for Rejection</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {rejectedApps.map((app) => (
-                        <TableRow key={app.id}>
-                          <TableCell className="font-mono">{app.tracking_number}</TableCell>
-                          <TableCell>{getStatusBadge(app.status, app.is_duplicate)}</TableCell>
-                          <TableCell className="capitalize">{app.student_type}</TableCell>
-                          <TableCell>{app.parent_county}</TableCell>
-                          <TableCell className="max-w-md text-sm">
-                            <p className="text-muted-foreground">
-                              {app.ai_decision_reason || "No reason provided"}
-                            </p>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {rejectedApps.map((app) => {
+                        const f = fairnessMap.get(app.id);
+                        return (
+                          <TableRow key={app.id}>
+                            <TableCell className="font-mono">{app.tracking_number}</TableCell>
+                            <TableCell>{getStatusBadge(app.status, app.is_duplicate)}</TableCell>
+                            <TableCell className="capitalize">{app.student_type}</TableCell>
+                            <TableCell>{app.parent_county}</TableCell>
+                            <TableCell>
+                              {f?.fraudRiskLevel === "high" ? (
+                                <Badge variant="destructive"><ShieldAlert className="h-3 w-3 mr-1" />High</Badge>
+                              ) : f?.fraudRiskLevel === "medium" ? (
+                                <Badge variant="secondary">Medium</Badge>
+                              ) : (
+                                <Badge variant="outline">Low</Badge>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {f?.historicalStatus === "red_flagged" ? (
+                                <Badge variant="destructive">Red Flagged</Badge>
+                              ) : f?.historicalStatus === "returning_unfunded" ? (
+                                <Badge className="bg-purple-100 text-purple-700">Unfunded Prior</Badge>
+                              ) : (
+                                <Badge variant="secondary">New</Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="max-w-md text-sm">
+                              <p className="text-muted-foreground">
+                                {app.ai_decision_reason || "No reason provided"}
+                              </p>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 )}

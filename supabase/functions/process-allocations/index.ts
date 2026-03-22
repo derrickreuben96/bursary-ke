@@ -220,7 +220,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Step 2: Get non-duplicate applications sorted by poverty score
+    // Step 2: Get non-duplicate applications with fairness data, sorted by combined score
     const { data: validApps } = await supabaseAdmin
       .from("bursary_applications")
       .select("*")
@@ -240,78 +240,125 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Step 3: Allocate based on budget and poverty score
+    // Step 2b: Load fairness tracking data for all valid applicants
+    const nationalIds = [...new Set(validApps.map(a => a.parent_national_id))];
+    const { data: fairnessData } = await supabaseAdmin
+      .from("fairness_tracking")
+      .select("*")
+      .in("national_id", nationalIds);
+
+    const fairnessMap = new Map(
+      (fairnessData || []).map(f => [f.national_id, f])
+    );
+
+    // Step 2c: Sort by combined score (poverty_score + fairness_priority_score)
+    // Exclude red-flagged applicants
+    const scoredApps = validApps
+      .map(app => {
+        const fairness = fairnessMap.get(app.parent_national_id);
+        const fairnessScore = fairness?.fairness_priority_score || (app.fairness_priority_score || 0);
+        const isRedFlagged = fairness?.historical_status === "red_flagged" || app.historical_status === "red_flagged";
+        const fraudRisk = fairness?.fraud_risk_level || app.fraud_risk_level || "low";
+        return {
+          ...app,
+          combinedScore: isRedFlagged ? -999 : (app.poverty_score + fairnessScore),
+          fairnessScore,
+          isRedFlagged,
+          isFairnessPriority: fairness?.is_fairness_priority_candidate || app.is_fairness_priority || false,
+          fraudRisk,
+          historicalStatus: fairness?.historical_status || app.historical_status || "new",
+        };
+      })
+      .sort((a, b) => b.combinedScore - a.combinedScore);
+
+    // Step 3: Allocate based on budget and combined score
     const budget = budgetAmount || advert.budget_amount || 0;
-    const averageAllocation = 35000; // Average bursary per student
+    const averageAllocation = 35000;
     const maxApprovals = Math.floor(budget / averageAllocation);
 
     const results: AllocationResult[] = [];
     let approvedCount = 0;
     let totalAllocated = 0;
 
-    for (const app of validApps) {
-      const canApprove = approvedCount < maxApprovals && totalAllocated + averageAllocation <= budget;
-      
-      // Calculate allocation amount based on poverty tier
-      let allocationAmount = averageAllocation;
-      if (app.poverty_tier === "High") {
-        allocationAmount = 50000;
-      } else if (app.poverty_tier === "Medium") {
-        allocationAmount = 35000;
-      } else {
-        allocationAmount = 20000;
+    for (const app of scoredApps) {
+      // Skip red-flagged applicants
+      if (app.isRedFlagged) {
+        const reason = "Application excluded due to active red flag in historical records. No exceptions.";
+        await supabaseAdmin
+          .from("bursary_applications")
+          .update({ status: "rejected", ai_decision_reason: reason })
+          .eq("id", app.id);
+
+        await supabaseAdmin.from("fairness_audit_log").insert({
+          application_id: app.id,
+          action: "red_flag_exclusion",
+          details: { reason, historicalStatus: app.historicalStatus },
+          performed_by: "allocation_engine",
+        });
+
+        results.push({ applicationId: app.id, trackingNumber: app.tracking_number, status: "rejected", reason });
+        continue;
       }
+
+      // Skip high fraud risk
+      if (app.fraudRisk === "high") {
+        const reason = "Application flagged for high fraud risk. Manual review required.";
+        await supabaseAdmin
+          .from("bursary_applications")
+          .update({ status: "rejected", ai_decision_reason: reason })
+          .eq("id", app.id);
+        results.push({ applicationId: app.id, trackingNumber: app.tracking_number, status: "rejected", reason });
+        continue;
+      }
+
+      const canApprove = approvedCount < maxApprovals && totalAllocated + averageAllocation <= budget;
+
+      let allocationAmount = averageAllocation;
+      if (app.poverty_tier === "High") allocationAmount = 50000;
+      else if (app.poverty_tier === "Medium") allocationAmount = 35000;
+      else allocationAmount = 20000;
 
       let status: "approved" | "rejected";
       let reason: string;
 
       if (canApprove && totalAllocated + allocationAmount <= budget) {
         status = "approved";
-        reason = `Application approved based on poverty assessment score of ${app.poverty_score}/100. ` +
-                 `Priority tier: ${app.poverty_tier}. Household income: KES ${app.household_income?.toLocaleString() || 'N/A'}. ` +
-                 `Dependents: ${app.household_dependents}. Allocated amount: KES ${allocationAmount.toLocaleString()}.`;
+        const fairnessNote = app.isFairnessPriority
+          ? ` Fairness priority boost applied (+${app.fairnessScore}).`
+          : app.historicalStatus === "returning_funded"
+          ? ` Returning funded applicant (priority adjusted by ${app.fairnessScore}).`
+          : "";
+        reason = `Application approved. Poverty score: ${app.poverty_score}/100. Combined score: ${app.combinedScore}. ` +
+                 `Tier: ${app.poverty_tier}. Household income: KES ${app.household_income?.toLocaleString() || 'N/A'}. ` +
+                 `Dependents: ${app.household_dependents}. Amount: KES ${allocationAmount.toLocaleString()}.${fairnessNote}`;
         approvedCount++;
         totalAllocated += allocationAmount;
 
         await supabaseAdmin
           .from("bursary_applications")
-          .update({ 
+          .update({
             status: "approved",
             ai_decision_reason: reason,
             allocated_amount: allocationAmount,
             allocation_date: new Date().toISOString(),
-            ecitizen_ref: `ECIT-${advert.county.substring(0, 3).toUpperCase()}-${Date.now()}-${approvedCount}`
+            ecitizen_ref: `ECIT-${advert.county.substring(0, 3).toUpperCase()}-${Date.now()}-${approvedCount}`,
           })
           .eq("id", app.id);
 
-        results.push({
-          applicationId: app.id,
-          trackingNumber: app.tracking_number,
-          status: "approved",
-          reason,
-          allocatedAmount: allocationAmount
-        });
+        results.push({ applicationId: app.id, trackingNumber: app.tracking_number, status: "approved", reason, allocatedAmount: allocationAmount });
       } else {
         status = "rejected";
         reason = approvedCount >= maxApprovals
-          ? `Application not approved due to budget constraints. All available slots (${maxApprovals}) have been allocated to higher-priority applicants. ` +
-            `Your poverty score was ${app.poverty_score}/100, priority tier: ${app.poverty_tier}.`
-          : `Application not approved. Budget exhausted. Total budget: KES ${budget.toLocaleString()}, already allocated: KES ${totalAllocated.toLocaleString()}.`;
+          ? `Not approved due to budget constraints. All ${maxApprovals} slots allocated to higher-scoring applicants. ` +
+            `Your combined score was ${app.combinedScore} (poverty: ${app.poverty_score}, fairness: ${app.fairnessScore}).`
+          : `Not approved. Budget exhausted. Total: KES ${budget.toLocaleString()}, allocated: KES ${totalAllocated.toLocaleString()}.`;
 
         await supabaseAdmin
           .from("bursary_applications")
-          .update({ 
-            status: "rejected",
-            ai_decision_reason: reason
-          })
+          .update({ status: "rejected", ai_decision_reason: reason })
           .eq("id", app.id);
 
-        results.push({
-          applicationId: app.id,
-          trackingNumber: app.tracking_number,
-          status: "rejected",
-          reason
-        });
+        results.push({ applicationId: app.id, trackingNumber: app.tracking_number, status: "rejected", reason });
       }
     }
 

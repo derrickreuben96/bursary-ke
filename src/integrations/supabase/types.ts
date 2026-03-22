@@ -14,6 +14,136 @@ export type Database = {
   }
   public: {
     Tables: {
+      allocation_cycles: {
+        Row: {
+          advert_id: string | null
+          completed_at: string | null
+          county: string
+          created_at: string
+          cycle_name: string
+          fiscal_year: string
+          id: string
+          started_at: string
+          total_allocated: number | null
+          total_applicants: number | null
+          total_approved: number | null
+          total_budget: number | null
+        }
+        Insert: {
+          advert_id?: string | null
+          completed_at?: string | null
+          county: string
+          created_at?: string
+          cycle_name: string
+          fiscal_year: string
+          id?: string
+          started_at?: string
+          total_allocated?: number | null
+          total_applicants?: number | null
+          total_approved?: number | null
+          total_budget?: number | null
+        }
+        Update: {
+          advert_id?: string | null
+          completed_at?: string | null
+          county?: string
+          created_at?: string
+          cycle_name?: string
+          fiscal_year?: string
+          id?: string
+          started_at?: string
+          total_allocated?: number | null
+          total_applicants?: number | null
+          total_approved?: number | null
+          total_budget?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "allocation_cycles_advert_id_fkey"
+            columns: ["advert_id"]
+            isOneToOne: false
+            referencedRelation: "bursary_adverts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      applicant_history: {
+        Row: {
+          ai_score: number | null
+          allocated_amount: number | null
+          application_id: string | null
+          county: string
+          created_at: string
+          cycle_id: string | null
+          funding_status: string
+          id: string
+          national_id: string
+          phone_number: string | null
+          red_flag: boolean
+          red_flag_reason: string | null
+          ward: string | null
+        }
+        Insert: {
+          ai_score?: number | null
+          allocated_amount?: number | null
+          application_id?: string | null
+          county: string
+          created_at?: string
+          cycle_id?: string | null
+          funding_status: string
+          id?: string
+          national_id: string
+          phone_number?: string | null
+          red_flag?: boolean
+          red_flag_reason?: string | null
+          ward?: string | null
+        }
+        Update: {
+          ai_score?: number | null
+          allocated_amount?: number | null
+          application_id?: string | null
+          county?: string
+          created_at?: string
+          cycle_id?: string | null
+          funding_status?: string
+          id?: string
+          national_id?: string
+          phone_number?: string | null
+          red_flag?: boolean
+          red_flag_reason?: string | null
+          ward?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applicant_history_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "bursary_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applicant_history_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "bursary_applications_commissioner"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applicant_history_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "bursary_applications_treasury"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applicant_history_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "allocation_cycles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bursary_adverts: {
         Row: {
           budget_amount: number | null
@@ -69,11 +199,15 @@ export type Database = {
           created_at: string
           duplicate_of: string | null
           ecitizen_ref: string | null
+          fairness_priority_score: number | null
+          fraud_risk_level: string | null
+          historical_status: string | null
           household_dependents: number
           household_income: number
           id: string
           institution_name: string
           is_duplicate: boolean | null
+          is_fairness_priority: boolean | null
           parent_county: string
           parent_email: string | null
           parent_full_name: string
@@ -103,11 +237,15 @@ export type Database = {
           created_at?: string
           duplicate_of?: string | null
           ecitizen_ref?: string | null
+          fairness_priority_score?: number | null
+          fraud_risk_level?: string | null
+          historical_status?: string | null
           household_dependents: number
           household_income: number
           id?: string
           institution_name: string
           is_duplicate?: boolean | null
+          is_fairness_priority?: boolean | null
           parent_county: string
           parent_email?: string | null
           parent_full_name: string
@@ -137,11 +275,15 @@ export type Database = {
           created_at?: string
           duplicate_of?: string | null
           ecitizen_ref?: string | null
+          fairness_priority_score?: number | null
+          fraud_risk_level?: string | null
+          historical_status?: string | null
           household_dependents?: number
           household_income?: number
           id?: string
           institution_name?: string
           is_duplicate?: boolean | null
+          is_fairness_priority?: boolean | null
           parent_county?: string
           parent_email?: string | null
           parent_full_name?: string
@@ -222,6 +364,135 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      fairness_audit_log: {
+        Row: {
+          action: string
+          application_id: string | null
+          created_at: string
+          details: Json
+          id: string
+          performed_by: string
+        }
+        Insert: {
+          action: string
+          application_id?: string | null
+          created_at?: string
+          details?: Json
+          id?: string
+          performed_by?: string
+        }
+        Update: {
+          action?: string
+          application_id?: string | null
+          created_at?: string
+          details?: Json
+          id?: string
+          performed_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fairness_audit_log_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "bursary_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fairness_audit_log_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "bursary_applications_commissioner"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fairness_audit_log_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "bursary_applications_treasury"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fairness_tracking: {
+        Row: {
+          application_id: string | null
+          created_at: string
+          eligibility_adjustments_log: Json | null
+          fairness_priority_score: number
+          fraud_risk_level: string
+          historical_status: string
+          id: string
+          is_fairness_priority_candidate: boolean
+          last_funded_cycle_id: string | null
+          national_id: string
+          previous_attempts_count: number
+          previous_funded_count: number
+          priority_boost_applied: boolean
+          updated_at: string
+        }
+        Insert: {
+          application_id?: string | null
+          created_at?: string
+          eligibility_adjustments_log?: Json | null
+          fairness_priority_score?: number
+          fraud_risk_level?: string
+          historical_status?: string
+          id?: string
+          is_fairness_priority_candidate?: boolean
+          last_funded_cycle_id?: string | null
+          national_id: string
+          previous_attempts_count?: number
+          previous_funded_count?: number
+          priority_boost_applied?: boolean
+          updated_at?: string
+        }
+        Update: {
+          application_id?: string | null
+          created_at?: string
+          eligibility_adjustments_log?: Json | null
+          fairness_priority_score?: number
+          fraud_risk_level?: string
+          historical_status?: string
+          id?: string
+          is_fairness_priority_candidate?: boolean
+          last_funded_cycle_id?: string | null
+          national_id?: string
+          previous_attempts_count?: number
+          previous_funded_count?: number
+          priority_boost_applied?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fairness_tracking_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "bursary_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fairness_tracking_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "bursary_applications_commissioner"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fairness_tracking_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "bursary_applications_treasury"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fairness_tracking_last_funded_cycle_id_fkey"
+            columns: ["last_funded_cycle_id"]
+            isOneToOne: false
+            referencedRelation: "allocation_cycles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
