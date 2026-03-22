@@ -24,56 +24,70 @@ export default function AdminLogin() {
     e.preventDefault();
     setIsLoading(true);
 
-    // Sign out first to clear any existing session
-    await supabase.auth.signOut();
+    try {
+      // Sign out first to clear any existing session, but ignore errors
+      await supabase.auth.signOut().catch(() => {});
+      
+      // Small delay to let auth state settle after signOut
+      await new Promise(resolve => setTimeout(resolve, 200));
 
-    const { error } = await signIn(email, password);
+      const { error } = await signIn(email, password);
 
-    if (error) {
+      if (error) {
+        toast({
+          title: "Login Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      // Get the fresh session to check the correct user
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.user) {
+        toast({
+          title: "Login Failed",
+          description: "Could not establish a session.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      // Check admin role for the newly logged-in user
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", session.user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+
+      if (data) {
+        toast({
+          title: "Welcome Back",
+          description: "You have successfully logged in as an administrator.",
+        });
+        navigate("/admin");
+      } else {
+        toast({
+          title: "Access Denied",
+          description: "You do not have administrator privileges.",
+          variant: "destructive",
+        });
+        await supabase.auth.signOut();
+      }
+    } catch (err) {
+      console.error("Login error:", err);
       toast({
         title: "Login Failed",
-        description: error.message,
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
+    } finally {
       setIsLoading(false);
-      return;
     }
-
-    // Get the fresh session to check the correct user
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (!session?.user) {
-      toast({
-        title: "Login Failed",
-        description: "Could not establish a session.",
-        variant: "destructive",
-      });
-      setIsLoading(false);
-      return;
-    }
-
-    // Check admin role for the newly logged-in user
-    const { data } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", session.user.id)
-      .eq("role", "admin")
-      .maybeSingle();
-
-    if (data) {
-      toast({
-        title: "Welcome Back",
-        description: "You have successfully logged in as an administrator.",
-      });
-      navigate("/admin");
-    } else {
-      toast({
-        title: "Access Denied",
-        description: "You do not have administrator privileges.",
-        variant: "destructive",
-      });
-    }
-    setIsLoading(false);
   };
 
   return (
