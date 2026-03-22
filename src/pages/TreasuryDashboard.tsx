@@ -70,7 +70,12 @@ export default function TreasuryDashboard() {
         variant: "destructive",
       });
     } else {
-      setApplications(data || []);
+      let apps = data || [];
+      // Filter by assigned county if treasury user has one
+      if (assignedCounty) {
+        apps = apps.filter((a: any) => a.county === assignedCounty);
+      }
+      setApplications(apps);
     }
     setIsLoading(false);
   };
