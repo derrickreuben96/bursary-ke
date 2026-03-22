@@ -100,8 +100,8 @@ export default function CommissionerLogin() {
       <main className="flex-1 container py-12 flex items-center justify-center">
         <Card className="w-full max-w-md shadow-kenya">
           <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-500/10">
-              <GraduationCap className="h-8 w-8 text-blue-600" />
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+              <GraduationCap className="h-8 w-8 text-primary" />
             </div>
             <CardTitle className="text-2xl">Education Commissioner Portal</CardTitle>
             <CardDescription>
@@ -152,7 +152,7 @@ export default function CommissionerLogin() {
               </div>
               <Button
                 type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-700"
+                className="w-full"
                 disabled={isLoading}
               >
                 {isLoading ? (
