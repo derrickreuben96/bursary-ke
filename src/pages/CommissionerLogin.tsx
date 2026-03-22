@@ -152,7 +152,7 @@ export default function CommissionerLogin() {
               </div>
               <Button
                 type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-700"
+                className="w-full"
                 disabled={isLoading}
               >
                 {isLoading ? (

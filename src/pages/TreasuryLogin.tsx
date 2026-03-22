@@ -152,7 +152,7 @@ export default function TreasuryLogin() {
               </div>
               <Button
                 type="submit"
-                className="w-full bg-amber-600 hover:bg-amber-700"
+                className="w-full"
                 disabled={isLoading}
               >
                 {isLoading ? (
