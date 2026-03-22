@@ -200,6 +200,11 @@
 }
 
 .animate-ticker {
-  animation: ticker 30s linear infinite;
+  animation: ticker 45s linear infinite;
+}
+
+.ticker-mask {
+  mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
 }
 
