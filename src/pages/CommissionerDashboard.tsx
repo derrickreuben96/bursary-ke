@@ -207,7 +207,10 @@ export default function CommissionerDashboard() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-foreground">County Education Commissioner</h1>
-              <p className="text-muted-foreground">Application Summary & AI Decisions (Read-Only)</p>
+              <p className="text-muted-foreground">
+                {assignedWard ? `Ward: ${assignedWard}` : assignedCounty ? `County: ${assignedCounty}` : ""}
+                {" "}| Application Summary & AI Decisions (Read-Only)
+              </p>
             </div>
           </div>
           <div className="flex gap-2">
