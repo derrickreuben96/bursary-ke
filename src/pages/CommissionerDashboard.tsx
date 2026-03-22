@@ -476,23 +476,46 @@ export default function CommissionerDashboard() {
                         <TableHead>Status</TableHead>
                         <TableHead>Type</TableHead>
                         <TableHead>County</TableHead>
+                        <TableHead>Fraud Risk</TableHead>
+                        <TableHead>History</TableHead>
                         <TableHead>AI Reason for Rejection</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {rejectedApps.map((app) => (
-                        <TableRow key={app.id}>
-                          <TableCell className="font-mono">{app.tracking_number}</TableCell>
-                          <TableCell>{getStatusBadge(app.status, app.is_duplicate)}</TableCell>
-                          <TableCell className="capitalize">{app.student_type}</TableCell>
-                          <TableCell>{app.parent_county}</TableCell>
-                          <TableCell className="max-w-md text-sm">
-                            <p className="text-muted-foreground">
-                              {app.ai_decision_reason || "No reason provided"}
-                            </p>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {rejectedApps.map((app) => {
+                        const f = fairnessMap.get(app.id);
+                        return (
+                          <TableRow key={app.id}>
+                            <TableCell className="font-mono">{app.tracking_number}</TableCell>
+                            <TableCell>{getStatusBadge(app.status, app.is_duplicate)}</TableCell>
+                            <TableCell className="capitalize">{app.student_type}</TableCell>
+                            <TableCell>{app.parent_county}</TableCell>
+                            <TableCell>
+                              {f?.fraudRiskLevel === "high" ? (
+                                <Badge variant="destructive"><ShieldAlert className="h-3 w-3 mr-1" />High</Badge>
+                              ) : f?.fraudRiskLevel === "medium" ? (
+                                <Badge variant="secondary">Medium</Badge>
+                              ) : (
+                                <Badge variant="outline">Low</Badge>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {f?.historicalStatus === "red_flagged" ? (
+                                <Badge variant="destructive">Red Flagged</Badge>
+                              ) : f?.historicalStatus === "returning_unfunded" ? (
+                                <Badge className="bg-purple-100 text-purple-700">Unfunded Prior</Badge>
+                              ) : (
+                                <Badge variant="secondary">New</Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="max-w-md text-sm">
+                              <p className="text-muted-foreground">
+                                {app.ai_decision_reason || "No reason provided"}
+                              </p>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 )}
