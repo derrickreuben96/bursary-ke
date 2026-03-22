@@ -15,6 +15,7 @@ import Unsubscribe from "./pages/Unsubscribe";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminLogin from "./pages/AdminLogin";
 import AdminAllocation from "./pages/AdminAllocation";
+import AdminUserManagement from "./pages/AdminUserManagement";
 import TreasuryLogin from "./pages/TreasuryLogin";
 import TreasuryDashboard from "./pages/TreasuryDashboard";
 import CommissionerLogin from "./pages/CommissionerLogin";
