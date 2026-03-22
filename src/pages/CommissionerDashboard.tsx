@@ -58,7 +58,8 @@ const COLORS = ["#10b981", "#ef4444", "#f59e0b", "#6366f1"];
 
 export default function CommissionerDashboard() {
   const [applications, setApplications] = useState<Application[]>([]);
-  const [stats, setStats] = useState<Stats>({ total: 0, approved: 0, rejected: 0, pending: 0, duplicates: 0, totalAllocated: 0 });
+  const [fairnessMap, setFairnessMap] = useState<Map<string, FairnessInfo>>(new Map());
+  const [stats, setStats] = useState<Stats>({ total: 0, approved: 0, rejected: 0, pending: 0, duplicates: 0, totalAllocated: 0, fairnessPriorityCandidates: 0, redFlagged: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("summary");
   const { signOut } = useAuth();
@@ -82,13 +83,47 @@ export default function CommissionerDashboard() {
         ...d,
         parent_county: d.parent_county || '',
       })) as Application[];
+      setApplications(apps);
+
+      // Fetch fairness tracking data for all apps
+      const appIds = apps.map(a => a.id).filter(Boolean);
+      if (appIds.length > 0) {
+        const { data: fairnessData } = await supabase
+          .from("fairness_tracking")
+          .select("application_id, is_fairness_priority_candidate, historical_status, fraud_risk_level, fairness_priority_score")
+          .in("application_id", appIds);
+
+        const fMap = new Map<string, FairnessInfo>();
+        (fairnessData || []).forEach((f: any) => {
+          fMap.set(f.application_id, {
+            applicationId: f.application_id,
+            isFairnessPriority: f.is_fairness_priority_candidate,
+            historicalStatus: f.historical_status,
+            fraudRiskLevel: f.fraud_risk_level,
+            fairnessPriorityScore: f.fairness_priority_score,
+          });
+        });
+        setFairnessMap(fMap);
+      }
+
+      const fairnessPriorityCandidates = apps.filter(a => {
+        const f = fairnessMap.get(a.id);
+        return f?.isFairnessPriority;
+      }).length;
+      const redFlagged = apps.filter(a => {
+        const f = fairnessMap.get(a.id);
+        return f?.historicalStatus === "red_flagged";
+      }).length;
+
       setStats({
         total: apps.length,
         approved: apps.filter(a => a.status === "approved").length,
         rejected: apps.filter(a => a.status === "rejected").length,
         pending: apps.filter(a => a.status === "received" || a.status === "review" || a.status === "verification").length,
         duplicates: apps.filter(a => a.is_duplicate).length,
-        totalAllocated: apps.reduce((sum, a) => sum + (a.allocated_amount || 0), 0)
+        totalAllocated: apps.reduce((sum, a) => sum + (a.allocated_amount || 0), 0),
+        fairnessPriorityCandidates,
+        redFlagged,
       });
     }
     setIsLoading(false);
