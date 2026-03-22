@@ -25,11 +25,8 @@ export default function AdminLogin() {
     setIsLoading(true);
 
     try {
-      // Sign out first to clear any existing session, but ignore errors
       await supabase.auth.signOut().catch(() => {});
-      
-      // Small delay to let auth state settle after signOut
-      await new Promise(resolve => setTimeout(resolve, 200));
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
       const { error } = await signIn(email, password);
 
@@ -39,24 +36,20 @@ export default function AdminLogin() {
           description: error.message,
           variant: "destructive",
         });
-        setIsLoading(false);
         return;
       }
 
-      // Get the fresh session to check the correct user
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       if (!session?.user) {
         toast({
           title: "Login Failed",
           description: "Could not establish a session.",
           variant: "destructive",
         });
-        setIsLoading(false);
         return;
       }
 
-      // Check admin role for the newly logged-in user
       const { data } = await supabase
         .from("user_roles")
         .select("role")
