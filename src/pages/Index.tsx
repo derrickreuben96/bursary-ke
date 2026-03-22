@@ -6,6 +6,7 @@ import { ReviewCarousel } from "@/components/home/ReviewCarousel";
 import { TrackingWidget } from "@/components/home/TrackingWidget";
 import { FAQSection } from "@/components/home/FAQSection";
 import { BursarySlider } from "@/components/home/BursarySlider";
+import { BursaryTicker } from "@/components/home/BursaryTicker";
 
 const Index = () => {
   return (
@@ -13,6 +14,7 @@ const Index = () => {
       <Header />
       <main className="flex-1">
         <HeroSection />
+        <BursaryTicker />
         <BursarySlider />
         <StatsSection />
         <ReviewCarousel />

@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 import { CountdownTimer } from "./CountdownTimer";
 import { SubscribeNotifications } from "./SubscribeNotifications";
+import { getCountyEmblem } from "@/lib/countyEmblems";
 import { Skeleton } from "@/components/ui/skeleton";
 import Autoplay from "embla-carousel-autoplay";
 import Fade from "embla-carousel-fade";
