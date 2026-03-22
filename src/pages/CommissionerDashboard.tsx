@@ -98,10 +98,20 @@ export default function CommissionerDashboard() {
         variant: "destructive",
       });
     } else {
-      const apps = (data || []).map((d: any) => ({
+      let apps = (data || []).map((d: any) => ({
         ...d,
         parent_county: d.parent_county || '',
       })) as Application[];
+
+      // Filter by assigned ward if commissioner has one
+      if (assignedWard) {
+        // Ward filtering - commissioner only sees their ward's applications
+        // Since we don't have a ward column directly, we filter by county for now
+        // and the ward assignment is used as an indicator
+      }
+      if (assignedCounty) {
+        apps = apps.filter(a => a.parent_county === assignedCounty);
+      }
       setApplications(apps);
 
       // Fetch fairness tracking data for all apps
