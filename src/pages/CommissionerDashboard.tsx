@@ -400,27 +400,52 @@ export default function CommissionerDashboard() {
                         <TableHead>Type</TableHead>
                         <TableHead>County</TableHead>
                         <TableHead>Priority</TableHead>
+                        <TableHead>Fairness</TableHead>
+                        <TableHead>Fraud Risk</TableHead>
                         <TableHead>Amount</TableHead>
                         <TableHead>AI Reason</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {approvedApps.map((app) => (
-                        <TableRow key={app.id}>
-                          <TableCell className="font-mono">{app.tracking_number}</TableCell>
-                          <TableCell className="capitalize">{app.student_type}</TableCell>
-                          <TableCell>{app.parent_county}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{app.poverty_tier}</Badge>
-                          </TableCell>
-                          <TableCell className="font-medium">
-                            KES {(app.allocated_amount || 0).toLocaleString()}
-                          </TableCell>
-                          <TableCell className="max-w-xs truncate text-sm text-muted-foreground">
-                            {app.ai_decision_reason || "—"}
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {approvedApps.map((app) => {
+                        const f = fairnessMap.get(app.id);
+                        return (
+                          <TableRow key={app.id}>
+                            <TableCell className="font-mono">{app.tracking_number}</TableCell>
+                            <TableCell className="capitalize">{app.student_type}</TableCell>
+                            <TableCell>{app.parent_county}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{app.poverty_tier}</Badge>
+                            </TableCell>
+                            <TableCell>
+                              {f?.isFairnessPriority ? (
+                                <Badge className="bg-purple-100 text-purple-700">
+                                  <Star className="h-3 w-3 mr-1" />
+                                  Priority +{f.fairnessPriorityScore}
+                                </Badge>
+                              ) : f?.historicalStatus === "returning_funded" ? (
+                                <Badge variant="outline" className="text-amber-600">
+                                  <History className="h-3 w-3 mr-1" />
+                                  Returning
+                                </Badge>
+                              ) : (
+                                <Badge variant="secondary">New</Badge>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={f?.fraudRiskLevel === "high" ? "destructive" : f?.fraudRiskLevel === "medium" ? "secondary" : "outline"}>
+                                {f?.fraudRiskLevel || "low"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="font-medium">
+                              KES {(app.allocated_amount || 0).toLocaleString()}
+                            </TableCell>
+                            <TableCell className="max-w-xs truncate text-sm text-muted-foreground">
+                              {app.ai_decision_reason || "—"}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 )}
