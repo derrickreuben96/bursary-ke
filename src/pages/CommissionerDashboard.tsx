@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { 
   GraduationCap, LogOut, CheckCircle2, XCircle, Clock, 
   Loader2, RefreshCw, AlertTriangle, BarChart3, Users, Banknote,
-  ShieldAlert, Star, History
+  ShieldAlert, Star, History, Send, Play, Inbox, Archive
 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 
@@ -26,6 +26,7 @@ interface Application {
   ai_decision_reason: string | null;
   allocated_amount: number | null;
   parent_county: string;
+  parent_ward: string | null;
   created_at: string;
   is_duplicate: boolean;
   student_name_masked: string;
@@ -33,6 +34,7 @@ interface Application {
   poverty_score: number | null;
   household_income: number | null;
   household_dependents: number | null;
+  released_to_treasury: boolean;
 }
 
 interface StatusHistoryEntry {
@@ -48,6 +50,16 @@ interface FairnessInfo {
   historicalStatus: string;
   fraudRiskLevel: string;
   fairnessPriorityScore: number;
+}
+
+interface BursaryAdvert {
+  id: string;
+  title: string;
+  county: string;
+  ward: string | null;
+  deadline: string;
+  budget_amount: number | null;
+  is_active: boolean;
 }
 
 interface Stats {
@@ -69,9 +81,12 @@ export default function CommissionerDashboard() {
   const [statusHistory, setStatusHistory] = useState<Record<string, StatusHistoryEntry[]>>({});
   const [stats, setStats] = useState<Stats>({ total: 0, approved: 0, rejected: 0, pending: 0, duplicates: 0, totalAllocated: 0, fairnessPriorityCandidates: 0, redFlagged: 0 });
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("summary");
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isReleasing, setIsReleasing] = useState(false);
+  const [activeTab, setActiveTab] = useState("incoming");
   const [assignedWard, setAssignedWard] = useState<string | null>(null);
   const [assignedCounty, setAssignedCounty] = useState<string | null>(null);
+  const [wardAdverts, setWardAdverts] = useState<BursaryAdvert[]>([]);
   const { signOut, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -93,6 +108,26 @@ export default function CommissionerDashboard() {
     fetchProfile();
   }, [user]);
 
+  // Fetch ward-specific bursary adverts
+  useEffect(() => {
+    const fetchAdverts = async () => {
+      if (!assignedWard && !assignedCounty) return;
+      let query = supabase
+        .from("bursary_adverts")
+        .select("id, title, county, ward, deadline, budget_amount, is_active");
+
+      if (assignedWard) {
+        query = query.eq("ward", assignedWard);
+      } else if (assignedCounty) {
+        query = query.eq("county", assignedCounty);
+      }
+
+      const { data } = await query;
+      setWardAdverts(data || []);
+    };
+    fetchAdverts();
+  }, [assignedWard, assignedCounty]);
+
   const fetchApplications = async () => {
     setIsLoading(true);
     const { data, error } = await supabase
@@ -100,29 +135,24 @@ export default function CommissionerDashboard() {
 
     if (error) {
       console.error("Error fetching applications:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load applications",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to load applications", variant: "destructive" });
     } else {
       let apps = (data || []).map((d: any) => ({
         ...d,
         parent_county: d.parent_county || '',
+        parent_ward: d.parent_ward || null,
+        released_to_treasury: d.released_to_treasury || false,
       })) as Application[];
 
-      // Filter by assigned ward if commissioner has one
+      // Filter by assigned ward (primary) or county (fallback)
       if (assignedWard) {
-        // Ward filtering - commissioner only sees their ward's applications
-        // Since we don't have a ward column directly, we filter by county for now
-        // and the ward assignment is used as an indicator
-      }
-      if (assignedCounty) {
+        apps = apps.filter(a => a.parent_ward === assignedWard);
+      } else if (assignedCounty) {
         apps = apps.filter(a => a.parent_county === assignedCounty);
       }
       setApplications(apps);
 
-      // Fetch status history for all loaded applications
+      // Fetch status history
       if (apps.length > 0) {
         const { data: historyData } = await supabase
           .from("application_status_history")
@@ -141,7 +171,7 @@ export default function CommissionerDashboard() {
         }
       }
 
-      // Fetch fairness tracking data for all apps
+      // Fetch fairness tracking data
       const appIds = apps.map(a => a.id).filter(Boolean);
       if (appIds.length > 0) {
         const { data: fairnessData } = await supabase
@@ -160,34 +190,134 @@ export default function CommissionerDashboard() {
           });
         });
         setFairnessMap(fMap);
+
+        const fairnessPriorityCandidates = apps.filter(a => fMap.get(a.id)?.isFairnessPriority).length;
+        const redFlagged = apps.filter(a => fMap.get(a.id)?.historicalStatus === "red_flagged").length;
+
+        setStats({
+          total: apps.length,
+          approved: apps.filter(a => a.status === "approved").length,
+          rejected: apps.filter(a => a.status === "rejected").length,
+          pending: apps.filter(a => ["received", "review", "verification"].includes(a.status)).length,
+          duplicates: apps.filter(a => a.is_duplicate).length,
+          totalAllocated: apps.reduce((sum, a) => sum + (a.allocated_amount || 0), 0),
+          fairnessPriorityCandidates,
+          redFlagged,
+        });
+      } else {
+        setStats({ total: 0, approved: 0, rejected: 0, pending: 0, duplicates: 0, totalAllocated: 0, fairnessPriorityCandidates: 0, redFlagged: 0 });
       }
-
-      const fairnessPriorityCandidates = apps.filter(a => {
-        const f = fairnessMap.get(a.id);
-        return f?.isFairnessPriority;
-      }).length;
-      const redFlagged = apps.filter(a => {
-        const f = fairnessMap.get(a.id);
-        return f?.historicalStatus === "red_flagged";
-      }).length;
-
-      setStats({
-        total: apps.length,
-        approved: apps.filter(a => a.status === "approved").length,
-        rejected: apps.filter(a => a.status === "rejected").length,
-        pending: apps.filter(a => a.status === "received" || a.status === "review" || a.status === "verification").length,
-        duplicates: apps.filter(a => a.is_duplicate).length,
-        totalAllocated: apps.reduce((sum, a) => sum + (a.allocated_amount || 0), 0),
-        fairnessPriorityCandidates,
-        redFlagged,
-      });
     }
     setIsLoading(false);
   };
 
   useEffect(() => {
-    fetchApplications();
-  }, []);
+    if (assignedWard || assignedCounty) {
+      fetchApplications();
+    }
+  }, [assignedWard, assignedCounty]);
+
+  // Real-time subscription for incoming applications
+  useEffect(() => {
+    const channel = supabase
+      .channel("commissioner-incoming")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "bursary_applications" },
+        () => {
+          fetchApplications();
+          toast({ title: "New Application", description: "A new application has been submitted to your ward." });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "bursary_applications" },
+        () => fetchApplications()
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [assignedWard, assignedCounty]);
+
+  // Check if any advert deadline has passed
+  const deadlinePassed = useMemo(() => {
+    return wardAdverts.some(a => new Date(a.deadline) <= new Date());
+  }, [wardAdverts]);
+
+  const activeAdvert = useMemo(() => {
+    return wardAdverts.find(a => a.is_active);
+  }, [wardAdverts]);
+
+  const hasUnreleasedApproved = useMemo(() => {
+    return applications.some(a => a.status === "approved" && !a.released_to_treasury);
+  }, [applications]);
+
+  // Process applications (trigger allocation after deadline)
+  const handleProcessApplications = async () => {
+    if (!activeAdvert) {
+      toast({ title: "No Advert", description: "No active bursary advert found for your ward.", variant: "destructive" });
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      // First run fairness evaluation
+      await supabase.functions.invoke("fairness-engine", {
+        body: { action: "evaluate", advertId: activeAdvert.id },
+      });
+
+      // Then trigger allocation
+      const { data, error } = await supabase.functions.invoke("process-allocations", {
+        body: { advertId: activeAdvert.id, budgetAmount: activeAdvert.budget_amount },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Processing Complete",
+        description: data?.message || "Applications have been processed successfully.",
+      });
+      fetchApplications();
+    } catch (error) {
+      console.error("Processing error:", error);
+      toast({ title: "Processing Failed", description: "Could not process applications. Please try again.", variant: "destructive" });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Release approved applications to treasury
+  const handleReleaseToTreasury = async () => {
+    const approvedIds = applications
+      .filter(a => a.status === "approved" && !a.released_to_treasury)
+      .map(a => a.id);
+
+    if (approvedIds.length === 0) {
+      toast({ title: "Nothing to Release", description: "No approved applications pending release.", variant: "destructive" });
+      return;
+    }
+
+    setIsReleasing(true);
+    try {
+      const { error } = await supabase
+        .from("bursary_applications")
+        .update({ released_to_treasury: true })
+        .in("id", approvedIds);
+
+      if (error) throw error;
+
+      toast({
+        title: "Released to Treasury",
+        description: `${approvedIds.length} approved application(s) sent to County Treasury for disbursement.`,
+      });
+      fetchApplications();
+    } catch (error) {
+      console.error("Release error:", error);
+      toast({ title: "Release Failed", description: "Could not release applications to treasury.", variant: "destructive" });
+    } finally {
+      setIsReleasing(false);
+    }
+  };
 
   const handleLogout = async () => {
     await signOut();
@@ -202,32 +332,101 @@ export default function CommissionerDashboard() {
   ].filter(d => d.value > 0);
 
   const getStatusBadge = (status: string, isDuplicate: boolean) => {
-    if (isDuplicate) {
-      return <Badge variant="outline" className="bg-gray-100 text-gray-700">Duplicate</Badge>;
-    }
+    if (isDuplicate) return <Badge variant="outline" className="bg-muted text-muted-foreground">Duplicate</Badge>;
     switch (status) {
-      case "approved":
-        return <Badge className="bg-green-100 text-green-700">Approved</Badge>;
-      case "rejected":
-        return <Badge variant="destructive">Rejected</Badge>;
-      case "received":
-      case "review":
-      case "verification":
+      case "approved": return <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">Approved</Badge>;
+      case "rejected": return <Badge variant="destructive">Rejected</Badge>;
+      case "received": case "review": case "verification":
         return <Badge variant="secondary">Pending</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
+      default: return <Badge variant="outline">{status}</Badge>;
     }
   };
 
+  const incomingApps = applications.filter(a => ["received", "review", "verification"].includes(a.status) && !a.is_duplicate);
   const approvedApps = applications.filter(a => a.status === "approved" && !a.is_duplicate);
   const rejectedApps = applications.filter(a => a.status === "rejected" || a.is_duplicate);
+
+  const renderAppTable = (apps: Application[], showAmount = false) => (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Tracking #</TableHead>
+          <TableHead>Student</TableHead>
+          <TableHead>Type</TableHead>
+          <TableHead>Ward</TableHead>
+          <TableHead>Priority</TableHead>
+          <TableHead>Fairness</TableHead>
+          <TableHead>Fraud Risk</TableHead>
+          {showAmount && <TableHead>Amount</TableHead>}
+          <TableHead>Status</TableHead>
+          <TableHead>AI Reason</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {apps.map((app) => {
+          const f = fairnessMap.get(app.id);
+          return (
+            <React.Fragment key={app.id}>
+              <TableRow>
+                <TableCell className="font-mono text-xs">{app.tracking_number}</TableCell>
+                <TableCell className="text-sm">{app.student_name_masked}</TableCell>
+                <TableCell className="capitalize text-sm">{app.student_type}</TableCell>
+                <TableCell className="text-sm">{app.parent_ward || app.parent_county}</TableCell>
+                <TableCell><Badge variant="outline">{app.poverty_tier}</Badge></TableCell>
+                <TableCell>
+                  {f?.isFairnessPriority ? (
+                    <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
+                      <Star className="h-3 w-3 mr-1" />+{f.fairnessPriorityScore}
+                    </Badge>
+                  ) : f?.historicalStatus === "returning_funded" ? (
+                    <Badge variant="outline" className="text-amber-600"><History className="h-3 w-3 mr-1" />Returning</Badge>
+                  ) : (
+                    <Badge variant="secondary">New</Badge>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <Badge variant={f?.fraudRiskLevel === "high" ? "destructive" : f?.fraudRiskLevel === "medium" ? "secondary" : "outline"}>
+                    {f?.fraudRiskLevel || "low"}
+                  </Badge>
+                </TableCell>
+                {showAmount && (
+                  <TableCell className="font-medium">KES {(app.allocated_amount || 0).toLocaleString()}</TableCell>
+                )}
+                <TableCell>{getStatusBadge(app.status, app.is_duplicate)}</TableCell>
+                <TableCell className="max-w-xs truncate text-sm text-muted-foreground">
+                  {app.ai_decision_reason || "—"}
+                </TableCell>
+              </TableRow>
+              {statusHistory[app.id]?.length > 0 && (
+                <TableRow>
+                  <TableCell colSpan={showAmount ? 10 : 9} className="py-1 px-6">
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-medium text-muted-foreground">Status History</p>
+                      {statusHistory[app.id].map((entry) => (
+                        <p key={entry.id} className="text-xs text-muted-foreground">
+                          {entry.from_status ?? "submitted"} → {entry.to_status}{" "}
+                          <span className="opacity-60">
+                            {new Date(entry.changed_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
+                          </span>
+                        </p>
+                      ))}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+            </React.Fragment>
+          );
+        })}
+      </TableBody>
+    </Table>
+  );
 
   return (
     <div className="min-h-screen flex flex-col bg-secondary/30">
       <Header />
       <main className="flex-1 container py-8">
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500/10">
               <GraduationCap className="h-6 w-6 text-blue-600" />
@@ -235,8 +434,9 @@ export default function CommissionerDashboard() {
             <div>
               <h1 className="text-2xl font-bold text-foreground">County Education Commissioner</h1>
               <p className="text-muted-foreground">
-                {assignedWard ? `Ward: ${assignedWard}` : assignedCounty ? `County: ${assignedCounty}` : ""}
-                {" "}| Application Summary & AI Decisions (Read-Only)
+                {assignedWard ? `Ward: ${assignedWard}` : ""} 
+                {assignedCounty ? ` | County: ${assignedCounty}` : ""} 
+                {" "}| Masked Data View
               </p>
             </div>
           </div>
@@ -245,112 +445,130 @@ export default function CommissionerDashboard() {
               <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
             </Button>
             <Button variant="outline" onClick={handleLogout}>
-              <LogOut className="h-4 w-4 mr-2" />
-              Logout
+              <LogOut className="h-4 w-4 mr-2" />Logout
             </Button>
           </div>
         </div>
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-8">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                Total
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.total}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-green-600 flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4" />
-                Approved
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">{stats.approved}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-red-600 flex items-center gap-2">
-                <XCircle className="h-4 w-4" />
-                Rejected
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600">{stats.rejected}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-amber-600 flex items-center gap-2">
-                <Clock className="h-4 w-4" />
-                Pending
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-amber-600">{stats.pending}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-blue-600 flex items-center gap-2">
-                <Banknote className="h-4 w-4" />
-                Allocated
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-lg font-bold text-blue-600">
-                KES {stats.totalAllocated.toLocaleString()}
+        {/* Deadline & Action Banner */}
+        {activeAdvert && (
+          <Card className="mb-6 border-blue-200 dark:border-blue-800">
+            <CardContent className="py-4">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div>
+                  <h3 className="font-semibold text-foreground">{activeAdvert.title}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Deadline: {new Date(activeAdvert.deadline).toLocaleDateString("en-KE", { day: "numeric", month: "long", year: "numeric" })}
+                    {activeAdvert.budget_amount && ` | Budget: KES ${activeAdvert.budget_amount.toLocaleString()}`}
+                  </p>
+                  {!deadlinePassed && (
+                    <p className="text-sm text-amber-600 dark:text-amber-400 mt-1">
+                      <Clock className="h-3 w-3 inline mr-1" />
+                      Application window is still open. Processing will be available after the deadline.
+                    </p>
+                  )}
+                  {deadlinePassed && stats.pending > 0 && (
+                    <p className="text-sm text-green-600 dark:text-green-400 mt-1">
+                      <CheckCircle2 className="h-3 w-3 inline mr-1" />
+                      Deadline has passed. You can now process {stats.pending} pending application(s).
+                    </p>
+                  )}
+                </div>
+                <div className="flex gap-2 flex-shrink-0">
+                  <Button
+                    onClick={handleProcessApplications}
+                    disabled={!deadlinePassed || stats.pending === 0 || isProcessing}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    {isProcessing ? (
+                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Processing...</>
+                    ) : (
+                      <><Play className="h-4 w-4 mr-2" />Process Applications</>
+                    )}
+                  </Button>
+                  <Button
+                    onClick={handleReleaseToTreasury}
+                    disabled={!hasUnreleasedApproved || isReleasing}
+                    variant="default"
+                  >
+                    {isReleasing ? (
+                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Releasing...</>
+                    ) : (
+                      <><Send className="h-4 w-4 mr-2" />Release to Treasury</>
+                    )}
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {/* Summary Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-6">
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-purple-600 flex items-center gap-2">
-                <Star className="h-4 w-4" />
-                Fairness Priority
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-purple-600">{stats.fairnessPriorityCandidates}</div>
-            </CardContent>
+            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2"><Users className="h-4 w-4" />Total</CardTitle></CardHeader>
+            <CardContent><div className="text-2xl font-bold">{stats.total}</div></CardContent>
           </Card>
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-red-600 flex items-center gap-2">
-                <ShieldAlert className="h-4 w-4" />
-                Red Flagged
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600">{stats.redFlagged}</div>
-            </CardContent>
+            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-amber-600 flex items-center gap-2"><Inbox className="h-4 w-4" />Incoming</CardTitle></CardHeader>
+            <CardContent><div className="text-2xl font-bold text-amber-600">{stats.pending}</div></CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-green-600 flex items-center gap-2"><CheckCircle2 className="h-4 w-4" />Approved</CardTitle></CardHeader>
+            <CardContent><div className="text-2xl font-bold text-green-600">{stats.approved}</div></CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-red-600 flex items-center gap-2"><XCircle className="h-4 w-4" />Rejected</CardTitle></CardHeader>
+            <CardContent><div className="text-2xl font-bold text-red-600">{stats.rejected}</div></CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-blue-600 flex items-center gap-2"><Banknote className="h-4 w-4" />Allocated</CardTitle></CardHeader>
+            <CardContent><div className="text-lg font-bold text-blue-600">KES {stats.totalAllocated.toLocaleString()}</div></CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-purple-600 flex items-center gap-2"><Star className="h-4 w-4" />Fairness</CardTitle></CardHeader>
+            <CardContent><div className="text-2xl font-bold text-purple-600">{stats.fairnessPriorityCandidates}</div></CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-red-600 flex items-center gap-2"><ShieldAlert className="h-4 w-4" />Red Flagged</CardTitle></CardHeader>
+            <CardContent><div className="text-2xl font-bold text-red-600">{stats.redFlagged}</div></CardContent>
           </Card>
         </div>
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="mb-4">
-            <TabsTrigger value="summary">
-              <BarChart3 className="h-4 w-4 mr-2" />
-              Summary
-            </TabsTrigger>
-            <TabsTrigger value="approved">
-              <CheckCircle2 className="h-4 w-4 mr-2" />
-              Successful ({stats.approved})
-            </TabsTrigger>
-            <TabsTrigger value="rejected">
-              <XCircle className="h-4 w-4 mr-2" />
-              Non-Successful ({stats.rejected + stats.duplicates})
-            </TabsTrigger>
+            <TabsTrigger value="incoming"><Inbox className="h-4 w-4 mr-2" />Incoming ({stats.pending})</TabsTrigger>
+            <TabsTrigger value="summary"><BarChart3 className="h-4 w-4 mr-2" />Summary</TabsTrigger>
+            <TabsTrigger value="approved"><CheckCircle2 className="h-4 w-4 mr-2" />Approved ({stats.approved})</TabsTrigger>
+            <TabsTrigger value="rejected"><XCircle className="h-4 w-4 mr-2" />Rejected ({stats.rejected + stats.duplicates})</TabsTrigger>
+            <TabsTrigger value="archive"><Archive className="h-4 w-4 mr-2" />Audit Archive</TabsTrigger>
           </TabsList>
 
+          {/* Incoming Applications Tab */}
+          <TabsContent value="incoming">
+            <Card>
+              <CardHeader>
+                <CardTitle>Incoming Applications</CardTitle>
+                <CardDescription>
+                  Applications received for your ward. All personal data is masked for fraud prevention.
+                  {!deadlinePassed && " Processing will be available after the bursary deadline."}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+                ) : incomingApps.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <Inbox className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No pending applications for your ward</p>
+                  </div>
+                ) : renderAppTable(incomingApps)}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Summary Tab */}
           <TabsContent value="summary">
             <div className="grid md:grid-cols-2 gap-6">
               <Card>
@@ -362,28 +580,16 @@ export default function CommissionerDashboard() {
                   {statusData.length > 0 ? (
                     <ResponsiveContainer width="100%" height={300}>
                       <PieChart>
-                        <Pie
-                          data={statusData}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
+                        <Pie data={statusData} cx="50%" cy="50%" labelLine={false}
                           label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                          outerRadius={100}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          {statusData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
+                          outerRadius={100} fill="#8884d8" dataKey="value">
+                          {statusData.map((_, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
                         </Pie>
-                        <Tooltip />
-                        <Legend />
+                        <Tooltip /><Legend />
                       </PieChart>
                     </ResponsiveContainer>
                   ) : (
-                    <div className="flex items-center justify-center h-64 text-muted-foreground">
-                      No data available
-                    </div>
+                    <div className="flex items-center justify-center h-64 text-muted-foreground">No data available</div>
                   )}
                 </CardContent>
               </Card>
@@ -400,26 +606,24 @@ export default function CommissionerDashboard() {
                       <span className="font-medium text-green-700 dark:text-green-400">Successful Allocations</span>
                     </div>
                     <p className="text-sm text-green-600 dark:text-green-400">
-                      {stats.approved} students approved based on poverty assessment scores and budget availability.
+                      {stats.approved} students approved based on poverty assessment and fairness scoring.
                     </p>
                   </div>
                   <div className="p-4 bg-red-50 dark:bg-red-950/20 rounded-lg">
                     <div className="flex items-center gap-2 mb-2">
                       <XCircle className="h-5 w-5 text-red-600" />
-                      <span className="font-medium text-red-700 dark:text-red-400">Non-Successful Applications</span>
+                      <span className="font-medium text-red-700 dark:text-red-400">Non-Successful</span>
                     </div>
                     <p className="text-sm text-red-600 dark:text-red-400">
-                      {stats.rejected} applications not approved due to budget constraints or lower priority scores.
+                      {stats.rejected} applications not approved due to budget constraints or lower priority.
                     </p>
                   </div>
-                  <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                  <div className="p-4 bg-muted/50 rounded-lg">
                     <div className="flex items-center gap-2 mb-2">
-                      <AlertTriangle className="h-5 w-5 text-gray-600" />
-                      <span className="font-medium">Duplicate Detections</span>
+                      <AlertTriangle className="h-5 w-5 text-muted-foreground" />
+                      <span className="font-medium">Duplicates</span>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      {stats.duplicates} duplicate applications automatically discarded.
-                    </p>
+                    <p className="text-sm text-muted-foreground">{stats.duplicates} duplicate applications discarded.</p>
                   </div>
                   <div className="p-4 bg-purple-50 dark:bg-purple-950/20 rounded-lg">
                     <div className="flex items-center gap-2 mb-2">
@@ -428,7 +632,7 @@ export default function CommissionerDashboard() {
                     </div>
                     <p className="text-sm text-purple-600 dark:text-purple-400">
                       {stats.fairnessPriorityCandidates} previously unfunded applicants received priority boost.
-                      {stats.redFlagged > 0 && ` ${stats.redFlagged} applicant(s) excluded due to red flags.`}
+                      {stats.redFlagged > 0 && ` ${stats.redFlagged} excluded due to red flags.`}
                     </p>
                   </div>
                 </CardContent>
@@ -436,103 +640,34 @@ export default function CommissionerDashboard() {
             </div>
           </TabsContent>
 
+          {/* Approved Tab */}
           <TabsContent value="approved">
             <Card>
               <CardHeader>
-                <CardTitle>Successful Applications</CardTitle>
-                <CardDescription>Applications approved by AI allocation system</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Approved Applications</CardTitle>
+                    <CardDescription>Applications approved by AI allocation system</CardDescription>
+                  </div>
+                  {hasUnreleasedApproved && (
+                    <Button onClick={handleReleaseToTreasury} disabled={isReleasing}>
+                      {isReleasing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
+                      Release to Treasury
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 {isLoading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                  </div>
+                  <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
                 ) : approvedApps.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    No approved applications yet
-                  </div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Tracking #</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>County</TableHead>
-                        <TableHead>Priority</TableHead>
-                        <TableHead>Fairness</TableHead>
-                        <TableHead>Fraud Risk</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>AI Reason</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {approvedApps.map((app) => {
-                        const f = fairnessMap.get(app.id);
-                        return (
-                          <React.Fragment key={app.id}>
-                            <TableRow>
-                              <TableCell className="font-mono">{app.tracking_number}</TableCell>
-                              <TableCell className="capitalize">{app.student_type}</TableCell>
-                              <TableCell>{app.parent_county}</TableCell>
-                              <TableCell>
-                                <Badge variant="outline">{app.poverty_tier}</Badge>
-                              </TableCell>
-                              <TableCell>
-                                {f?.isFairnessPriority ? (
-                                  <Badge className="bg-purple-100 text-purple-700">
-                                    <Star className="h-3 w-3 mr-1" />
-                                    Priority +{f.fairnessPriorityScore}
-                                  </Badge>
-                                ) : f?.historicalStatus === "returning_funded" ? (
-                                  <Badge variant="outline" className="text-amber-600">
-                                    <History className="h-3 w-3 mr-1" />
-                                    Returning
-                                  </Badge>
-                                ) : (
-                                  <Badge variant="secondary">New</Badge>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant={f?.fraudRiskLevel === "high" ? "destructive" : f?.fraudRiskLevel === "medium" ? "secondary" : "outline"}>
-                                  {f?.fraudRiskLevel || "low"}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="font-medium">
-                                KES {(app.allocated_amount || 0).toLocaleString()}
-                              </TableCell>
-                              <TableCell className="max-w-xs truncate text-sm text-muted-foreground">
-                                {app.ai_decision_reason || "—"}
-                              </TableCell>
-                            </TableRow>
-                            {statusHistory[app.id]?.length > 0 && (
-                              <TableRow>
-                                <TableCell colSpan={8} className="py-1 px-6">
-                                  <div className="space-y-0.5">
-                                    <p className="text-xs font-medium text-muted-foreground">Status History</p>
-                                    {statusHistory[app.id].map((entry) => (
-                                      <p key={entry.id} className="text-xs text-muted-foreground">
-                                        {entry.from_status ?? "submitted"} → {entry.to_status}{" "}
-                                        <span className="opacity-60">
-                                          {new Date(entry.changed_at).toLocaleDateString("en-KE", {
-                                            day: "numeric", month: "short", year: "numeric",
-                                          })}
-                                        </span>
-                                      </p>
-                                    ))}
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            )}
-                          </React.Fragment>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                )}
+                  <div className="text-center py-12 text-muted-foreground">No approved applications yet</div>
+                ) : renderAppTable(approvedApps, true)}
               </CardContent>
             </Card>
           </TabsContent>
 
+          {/* Rejected Tab */}
           <TabsContent value="rejected">
             <Card>
               <CardHeader>
@@ -541,96 +676,54 @@ export default function CommissionerDashboard() {
               </CardHeader>
               <CardContent>
                 {isLoading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                  </div>
+                  <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
                 ) : rejectedApps.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">No rejected applications</div>
+                ) : renderAppTable(rejectedApps)}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Audit Archive Tab */}
+          <TabsContent value="archive">
+            <Card>
+              <CardHeader>
+                <CardTitle>Audit Archive</CardTitle>
+                <CardDescription>
+                  All processed applications are retained here for audit and future reference. 
+                  Data remains masked to ensure anonymity and prevent fraud.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+                ) : applications.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
-                    No rejected applications
+                    <Archive className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No archived data available</p>
                   </div>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Tracking #</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>County</TableHead>
-                        <TableHead>Fraud Risk</TableHead>
-                        <TableHead>History</TableHead>
-                        <TableHead>AI Reason for Rejection</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {rejectedApps.map((app) => {
-                        const f = fairnessMap.get(app.id);
-                        return (
-                          <React.Fragment key={app.id}>
-                            <TableRow>
-                              <TableCell className="font-mono">{app.tracking_number}</TableCell>
-                              <TableCell>{getStatusBadge(app.status, app.is_duplicate)}</TableCell>
-                              <TableCell className="capitalize">{app.student_type}</TableCell>
-                              <TableCell>{app.parent_county}</TableCell>
-                              <TableCell>
-                                {f?.fraudRiskLevel === "high" ? (
-                                  <Badge variant="destructive"><ShieldAlert className="h-3 w-3 mr-1" />High</Badge>
-                                ) : f?.fraudRiskLevel === "medium" ? (
-                                  <Badge variant="secondary">Medium</Badge>
-                                ) : (
-                                  <Badge variant="outline">Low</Badge>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                {f?.historicalStatus === "red_flagged" ? (
-                                  <Badge variant="destructive">Red Flagged</Badge>
-                                ) : f?.historicalStatus === "returning_unfunded" ? (
-                                  <Badge className="bg-purple-100 text-purple-700">Unfunded Prior</Badge>
-                                ) : (
-                                  <Badge variant="secondary">New</Badge>
-                                )}
-                              </TableCell>
-                              <TableCell className="max-w-md text-sm">
-                                <p className="text-muted-foreground">
-                                  {app.ai_decision_reason || "No reason provided"}
-                                </p>
-                              </TableCell>
-                            </TableRow>
-                            {statusHistory[app.id]?.length > 0 && (
-                              <TableRow>
-                                <TableCell colSpan={7} className="py-1 px-6">
-                                  <div className="space-y-0.5">
-                                    <p className="text-xs font-medium text-muted-foreground">Status History</p>
-                                    {statusHistory[app.id].map((entry) => (
-                                      <p key={entry.id} className="text-xs text-muted-foreground">
-                                        {entry.from_status ?? "submitted"} → {entry.to_status}{" "}
-                                        <span className="opacity-60">
-                                          {new Date(entry.changed_at).toLocaleDateString("en-KE", {
-                                            day: "numeric", month: "short", year: "numeric",
-                                          })}
-                                        </span>
-                                      </p>
-                                    ))}
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            )}
-                          </React.Fragment>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
+                  <>
+                    <div className="mb-4 p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground">
+                      Total records: {applications.length} | 
+                      Approved: {stats.approved} | 
+                      Rejected: {stats.rejected} | 
+                      Released to Treasury: {applications.filter(a => a.released_to_treasury).length}
+                    </div>
+                    {renderAppTable(applications, true)}
+                  </>
                 )}
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
 
-        {/* Notice */}
+        {/* Security Notice */}
         <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
           <p className="text-sm text-blue-800 dark:text-blue-200">
-            <strong>Read-Only Access:</strong> This portal provides oversight of AI allocation decisions. 
-            No intervention or modification capabilities are available. All decisions are automated based on 
-            poverty assessment scores and budget constraints.
+            <strong>Security Notice:</strong> All personal data is masked to prevent fraud and ensure anonymity. 
+            Application data cannot be edited. Processing is only available after the bursary deadline. 
+            All actions are logged for audit compliance.
           </p>
         </div>
       </main>
