@@ -49,6 +49,32 @@ interface TreasuryReport {
   summary: string;
 }
 
+interface AnalysisResult {
+  totalApplicants: number;
+  pendingApplications: unknown[];
+  budget: number;
+  aiRecommendations: string | null;
+}
+
+interface FairnessAppResult {
+  applicationId: string;
+  nationalId: string;
+  previousAttempts: number;
+  previousFunded: number;
+  fairnessPriorityScore: number;
+  isFairnessPriorityCandidate: boolean;
+  fraudRiskLevel: "low" | "medium" | "high";
+  historicalStatus: "new" | "returning_unfunded" | "returning_funded" | "red_flagged";
+  adjustments: string[];
+}
+
+interface FairnessEvalResult {
+  advert: string;
+  county: string;
+  message: string;
+  results: FairnessAppResult[];
+}
+
 export default function AdminAllocation() {
   const { toast } = useToast();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -57,10 +83,10 @@ export default function AdminAllocation() {
   const [isEvaluatingFairness, setIsEvaluatingFairness] = useState(false);
   const [budget, setBudget] = useState("10000000");
   const [fiscalYear, setFiscalYear] = useState("2024/2025");
-  const [analysisResult, setAnalysisResult] = useState<any>(null);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [allocationReport, setAllocationReport] = useState<TreasuryReport | null>(null);
   const [treasuryReport, setTreasuryReport] = useState<string>("");
-  const [fairnessResult, setFairnessResult] = useState<any>(null);
+  const [fairnessResult, setFairnessResult] = useState<FairnessEvalResult[] | null>(null);
 
   const runFairnessEvaluation = async () => {
     setIsEvaluatingFairness(true);
