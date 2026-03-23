@@ -66,6 +66,7 @@ const COLORS = ["#10b981", "#ef4444", "#f59e0b", "#6366f1"];
 export default function CommissionerDashboard() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [fairnessMap, setFairnessMap] = useState<Map<string, FairnessInfo>>(new Map());
+  const [statusHistory, setStatusHistory] = useState<Record<string, StatusHistoryEntry[]>>({});
   const [stats, setStats] = useState<Stats>({ total: 0, approved: 0, rejected: 0, pending: 0, duplicates: 0, totalAllocated: 0, fairnessPriorityCandidates: 0, redFlagged: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("summary");
