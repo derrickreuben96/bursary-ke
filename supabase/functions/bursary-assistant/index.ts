@@ -84,14 +84,17 @@ Deno.serve(async (req) => {
 
     const systemPrompt = SYSTEM_PROMPTS[type as keyof typeof SYSTEM_PROMPTS] || SYSTEM_PROMPTS.faq;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const AI_GATEWAY_URL = Deno.env.get("AI_GATEWAY_URL") ?? "https://ai.gateway.lovable.dev/v1/chat/completions";
+    const AI_MODEL = Deno.env.get("AI_MODEL") ?? "google/gemini-3-flash-preview";
+
+    const response = await fetch(AI_GATEWAY_URL, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: AI_MODEL,
         messages: [
           { role: "system", content: systemPrompt },
           ...messages,

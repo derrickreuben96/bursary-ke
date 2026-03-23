@@ -31,7 +31,7 @@ export const optionalEmailSchema = z
 export const nemisIdSchema = z
   .string()
   .min(1, "NEMIS ID is required")
-  .regex(/^\d{14}$/, "NEMIS ID must be exactly 14 digits");
+  .regex(/^\d{11}$/, "NEMIS ID must be exactly 11 digits");
 
 // Student ID validation (flexible format for universities)
 export const studentIdSchema = z

@@ -356,7 +356,7 @@ export default function AdminAllocation() {
                                   </tr>
                                 </thead>
                                 <tbody>
-                                  {result.results.map((r: any, i: number) => (
+                                  {result.results.map((r: FairnessAppResult, i: number) => (
                                     <tr key={i} className="border-b last:border-0">
                                       <td className="py-2 pr-4 font-mono text-xs">{r.nationalId}</td>
                                       <td className="py-2 pr-4">

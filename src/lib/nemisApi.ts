@@ -8,6 +8,7 @@
  * - Last 4 digits: Student identification number
  * 
  * Example: 00112345678
+ * Validation: exactly 11 digits total (nemisIdSchema)
  * - County: 001 (Mombasa)
  * - School: 1234
  * - Student: 5678
