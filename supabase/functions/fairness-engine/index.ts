@@ -55,13 +55,12 @@ async function verifyAuth(req: Request) {
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, serviceKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
-  const { data: role } = await admin
+  const { data: roles } = await admin
     .from("user_roles")
     .select("role")
     .eq("user_id", user.id)
-    .eq("role", "admin")
-    .maybeSingle();
-  if (!role)
+    .in("role", ["admin", "county_commissioner"]);
+  if (!roles?.length)
     return new Response(JSON.stringify({ error: "Forbidden" }), {
       status: 403,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
