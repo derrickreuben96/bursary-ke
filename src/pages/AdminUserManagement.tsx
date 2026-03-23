@@ -59,11 +59,37 @@ export default function AdminUserManagement() {
   const [county, setCounty] = useState("");
   const [ward, setWard] = useState("");
 
+  // Search & filter state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterRole, setFilterRole] = useState<string>("all");
+  const [filterCounty, setFilterCounty] = useState<string>("all");
+  const [filterWard, setFilterWard] = useState<string>("all");
+
   const { signOut } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
   const availableWards = county && wardsByCounty[county] ? wardsByCounty[county] : [];
+
+  // Derived filter options from actual data
+  const countyOptions = useMemo(() => [...new Set(users.map(u => u.assigned_county).filter(Boolean) as string[])].sort(), [users]);
+  const filterWardOptions = useMemo(() => {
+    const base = filterCounty !== "all"
+      ? users.filter(u => u.assigned_county === filterCounty)
+      : users;
+    return [...new Set(base.map(u => u.assigned_ward).filter(Boolean) as string[])].sort();
+  }, [users, filterCounty]);
+
+  const filteredUsers = useMemo(() => {
+    return users.filter(u => {
+      const q = searchQuery.toLowerCase();
+      if (q && !u.email.toLowerCase().includes(q) && !(u.display_name || "").toLowerCase().includes(q) && !(u.assigned_county || "").toLowerCase().includes(q) && !(u.assigned_ward || "").toLowerCase().includes(q)) return false;
+      if (filterRole !== "all" && u.role !== filterRole) return false;
+      if (filterCounty !== "all" && u.assigned_county !== filterCounty) return false;
+      if (filterWard !== "all" && u.assigned_ward !== filterWard) return false;
+      return true;
+    });
+  }, [users, searchQuery, filterRole, filterCounty, filterWard]);
 
   const expiredPasswordUsers = useMemo(
     () => users.filter(u => u.role !== "admin" && isPasswordExpired(u.password_changed_at)),
