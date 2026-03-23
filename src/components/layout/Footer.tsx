@@ -122,7 +122,23 @@ export function Footer() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="mt-12 pt-6 border-t border-background/10 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-background/60">
+        {/* Compliance Disclaimer */}
+        <div className="mt-10 p-4 rounded-lg bg-background/5 border border-background/10 text-xs text-background/60 leading-relaxed">
+          <p>
+            This platform complies with the{" "}
+            <a href="https://www.odpc.go.ke/dpa-act/" target="_blank" rel="noopener noreferrer" className="underline hover:text-background transition-colors">
+              Kenya Data Protection Act, 2019
+            </a>
+            . All personal data collected is processed lawfully, used solely for bursary administration, and protected in accordance with the principles set out by the{" "}
+            <a href="https://www.odpc.go.ke" target="_blank" rel="noopener noreferrer" className="underline hover:text-background transition-colors">
+              Office of the Data Protection Commissioner (ODPC)
+            </a>
+            . By using this platform, you consent to the collection and processing of your data for the purposes stated herein.
+          </p>
+        </div>
+
+        {/* Bottom Bar */}
+        <div className="mt-6 pt-6 border-t border-background/10 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-background/60">
           <p>© {currentYear} Bursary-KE. All rights reserved.</p>
           <p>A Government of Kenya Initiative</p>
         </div>
