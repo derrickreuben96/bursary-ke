@@ -25,7 +25,9 @@ import {
   GraduationCap,
   AlertCircle,
   X,
+  Search,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { wardsByCounty } from "@/lib/kenyanWards";
 
