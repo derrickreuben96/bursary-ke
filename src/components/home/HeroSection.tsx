@@ -3,10 +3,17 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Search, MapPin, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import heroImage from "@/assets/hero-african-students.jpg";
-import { useState, useEffect } from "react";
+import heroHs1 from "@/assets/hero-hs-students-1.jpg";
+import heroHs2 from "@/assets/hero-hs-students-2.jpg";
+import heroHs3 from "@/assets/hero-hs-students-3.jpg";
+import heroUni1 from "@/assets/hero-uni-students-1.jpg";
+import heroUni2 from "@/assets/hero-uni-students-2.jpg";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getCountyEmblem } from "@/lib/countyEmblems";
 import { useCountdown } from "@/hooks/useCountdown";
+
+const heroSlides = [heroImage, heroHs1, heroHs2, heroHs3, heroUni1, heroUni2];
 
 interface TickerAdvert {
   id: string;
@@ -54,6 +61,7 @@ function TickerItem({ advert }: { advert: TickerAdvert }) {
 
 export function HeroSection() {
   const [adverts, setAdverts] = useState<TickerAdvert[]>([]);
+  const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
     supabase
@@ -67,19 +75,32 @@ export function HeroSection() {
       });
   }, []);
 
+  // Auto-cycle slides every 5 seconds
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
+
   const tickerAdverts = [...adverts, ...adverts];
 
   return (
     <section className="relative min-h-[600px] flex flex-col justify-center overflow-hidden">
-      {/* Background with gradient overlay */}
-      <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{
-          backgroundImage: `url('${heroImage}')`,
-        }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/60 to-black/80" />
-      </div>
+      {/* Sliding Background Images */}
+      {heroSlides.map((slide, index) => (
+        <div
+          key={index}
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-1000 ease-in-out"
+          style={{
+            backgroundImage: `url('${slide}')`,
+            opacity: currentSlide === index ? 1 : 0,
+            zIndex: currentSlide === index ? 1 : 0,
+          }}
+        />
+      ))}
+      {/* Gradient overlay on top of all slides */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/60 to-black/80 z-[2]" />
 
       {/* Content */}
       <div className="container relative z-10 py-20 text-center text-white flex-1 flex flex-col justify-center">
