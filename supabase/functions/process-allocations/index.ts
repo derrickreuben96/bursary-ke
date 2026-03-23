@@ -116,8 +116,8 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Verify admin authentication or service role (for cron)
-    const authResult = await verifyAdminOrServiceRole(req);
+    // Verify admin/commissioner authentication or service role (for cron)
+    const authResult = await verifyAuthorizedRole(req);
     if (authResult instanceof Response) {
       return authResult;
     }
