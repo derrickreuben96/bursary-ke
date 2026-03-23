@@ -205,6 +205,7 @@ export type Database = {
           description: string | null
           id: string
           is_active: boolean | null
+          min_beneficiaries: number | null
           required_documents: string[] | null
           title: string
           updated_at: string | null
@@ -219,6 +220,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean | null
+          min_beneficiaries?: number | null
           required_documents?: string[] | null
           title: string
           updated_at?: string | null
@@ -233,6 +235,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean | null
+          min_beneficiaries?: number | null
           required_documents?: string[] | null
           title?: string
           updated_at?: string | null

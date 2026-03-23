@@ -32,6 +32,7 @@ interface Advert {
   ward: string | null;
   deadline: string;
   budget_amount: number | null;
+  min_beneficiaries: number | null;
   description: string | null;
   is_active: boolean | null;
   required_documents: string[] | null;
@@ -44,6 +45,7 @@ interface FormData {
   ward: string;
   deadline: string;
   budget_amount: string;
+  min_beneficiaries: string;
   description: string;
   required_documents: string;
 }
@@ -54,6 +56,7 @@ const emptyForm: FormData = {
   ward: "",
   deadline: "",
   budget_amount: "",
+  min_beneficiaries: "",
   description: "",
   required_documents: DEFAULT_REQUIRED_DOCUMENTS,
 };
@@ -100,6 +103,7 @@ export default function AdminAdverts() {
       ward: advert.ward || "",
       deadline: advert.deadline ? new Date(advert.deadline).toISOString().slice(0, 16) : "",
       budget_amount: advert.budget_amount?.toString() || "",
+      min_beneficiaries: advert.min_beneficiaries?.toString() || "",
       description: advert.description || "",
       required_documents: (advert.required_documents || []).join("\n"),
     });
@@ -124,6 +128,7 @@ export default function AdminAdverts() {
       ward: form.ward || null,
       deadline: form.deadline,
       budget_amount: form.budget_amount ? parseFloat(form.budget_amount) : null,
+      min_beneficiaries: form.min_beneficiaries ? parseInt(form.min_beneficiaries) : null,
       description: form.description || null,
       required_documents: requiredDocs,
     };
@@ -240,6 +245,13 @@ export default function AdminAdverts() {
                   <Label>Budget (KES)</Label>
                   <Input type="number" value={form.budget_amount} onChange={(e) => setForm({ ...form, budget_amount: e.target.value })} placeholder="e.g. 5000000" />
                 </div>
+              </div>
+              <div>
+                <Label>Min. Beneficiaries (internal only)</Label>
+                <Input type="number" value={form.min_beneficiaries} onChange={(e) => setForm({ ...form, min_beneficiaries: e.target.value })} placeholder="e.g. 50" />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Maximum number of applicants to approve. This number is not shown publicly in the advert.
+                </p>
               </div>
               <div>
                 <Label>Description</Label>

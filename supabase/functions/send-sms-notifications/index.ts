@@ -67,10 +67,9 @@ async function verifyAdminOrServiceRole(req: Request): Promise<{ isServiceRole: 
     .from('user_roles')
     .select('role')
     .eq('user_id', user.id)
-    .eq('role', 'admin')
-    .maybeSingle();
+    .in('role', ['admin', 'county_commissioner']);
 
-  if (!roleData) {
+  if (!roleData || roleData.length === 0) {
     return new Response(
       JSON.stringify({ error: 'Forbidden - Admin role required' }),
       { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
