@@ -56,6 +56,7 @@ const emptyForm: FormData = {
   ward: "",
   deadline: "",
   budget_amount: "",
+  min_beneficiaries: "",
   description: "",
   required_documents: DEFAULT_REQUIRED_DOCUMENTS,
 };
