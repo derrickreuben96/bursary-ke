@@ -65,6 +65,12 @@ export default function Track() {
       );
 
       if (funcError) {
+        // For 404 "not found" responses, handle gracefully instead of throwing
+        if (funcData && funcData.found === false) {
+          setNotFound(true);
+          setIsLoading(false);
+          return;
+        }
         console.error("Tracking function error:", funcError);
         throw new Error("Failed to lookup application");
       }
