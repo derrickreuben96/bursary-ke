@@ -165,13 +165,40 @@ Deno.serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // Get all approved applications that haven't been notified and have SMS consent
-    const { data: applications, error } = await supabaseAdmin
-      .from("bursary_applications")
-      .select("*")
-      .eq("status", "approved")
-      .eq("sms_consent", true)
-      .eq("sms_sent", false);
+    // Parse request body for trigger type
+    let triggerType = "approval"; // default
+    try {
+      const body = await req.json();
+      if (body?.trigger) triggerType = body.trigger;
+    } catch { /* no body is fine */ }
+
+    let applications;
+    let error;
+
+    if (triggerType === "disbursement") {
+      // Get disbursed applications that haven't been notified
+      const result = await supabaseAdmin
+        .from("bursary_applications")
+        .select("*")
+        .eq("status", "disbursed")
+        .eq("sms_consent", true)
+        .eq("sms_sent", true) // already notified for approval, now notify for disbursement
+        .is("sms_sent_at", null); // use null check as proxy (or add a disbursement_sms_sent field)
+
+      applications = result.data;
+      error = result.error;
+    } else {
+      // Get all approved applications that haven't been notified and have SMS consent
+      const result = await supabaseAdmin
+        .from("bursary_applications")
+        .select("*")
+        .eq("status", "approved")
+        .eq("sms_consent", true)
+        .eq("sms_sent", false);
+
+      applications = result.data;
+      error = result.error;
+    }
 
     if (error) {
       throw error;
@@ -192,17 +219,27 @@ Deno.serve(async (req) => {
     const useRealSMS = africasTalkingApiKey && africasTalkingUsername;
 
     for (const app of applications) {
-      const message = `Congratulations! Your bursary application (${app.tracking_number}) has been APPROVED. ` +
-                      `Amount: KES ${(app.allocated_amount || 35000).toLocaleString()}. ` +
-                      `Funds will be sent to ${app.institution_name}. - Bursary KE`;
+      let message: string;
+      
+      if (triggerType === "disbursement") {
+        message = `BURSARY DISBURSEMENT: Funds for your application (${app.tracking_number}) ` +
+                  `of KES ${(app.allocated_amount || 0).toLocaleString()} have been disbursed to ${app.institution_name}. ` +
+                  `Track: bursary-ke.go.ke/track - Bursary KE`;
+      } else {
+        const fairnessNote = app.is_fairness_priority 
+          ? " Fairness priority considered in evaluation." 
+          : "";
+        message = `Congratulations! Your bursary application (${app.tracking_number}) has been APPROVED. ` +
+                  `Amount: KES ${(app.allocated_amount || 35000).toLocaleString()}. ` +
+                  `Funds will be sent to ${app.institution_name}.${fairnessNote} - Bursary KE`;
+      }
 
       let smsSuccess = true;
       let smsMessageId = "simulated";
       let smsError: string | undefined;
 
       if (useRealSMS) {
-        // Send real SMS via Africa's Talking - use tracking number for logging, not PII
-        console.log(`[SMS] Sending notification for: ${app.tracking_number}`);
+        console.log(`[SMS] Sending ${triggerType} notification for: ${app.tracking_number}`);
         const smsResult = await sendSMSViaAfricasTalking(
           app.parent_phone,
           message,
@@ -214,8 +251,7 @@ Deno.serve(async (req) => {
         smsMessageId = smsResult.messageId || "";
         smsError = smsResult.error;
       } else {
-        // Simulation mode - log with masked phone number to avoid PII exposure
-        console.log(`[SMS SIMULATION] For: ${app.tracking_number}, To: ${maskPhone(app.parent_phone)}`);
+        console.log(`[SMS SIMULATION] ${triggerType} for: ${app.tracking_number}, To: ${maskPhone(app.parent_phone)}`);
       }
 
       if (smsSuccess) {
@@ -230,10 +266,11 @@ Deno.serve(async (req) => {
 
         results.push({
           trackingNumber: app.tracking_number,
-          phone: app.parent_phone?.substring(0, 6) + "****", // Masked phone
+          phone: app.parent_phone?.substring(0, 6) + "****",
           status: "sent",
           messageId: smsMessageId,
-          mode: useRealSMS ? "live" : "simulation"
+          mode: useRealSMS ? "live" : "simulation",
+          type: triggerType,
         });
       } else {
         results.push({
@@ -241,7 +278,8 @@ Deno.serve(async (req) => {
           phone: app.parent_phone?.substring(0, 6) + "****",
           status: "failed",
           error: smsError,
-          mode: useRealSMS ? "live" : "simulation"
+          mode: useRealSMS ? "live" : "simulation",
+          type: triggerType,
         });
       }
     }
@@ -251,7 +289,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: `Sent ${successCount}/${results.length} SMS notifications`,
+        message: `Sent ${successCount}/${results.length} ${triggerType} SMS notifications`,
         mode: useRealSMS ? "live" : "simulation",
         results
       }),
