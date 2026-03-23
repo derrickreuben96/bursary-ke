@@ -307,10 +307,10 @@ export default function AdminAllocation() {
 
                 {fairnessResult && (
                   <div className="space-y-6 mt-6">
-                    {fairnessResult.map((result: any, idx: number) => {
-                      const priorityCount = result.results?.filter((r: any) => r.isFairnessPriorityCandidate)?.length || 0;
-                      const redFlagCount = result.results?.filter((r: any) => r.historicalStatus === "red_flagged")?.length || 0;
-                      const highFraud = result.results?.filter((r: any) => r.fraudRiskLevel === "high")?.length || 0;
+                    {fairnessResult.map((result: FairnessEvalResult, idx: number) => {
+                      const priorityCount = result.results?.filter((r: FairnessAppResult) => r.isFairnessPriorityCandidate)?.length || 0;
+                      const redFlagCount = result.results?.filter((r: FairnessAppResult) => r.historicalStatus === "red_flagged")?.length || 0;
+                      const highFraud = result.results?.filter((r: FairnessAppResult) => r.fraudRiskLevel === "high")?.length || 0;
 
                       return (
                         <div key={idx} className="border rounded-lg p-4">
