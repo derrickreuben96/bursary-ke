@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
@@ -64,6 +65,8 @@ export default function AdminUserManagement() {
   const [filterRole, setFilterRole] = useState<string>("all");
   const [filterCounty, setFilterCounty] = useState<string>("all");
   const [filterWard, setFilterWard] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 20;
 
   const { signOut } = useAuth();
   const { toast } = useToast();
@@ -90,6 +93,12 @@ export default function AdminUserManagement() {
       return true;
     });
   }, [users, searchQuery, filterRole, filterCounty, filterWard]);
+
+  // Reset page when filters change
+  useEffect(() => { setCurrentPage(1); }, [searchQuery, filterRole, filterCounty, filterWard]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE));
+  const paginatedUsers = filteredUsers.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   const expiredPasswordUsers = useMemo(
     () => users.filter(u => u.role !== "admin" && isPasswordExpired(u.password_changed_at)),
@@ -441,7 +450,7 @@ export default function AdminUserManagement() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredUsers.map(u => {
+                    {paginatedUsers.map(u => {
                       const expired = u.role !== "admin" && isPasswordExpired(u.password_changed_at);
                       return (
                         <TableRow key={u.user_id} className={expired ? "bg-destructive/5" : ""}>
@@ -485,6 +494,41 @@ export default function AdminUserManagement() {
                     })}
                   </TableBody>
                 </Table>
+
+                {/* Pagination Controls */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between border-t pt-4 mt-4">
+                    <p className="text-sm text-muted-foreground">
+                      Showing {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, filteredUsers.length)} of {filteredUsers.length}
+                    </p>
+                    <div className="flex items-center gap-1">
+                      <Button variant="outline" size="icon" disabled={currentPage <= 1} onClick={() => setCurrentPage(p => p - 1)}>
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                        let page: number;
+                        if (totalPages <= 7) {
+                          page = i + 1;
+                        } else if (currentPage <= 4) {
+                          page = i + 1;
+                        } else if (currentPage >= totalPages - 3) {
+                          page = totalPages - 6 + i;
+                        } else {
+                          page = currentPage - 3 + i;
+                        }
+                        return (
+                          <Button key={page} variant={page === currentPage ? "default" : "outline"} size="icon"
+                            className="h-8 w-8 text-xs" onClick={() => setCurrentPage(page)}>
+                            {page}
+                          </Button>
+                        );
+                      })}
+                      <Button variant="outline" size="icon" disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)}>
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
