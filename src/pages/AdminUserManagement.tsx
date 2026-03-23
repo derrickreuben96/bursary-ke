@@ -18,7 +18,7 @@ import { EditUserDialog } from "@/components/admin/EditUserDialog";
 import {
   UserPlus, LogOut, Loader2, Trash2, ArrowLeft, Users, Shield,
   GraduationCap, Landmark, RefreshCw, Eye, EyeOff, Pencil,
-  AlertTriangle, Zap, KeyRound,
+  AlertTriangle, Zap, KeyRound, Search, Filter, X,
 } from "lucide-react";
 
 interface ManagedUser {
@@ -59,11 +59,37 @@ export default function AdminUserManagement() {
   const [county, setCounty] = useState("");
   const [ward, setWard] = useState("");
 
+  // Search & filter state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterRole, setFilterRole] = useState<string>("all");
+  const [filterCounty, setFilterCounty] = useState<string>("all");
+  const [filterWard, setFilterWard] = useState<string>("all");
+
   const { signOut } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
   const availableWards = county && wardsByCounty[county] ? wardsByCounty[county] : [];
+
+  // Derived filter options from actual data
+  const countyOptions = useMemo(() => [...new Set(users.map(u => u.assigned_county).filter(Boolean) as string[])].sort(), [users]);
+  const filterWardOptions = useMemo(() => {
+    const base = filterCounty !== "all"
+      ? users.filter(u => u.assigned_county === filterCounty)
+      : users;
+    return [...new Set(base.map(u => u.assigned_ward).filter(Boolean) as string[])].sort();
+  }, [users, filterCounty]);
+
+  const filteredUsers = useMemo(() => {
+    return users.filter(u => {
+      const q = searchQuery.toLowerCase();
+      if (q && !u.email.toLowerCase().includes(q) && !(u.display_name || "").toLowerCase().includes(q) && !(u.assigned_county || "").toLowerCase().includes(q) && !(u.assigned_ward || "").toLowerCase().includes(q)) return false;
+      if (filterRole !== "all" && u.role !== filterRole) return false;
+      if (filterCounty !== "all" && u.assigned_county !== filterCounty) return false;
+      if (filterWard !== "all" && u.assigned_ward !== filterWard) return false;
+      return true;
+    });
+  }, [users, searchQuery, filterRole, filterCounty, filterWard]);
 
   const expiredPasswordUsers = useMemo(
     () => users.filter(u => u.role !== "admin" && isPasswordExpired(u.password_changed_at)),
@@ -338,11 +364,54 @@ export default function AdminUserManagement() {
           </Card>
         )}
 
+        {/* Search & Filter Bar */}
+        <div className="mb-4 flex flex-col md:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by name, email, county, or ward..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+            {searchQuery && (
+              <Button variant="ghost" size="icon" className="absolute right-0 top-0 h-full px-2" onClick={() => setSearchQuery("")}>
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+          <Select value={filterRole} onValueChange={setFilterRole}>
+            <SelectTrigger className="w-full md:w-[180px]"><Filter className="h-4 w-4 mr-2 text-muted-foreground" /><SelectValue placeholder="Role" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Roles</SelectItem>
+              <SelectItem value="county_commissioner">Commissioner</SelectItem>
+              <SelectItem value="county_treasury">Treasury</SelectItem>
+              <SelectItem value="admin">Admin</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={filterCounty} onValueChange={v => { setFilterCounty(v); setFilterWard("all"); }}>
+            <SelectTrigger className="w-full md:w-[200px]"><SelectValue placeholder="County" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Counties</SelectItem>
+              {countyOptions.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          {filterWardOptions.length > 0 && (
+            <Select value={filterWard} onValueChange={setFilterWard}>
+              <SelectTrigger className="w-full md:w-[200px]"><SelectValue placeholder="Ward" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Wards</SelectItem>
+                {filterWardOptions.map(w => <SelectItem key={w} value={w}>{w}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+
         {/* User List */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />Managed Accounts ({users.length})
+              <Users className="h-5 w-5" />Managed Accounts ({filteredUsers.length}{filteredUsers.length !== users.length ? ` of ${users.length}` : ""})
             </CardTitle>
             <CardDescription>Commissioner and Treasury accounts created by admin</CardDescription>
           </CardHeader>
@@ -372,7 +441,7 @@ export default function AdminUserManagement() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {users.map(u => {
+                    {filteredUsers.map(u => {
                       const expired = u.role !== "admin" && isPasswordExpired(u.password_changed_at);
                       return (
                         <TableRow key={u.user_id} className={expired ? "bg-destructive/5" : ""}>
