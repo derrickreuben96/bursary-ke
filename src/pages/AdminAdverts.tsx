@@ -247,6 +247,13 @@ export default function AdminAdverts() {
                 </div>
               </div>
               <div>
+                <Label>Min. Beneficiaries (internal only)</Label>
+                <Input type="number" value={form.min_beneficiaries} onChange={(e) => setForm({ ...form, min_beneficiaries: e.target.value })} placeholder="e.g. 50" />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Maximum number of applicants to approve. This number is not shown publicly in the advert.
+                </p>
+              </div>
+              <div>
                 <Label>Description</Label>
                 <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} placeholder="Brief description of this bursary..." />
               </div>
