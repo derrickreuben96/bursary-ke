@@ -143,6 +143,13 @@ export default function AdminDashboard() {
           </div>
           <div className="flex gap-2 flex-wrap">
             <Button
+              onClick={() => navigate("/admin/adverts")}
+              className="hover:scale-105 transition-transform"
+            >
+              <Banknote className="mr-2 h-4 w-4" />
+              Manage Adverts
+            </Button>
+            <Button
               onClick={() => navigate("/admin/users")}
               className="hover:scale-105 transition-transform"
             >
