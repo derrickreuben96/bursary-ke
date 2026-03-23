@@ -18,7 +18,7 @@ import { EditUserDialog } from "@/components/admin/EditUserDialog";
 import {
   UserPlus, LogOut, Loader2, Trash2, ArrowLeft, Users, Shield,
   GraduationCap, Landmark, RefreshCw, Eye, EyeOff, Pencil,
-  AlertTriangle, Zap, KeyRound,
+  AlertTriangle, Zap, KeyRound, Search, Filter, X,
 } from "lucide-react";
 
 interface ManagedUser {
