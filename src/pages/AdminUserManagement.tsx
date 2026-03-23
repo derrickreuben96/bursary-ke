@@ -64,6 +64,8 @@ export default function AdminUserManagement() {
   const [filterRole, setFilterRole] = useState<string>("all");
   const [filterCounty, setFilterCounty] = useState<string>("all");
   const [filterWard, setFilterWard] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 20;
 
   const { signOut } = useAuth();
   const { toast } = useToast();
