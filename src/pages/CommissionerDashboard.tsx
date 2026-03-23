@@ -503,6 +503,25 @@ export default function CommissionerDashboard() {
                               {app.ai_decision_reason || "—"}
                             </TableCell>
                           </TableRow>
+                          {statusHistory[app.id]?.length > 0 && (
+                            <TableRow>
+                              <TableCell colSpan={8} className="py-1 px-6">
+                                <div className="space-y-0.5">
+                                  <p className="text-xs font-medium text-muted-foreground">Status History</p>
+                                  {statusHistory[app.id].map((entry) => (
+                                    <p key={entry.id} className="text-xs text-muted-foreground">
+                                      {entry.from_status ?? "submitted"} → {entry.to_status}{" "}
+                                      <span className="opacity-60">
+                                        {new Date(entry.changed_at).toLocaleDateString("en-KE", {
+                                          day: "numeric", month: "short", year: "numeric",
+                                        })}
+                                      </span>
+                                    </p>
+                                  ))}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          )}
                         );
                       })}
                     </TableBody>
