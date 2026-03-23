@@ -32,6 +32,7 @@ interface Advert {
   ward: string | null;
   deadline: string;
   budget_amount: number | null;
+  min_beneficiaries: number | null;
   description: string | null;
   is_active: boolean | null;
   required_documents: string[] | null;
