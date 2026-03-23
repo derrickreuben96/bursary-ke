@@ -144,6 +144,58 @@ export type Database = {
           },
         ]
       }
+      application_status_history: {
+        Row: {
+          application_id: string
+          changed_at: string
+          changed_by: string | null
+          from_status: string | null
+          id: string
+          notes: string | null
+          to_status: string
+        }
+        Insert: {
+          application_id: string
+          changed_at?: string
+          changed_by?: string | null
+          from_status?: string | null
+          id?: string
+          notes?: string | null
+          to_status: string
+        }
+        Update: {
+          application_id?: string
+          changed_at?: string
+          changed_by?: string | null
+          from_status?: string | null
+          id?: string
+          notes?: string | null
+          to_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_status_history_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "bursary_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_status_history_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "bursary_applications_commissioner"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_status_history_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "bursary_applications_treasury"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bursary_adverts: {
         Row: {
           budget_amount: number | null

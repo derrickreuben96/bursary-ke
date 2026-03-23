@@ -15,6 +15,7 @@ import Unsubscribe from "./pages/Unsubscribe";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminLogin from "./pages/AdminLogin";
 import AdminAllocation from "./pages/AdminAllocation";
+import AdminAdverts from "./pages/AdminAdverts";
 import AdminUserManagement from "./pages/AdminUserManagement";
 import TreasuryLogin from "./pages/TreasuryLogin";
 import TreasuryDashboard from "./pages/TreasuryDashboard";
@@ -79,6 +80,14 @@ const App = () => (
               element={
                 <ProtectedRoute requireAdmin>
                   <AdminUserManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/adverts"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <AdminAdverts />
                 </ProtectedRoute>
               }
             />
