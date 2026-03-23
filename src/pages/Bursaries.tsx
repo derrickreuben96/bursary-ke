@@ -140,6 +140,13 @@ export default function Bursaries() {
         return false;
       }
 
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchesTitle = advert.title.toLowerCase().includes(q);
+        const matchesDesc = advert.description?.toLowerCase().includes(q);
+        if (!matchesTitle && !matchesDesc) return false;
+      }
+
       if (deadlineFilter !== "all") {
         const daysRemaining = differenceInDays(new Date(advert.deadline), new Date());
         if (daysRemaining > parseInt(deadlineFilter)) {
