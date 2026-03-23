@@ -13,13 +13,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Rate limit config: 5 requests per minute per IP (stricter for admin operations)
-const RATE_LIMIT_CONFIG = {
-  windowMs: 60 * 1000, // 1 minute
-  maxRequests: 5,
-};
+const RATE_LIMIT_CONFIG = { windowMs: 60_000, maxRequests: 5 };
 
-// Input validation schema
 const ProcessAllocationsSchema = z.object({
   advertId: z.string().uuid(),
   budgetAmount: z.number().min(100000).max(100000000).optional(),
@@ -33,7 +28,6 @@ interface AllocationResult {
   allocatedAmount?: number;
 }
 
-// Helper function to verify admin/commissioner role or service role key (for internal cron calls)
 async function verifyAuthorizedRole(req: Request): Promise<{ isServiceRole: boolean; user?: { id: string }; role?: string } | Response> {
   const authHeader = req.headers.get('Authorization');
   if (!authHeader) {
@@ -46,19 +40,14 @@ async function verifyAuthorizedRole(req: Request): Promise<{ isServiceRole: bool
   const token = authHeader.replace('Bearer ', '');
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-  // Check if this is an internal service role call (from cron jobs)
   if (token === serviceRoleKey) {
-    console.log('[AUTH] Service role key authenticated - internal cron call');
     return { isServiceRole: true };
   }
 
-  // Otherwise verify as user JWT
   const supabaseClient = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_ANON_KEY')!,
-    {
-      global: { headers: { Authorization: authHeader } },
-    }
+    { global: { headers: { Authorization: authHeader } } }
   );
 
   const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
@@ -69,13 +58,10 @@ async function verifyAuthorizedRole(req: Request): Promise<{ isServiceRole: bool
     );
   }
 
-  // Check admin or commissioner role using service role client for RLS bypass
   const supabaseAdmin = createClient(
     Deno.env.get('SUPABASE_URL')!,
     serviceRoleKey,
-    {
-      auth: { autoRefreshToken: false, persistSession: false },
-    }
+    { auth: { autoRefreshToken: false, persistSession: false } }
   );
 
   const { data: roleData } = await supabaseAdmin
@@ -91,8 +77,7 @@ async function verifyAuthorizedRole(req: Request): Promise<{ isServiceRole: bool
     );
   }
 
-  const userRole = roleData[0].role;
-  return { isServiceRole: false, user, role: userRole };
+  return { isServiceRole: false, user, role: roleData[0].role };
 }
 
 Deno.serve(async (req) => {
@@ -100,32 +85,23 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Apply rate limiting (skip for service role calls from cron)
   const authHeader = req.headers.get('Authorization');
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const isServiceRole = authHeader?.replace('Bearer ', '') === serviceRoleKey;
   
   if (!isServiceRole) {
     const clientIp = getClientIp(req);
-    const rateLimitResult = checkRateLimit(clientIp, RATE_LIMIT_CONFIG);
+    const rl = checkRateLimit(clientIp, RATE_LIMIT_CONFIG);
     maybeCleanup(RATE_LIMIT_CONFIG.windowMs);
-
-    if (!rateLimitResult.allowed) {
-      return rateLimitExceededResponse(corsHeaders, rateLimitResult, RATE_LIMIT_CONFIG);
-    }
+    if (!rl.allowed) return rateLimitExceededResponse(corsHeaders, rl, RATE_LIMIT_CONFIG);
   }
 
   try {
-    // Verify admin/commissioner authentication or service role (for cron)
     const authResult = await verifyAuthorizedRole(req);
-    if (authResult instanceof Response) {
-      return authResult;
-    }
+    if (authResult instanceof Response) return authResult;
 
-    // Parse and validate input
     const rawBody = await req.json();
     const parseResult = ProcessAllocationsSchema.safeParse(rawBody);
-    
     if (!parseResult.success) {
       return new Response(
         JSON.stringify({ error: 'Invalid input', details: parseResult.error.errors }),
@@ -134,39 +110,30 @@ Deno.serve(async (req) => {
     }
 
     const { advertId, budgetAmount } = parseResult.data;
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    
-    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
-
-    // Get the advert to check deadline
+    // Get advert with min_beneficiaries
     const { data: advert, error: advertError } = await supabaseAdmin
       .from("bursary_adverts")
       .select("*")
       .eq("id", advertId)
       .single();
 
-    if (advertError || !advert) {
-      throw new Error("Advert not found");
-    }
+    if (advertError || !advert) throw new Error("Advert not found");
 
     const deadline = new Date(advert.deadline);
-    const now = new Date();
-
-    if (now < deadline) {
+    if (new Date() < deadline) {
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: `Cannot process allocations before deadline. Deadline is ${deadline.toLocaleDateString()}` 
-        }),
+        JSON.stringify({ success: false, error: `Cannot process before deadline (${deadline.toLocaleDateString()})` }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Get all applications for this county that haven't been processed
+    // Get pending applications
     const { data: applications, error: appError } = await supabaseAdmin
       .from("bursary_applications")
       .select("*")
@@ -175,43 +142,29 @@ Deno.serve(async (req) => {
       .eq("is_duplicate", false)
       .order("poverty_score", { ascending: false });
 
-    if (appError) {
-      throw appError;
-    }
-
+    if (appError) throw appError;
     if (!applications || applications.length === 0) {
       return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: "No applications to process",
-          results: []
-        }),
+        JSON.stringify({ success: true, message: "No applications to process", results: [] }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     // Step 1: Detect and mark duplicates
     const duplicateGroups = new Map<string, typeof applications>();
-    
     for (const app of applications) {
       const key = `${app.parent_national_id}-${app.student_id}`;
-      if (!duplicateGroups.has(key)) {
-        duplicateGroups.set(key, []);
-      }
+      if (!duplicateGroups.has(key)) duplicateGroups.set(key, []);
       duplicateGroups.get(key)!.push(app);
     }
-
-    // Mark duplicates (keep earliest, discard later ones)
     for (const [, group] of duplicateGroups) {
       if (group.length > 1) {
-        // Sort by created_at, keep first
         group.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-        
         for (let i = 1; i < group.length; i++) {
           await supabaseAdmin
             .from("bursary_applications")
-            .update({ 
-              is_duplicate: true, 
+            .update({
+              is_duplicate: true,
               duplicate_of: group[0].id,
               status: "rejected",
               ai_decision_reason: "Duplicate application detected. An earlier application with the same student details exists."
@@ -221,7 +174,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Step 2: Get non-duplicate applications with fairness data, sorted by combined score
+    // Step 2: Get valid (non-duplicate) applications
     const { data: validApps } = await supabaseAdmin
       .from("bursary_applications")
       .select("*")
@@ -232,28 +185,20 @@ Deno.serve(async (req) => {
 
     if (!validApps || validApps.length === 0) {
       return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: "All applications were duplicates",
-          results: []
-        }),
+        JSON.stringify({ success: true, message: "All applications were duplicates", results: [] }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Step 2b: Load fairness tracking data for all valid applicants
+    // Load fairness tracking data
     const nationalIds = [...new Set(validApps.map(a => a.parent_national_id))];
     const { data: fairnessData } = await supabaseAdmin
       .from("fairness_tracking")
       .select("*")
       .in("national_id", nationalIds);
+    const fairnessMap = new Map((fairnessData || []).map(f => [f.national_id, f]));
 
-    const fairnessMap = new Map(
-      (fairnessData || []).map(f => [f.national_id, f])
-    );
-
-    // Step 2c: Sort by combined score (poverty_score + fairness_priority_score)
-    // Exclude red-flagged applicants
+    // Score and sort by combined score
     const scoredApps = validApps
       .map(app => {
         const fairness = fairnessMap.get(app.parent_national_id);
@@ -272,31 +217,32 @@ Deno.serve(async (req) => {
       })
       .sort((a, b) => b.combinedScore - a.combinedScore);
 
-    // Step 3: Allocate based on budget and combined score
+    // Step 3: Determine quota — use min_beneficiaries if set, else budget-based
     const budget = budgetAmount || advert.budget_amount || 0;
+    const minBeneficiaries = advert.min_beneficiaries as number | null;
     const averageAllocation = 35000;
-    const maxApprovals = Math.floor(budget / averageAllocation);
+
+    // The quota is the exact number of top applicants to select
+    const maxApprovals = minBeneficiaries && minBeneficiaries > 0
+      ? minBeneficiaries
+      : Math.floor(budget / averageAllocation);
+
+    console.log(`[ALLOCATION] Quota: ${maxApprovals} (min_beneficiaries: ${minBeneficiaries}, budget: ${budget})`);
 
     const results: AllocationResult[] = [];
     let approvedCount = 0;
     let totalAllocated = 0;
 
     for (const app of scoredApps) {
-      // Skip red-flagged applicants
+      // Skip red-flagged
       if (app.isRedFlagged) {
-        const reason = "Application excluded due to active red flag in historical records. No exceptions.";
-        await supabaseAdmin
-          .from("bursary_applications")
-          .update({ status: "rejected", ai_decision_reason: reason })
-          .eq("id", app.id);
-
+        const reason = "Application excluded due to active red flag in historical records.";
+        await supabaseAdmin.from("bursary_applications")
+          .update({ status: "rejected", ai_decision_reason: reason }).eq("id", app.id);
         await supabaseAdmin.from("fairness_audit_log").insert({
-          application_id: app.id,
-          action: "red_flag_exclusion",
-          details: { reason, historicalStatus: app.historicalStatus },
-          performed_by: "allocation_engine",
+          application_id: app.id, action: "red_flag_exclusion",
+          details: { reason, historicalStatus: app.historicalStatus }, performed_by: "allocation_engine",
         });
-
         results.push({ applicationId: app.id, trackingNumber: app.tracking_number, status: "rejected", reason });
         continue;
       }
@@ -304,68 +250,64 @@ Deno.serve(async (req) => {
       // Skip high fraud risk
       if (app.fraudRisk === "high") {
         const reason = "Application flagged for high fraud risk. Manual review required.";
-        await supabaseAdmin
-          .from("bursary_applications")
-          .update({ status: "rejected", ai_decision_reason: reason })
-          .eq("id", app.id);
+        await supabaseAdmin.from("bursary_applications")
+          .update({ status: "rejected", ai_decision_reason: reason }).eq("id", app.id);
         results.push({ applicationId: app.id, trackingNumber: app.tracking_number, status: "rejected", reason });
         continue;
       }
 
-      const canApprove = approvedCount < maxApprovals && totalAllocated + averageAllocation <= budget;
-
+      // Determine allocation amount by tier
       let allocationAmount = averageAllocation;
       if (app.poverty_tier === "High") allocationAmount = 50000;
       else if (app.poverty_tier === "Medium") allocationAmount = 35000;
       else allocationAmount = 20000;
 
-      let status: "approved" | "rejected";
-      let reason: string;
+      const canApprove = approvedCount < maxApprovals;
 
-      if (canApprove && totalAllocated + allocationAmount <= budget) {
-        status = "approved";
+      if (canApprove) {
         const fairnessNote = app.isFairnessPriority
           ? ` Fairness priority boost applied (+${app.fairnessScore}).`
           : app.historicalStatus === "returning_funded"
           ? ` Returning funded applicant (priority adjusted by ${app.fairnessScore}).`
           : "";
-        reason = `Application approved. Poverty score: ${app.poverty_score}/100. Combined score: ${app.combinedScore}. ` +
-                 `Tier: ${app.poverty_tier}. Household income: KES ${app.household_income?.toLocaleString() || 'N/A'}. ` +
-                 `Dependents: ${app.household_dependents}. Amount: KES ${allocationAmount.toLocaleString()}.${fairnessNote}`;
+        const reason = `Application approved. Poverty score: ${app.poverty_score}/100. Combined score: ${app.combinedScore}. ` +
+          `Tier: ${app.poverty_tier}. Amount: KES ${allocationAmount.toLocaleString()}.${fairnessNote}`;
         approvedCount++;
         totalAllocated += allocationAmount;
 
-        await supabaseAdmin
-          .from("bursary_applications")
-          .update({
-            status: "approved",
-            ai_decision_reason: reason,
-            allocated_amount: allocationAmount,
-            allocation_date: new Date().toISOString(),
-            ecitizen_ref: `ECIT-${advert.county.substring(0, 3).toUpperCase()}-${Date.now()}-${approvedCount}`,
-          })
-          .eq("id", app.id);
+        await supabaseAdmin.from("bursary_applications").update({
+          status: "approved",
+          ai_decision_reason: reason,
+          allocated_amount: allocationAmount,
+          allocation_date: new Date().toISOString(),
+          ecitizen_ref: `ECIT-${advert.county.substring(0, 3).toUpperCase()}-${Date.now()}-${approvedCount}`,
+        }).eq("id", app.id);
 
         results.push({ applicationId: app.id, trackingNumber: app.tracking_number, status: "approved", reason, allocatedAmount: allocationAmount });
       } else {
-        status = "rejected";
-        reason = approvedCount >= maxApprovals
-          ? `Not approved due to budget constraints. All ${maxApprovals} slots allocated to higher-scoring applicants. ` +
-            `Your combined score was ${app.combinedScore} (poverty: ${app.poverty_score}, fairness: ${app.fairnessScore}).`
-          : `Not approved. Budget exhausted. Total: KES ${budget.toLocaleString()}, allocated: KES ${totalAllocated.toLocaleString()}.`;
+        // Rejected — quota exceeded
+        const reason = `Not approved. All ${maxApprovals} beneficiary slots have been filled by higher-scoring applicants. ` +
+          `Your combined score was ${app.combinedScore} (poverty: ${app.poverty_score}, fairness: ${app.fairnessScore}).`;
 
-        await supabaseAdmin
-          .from("bursary_applications")
-          .update({ status: "rejected", ai_decision_reason: reason })
-          .eq("id", app.id);
+        await supabaseAdmin.from("bursary_applications").update({
+          status: "rejected",
+          ai_decision_reason: reason,
+        }).eq("id", app.id);
 
         results.push({ applicationId: app.id, trackingNumber: app.tracking_number, status: "rejected", reason });
       }
     }
 
+    // Step 4: Send SMS/email notifications to ALL applicants (approved + rejected)
+    try {
+      await notifyAllApplicants(supabaseAdmin, results, validApps);
+    } catch (notifyErr) {
+      console.error("[NOTIFY] Non-blocking notification error:", notifyErr);
+    }
+
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         message: `Processed ${validApps.length} applications. Approved: ${approvedCount}, Rejected: ${validApps.length - approvedCount}`,
         totalAllocated,
         results
@@ -381,3 +323,71 @@ Deno.serve(async (req) => {
     );
   }
 });
+
+/** Send SMS notifications to all processed applicants */
+async function notifyAllApplicants(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  results: AllocationResult[],
+  apps: any[]
+) {
+  const africasTalkingApiKey = Deno.env.get("AFRICASTALKING_API_KEY");
+  const africasTalkingUsername = Deno.env.get("AFRICASTALKING_USERNAME");
+  const useRealSMS = !!africasTalkingApiKey && !!africasTalkingUsername;
+
+  const appMap = new Map(apps.map(a => [a.id, a]));
+
+  for (const result of results) {
+    const app = appMap.get(result.applicationId);
+    if (!app || !app.sms_consent || !app.parent_phone) continue;
+
+    let message: string;
+    if (result.status === "approved") {
+      const fairnessNote = app.is_fairness_priority ? " Fairness priority considered." : "";
+      message = `Congratulations! Your bursary application (${app.tracking_number}) has been APPROVED. ` +
+        `Amount: KES ${(result.allocatedAmount || 35000).toLocaleString()}. ` +
+        `Funds will be sent to ${app.institution_name}.${fairnessNote} Track: bursary-ke.go.ke/track - Bursary KE`;
+    } else {
+      // Rejected — generic SMS (detailed reason only in commissioner portal)
+      message = `Dear applicant, your bursary application (${app.tracking_number}) was NOT successful in this cycle. ` +
+        `You may re-apply in the next bursary window. Track: bursary-ke.go.ke/track - Bursary KE`;
+    }
+
+    if (useRealSMS) {
+      let phone = app.parent_phone.replace(/\s+/g, "").replace(/-/g, "");
+      if (phone.startsWith("0")) phone = "+254" + phone.substring(1);
+      else if (!phone.startsWith("+")) phone = "+254" + phone;
+
+      const url = africasTalkingUsername === "sandbox"
+        ? "https://api.sandbox.africastalking.com/version1/messaging"
+        : "https://api.africastalking.com/version1/messaging";
+
+      try {
+        await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "apiKey": africasTalkingApiKey!,
+            "Accept": "application/json",
+          },
+          body: new URLSearchParams({
+            username: africasTalkingUsername!,
+            to: phone,
+            message,
+            from: "BURSARY-KE",
+          }),
+        });
+      } catch (e) {
+        console.error(`[SMS] Failed for ${app.tracking_number}:`, e);
+      }
+    } else {
+      console.log(`[SMS SIM] ${result.status} → ${app.tracking_number}`);
+    }
+
+    // Mark SMS sent
+    if (result.status === "approved") {
+      await supabaseAdmin.from("bursary_applications").update({
+        sms_sent: true, sms_sent_at: new Date().toISOString(),
+      }).eq("id", app.id);
+    }
+  }
+}
