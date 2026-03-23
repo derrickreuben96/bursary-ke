@@ -103,7 +103,7 @@ export default function AdminAllocation() {
         return;
       }
 
-      const allResults: any[] = [];
+      const allResults: FairnessEvalResult[] = [];
       for (const advert of adverts) {
         const { data, error } = await supabase.functions.invoke("fairness-engine", {
           body: { action: "evaluate", advertId: advert.id },
@@ -114,7 +114,7 @@ export default function AdminAllocation() {
 
       setFairnessResult(allResults);
       const totalEvaluated = allResults.reduce((s, r) => s + (r.results?.length || 0), 0);
-      const totalPriority = allResults.reduce((s, r) => s + (r.results?.filter((x: any) => x.isFairnessPriorityCandidate)?.length || 0), 0);
+      const totalPriority = allResults.reduce((s, r) => s + (r.results?.filter((x: FairnessAppResult) => x.isFairnessPriorityCandidate)?.length || 0), 0);
       toast({
         title: "Fairness Evaluation Complete",
         description: `Evaluated ${totalEvaluated} applications. ${totalPriority} priority candidates identified.`,
