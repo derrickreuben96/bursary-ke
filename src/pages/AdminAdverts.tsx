@@ -45,6 +45,7 @@ interface FormData {
   ward: string;
   deadline: string;
   budget_amount: string;
+  min_beneficiaries: string;
   description: string;
   required_documents: string;
 }
