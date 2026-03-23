@@ -88,6 +88,7 @@ export default function Bursaries() {
   const hasActiveFilters =
     countyFilter !== "All Counties" ||
     wardFilter !== "All Wards" ||
+    searchQuery.trim() !== "" ||
     deadlineFilter !== "all";
 
   useEffect(() => {
