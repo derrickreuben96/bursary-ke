@@ -81,43 +81,18 @@ export function Footer() {
             <h3 className="font-semibold mb-4">Legal</h3>
             <ul className="space-y-2 text-sm text-background/70 mb-6">
               <li>
-                <a
-                  href="https://www.odpc.go.ke/dpa-act/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-background transition-colors"
-                >
-                  Data Protection Act, 2019
+                <a href="https://www.odpc.go.ke/dpa-act/" target="_blank" rel="noopener noreferrer" className="hover:text-background transition-colors">
+                  Privacy Policy
                 </a>
               </li>
               <li>
-                <a
-                  href="http://kenyalaw.org/kl/fileadmin/pdfdownloads/Acts/ComputerMisuseandCybercrimesAct_No5of2018.pdf"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-background transition-colors"
-                >
-                  Computer Misuse &amp; Cybercrimes Act
+                <a href="http://kenyalaw.org/kl/fileadmin/pdfdownloads/Acts/ComputerMisuseandCybercrimesAct_No5of2018.pdf" target="_blank" rel="noopener noreferrer" className="hover:text-background transition-colors">
+                  Terms of Service
                 </a>
               </li>
               <li>
-                <a
-                  href="https://www.education.go.ke"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-background transition-colors"
-                >
-                  Ministry of Education
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://www.cdf.go.ke"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-background transition-colors"
-                >
-                  NG-CDF Board
+                <a href="https://www.odpc.go.ke/dpa-act/" target="_blank" rel="noopener noreferrer" className="hover:text-background transition-colors">
+                  Data Protection
                 </a>
               </li>
             </ul>
