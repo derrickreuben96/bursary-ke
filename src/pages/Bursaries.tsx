@@ -24,8 +24,10 @@ import {
   Filter,
   GraduationCap,
   AlertCircle,
+  X,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { wardsByCounty } from "@/lib/kenyanWards";
 
 interface Venue {
   name: string;
@@ -46,19 +48,7 @@ interface BursaryAdvert {
   is_active: boolean;
 }
 
-const KENYA_COUNTIES = [
-  "All Counties",
-  "Baringo", "Bomet", "Bungoma", "Busia", "Elgeyo-Marakwet",
-  "Embu", "Garissa", "Homa Bay", "Isiolo", "Kajiado",
-  "Kakamega", "Kericho", "Kiambu", "Kilifi", "Kirinyaga",
-  "Kisii", "Kisumu", "Kitui", "Kwale", "Laikipia",
-  "Lamu", "Machakos", "Makueni", "Mandera", "Marsabit",
-  "Meru", "Migori", "Mombasa", "Murang'a", "Nairobi",
-  "Nakuru", "Nandi", "Narok", "Nyamira", "Nyandarua",
-  "Nyeri", "Samburu", "Siaya", "Taita-Taveta", "Tana River",
-  "Tharaka-Nithi", "Trans-Nzoia", "Turkana", "Uasin Gishu",
-  "Vihiga", "Wajir", "West Pokot"
-];
+const KENYA_COUNTIES = ["All Counties", ...Object.keys(wardsByCounty).sort()];
 
 const DEADLINE_FILTERS = [
   { value: "all", label: "All Deadlines" },
@@ -72,7 +62,29 @@ export default function Bursaries() {
   const [adverts, setAdverts] = useState<BursaryAdvert[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [countyFilter, setCountyFilter] = useState("All Counties");
+  const [wardFilter, setWardFilter] = useState("All Wards");
   const [deadlineFilter, setDeadlineFilter] = useState("all");
+
+  const availableWards = useMemo(() => {
+    if (countyFilter === "All Counties") return [];
+    return wardsByCounty[countyFilter] || [];
+  }, [countyFilter]);
+
+  const handleCountyChange = (value: string) => {
+    setCountyFilter(value);
+    setWardFilter("All Wards");
+  };
+
+  const clearFilters = () => {
+    setCountyFilter("All Counties");
+    setWardFilter("All Wards");
+    setDeadlineFilter("all");
+  };
+
+  const hasActiveFilters =
+    countyFilter !== "All Counties" ||
+    wardFilter !== "All Wards" ||
+    deadlineFilter !== "all";
 
   useEffect(() => {
     const fetchAdverts = async () => {
@@ -115,12 +127,14 @@ export default function Bursaries() {
 
   const filteredAdverts = useMemo(() => {
     return adverts.filter((advert) => {
-      // County filter
       if (countyFilter !== "All Counties" && advert.county !== countyFilter) {
         return false;
       }
 
-      // Deadline filter
+      if (wardFilter !== "All Wards" && advert.ward !== wardFilter) {
+        return false;
+      }
+
       if (deadlineFilter !== "all") {
         const daysRemaining = differenceInDays(new Date(advert.deadline), new Date());
         if (daysRemaining > parseInt(deadlineFilter)) {
@@ -130,7 +144,7 @@ export default function Bursaries() {
 
       return true;
     });
-  }, [adverts, countyFilter, deadlineFilter]);
+  }, [adverts, countyFilter, wardFilter, deadlineFilter]);
 
   const getDaysRemaining = (deadline: string): number => {
     return differenceInDays(new Date(deadline), new Date());
@@ -189,7 +203,7 @@ export default function Bursaries() {
               </div>
               
               <div className="flex flex-wrap gap-3">
-                <Select value={countyFilter} onValueChange={setCountyFilter}>
+                <Select value={countyFilter} onValueChange={handleCountyChange}>
                   <SelectTrigger className="w-[180px] bg-background">
                     <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
                     <SelectValue placeholder="Select County" />
@@ -202,6 +216,23 @@ export default function Bursaries() {
                     ))}
                   </SelectContent>
                 </Select>
+
+                {countyFilter !== "All Counties" && availableWards.length > 0 && (
+                  <Select value={wardFilter} onValueChange={setWardFilter}>
+                    <SelectTrigger className="w-[200px] bg-background">
+                      <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
+                      <SelectValue placeholder="Select Ward" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background border border-border z-50 max-h-[300px]">
+                      <SelectItem value="All Wards">All Wards</SelectItem>
+                      {availableWards.map((ward) => (
+                        <SelectItem key={ward} value={ward}>
+                          {ward}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
 
                 <Select value={deadlineFilter} onValueChange={setDeadlineFilter}>
                   <SelectTrigger className="w-[180px] bg-background">
@@ -216,6 +247,18 @@ export default function Bursaries() {
                     ))}
                   </SelectContent>
                 </Select>
+
+                {hasActiveFilters && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearFilters}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-4 w-4 mr-1" />
+                    Clear
+                  </Button>
+                )}
               </div>
 
               <div className="ml-auto text-sm text-muted-foreground">
@@ -253,19 +296,13 @@ export default function Bursaries() {
                   <div>
                     <h3 className="text-lg font-semibold">No bursaries found</h3>
                     <p className="text-muted-foreground mt-1">
-                      {countyFilter !== "All Counties" || deadlineFilter !== "all"
+                      {hasActiveFilters
                         ? "Try adjusting your filters to see more results."
                         : "There are no active bursary programs at the moment. Please check back later."}
                     </p>
                   </div>
-                  {(countyFilter !== "All Counties" || deadlineFilter !== "all") && (
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setCountyFilter("All Counties");
-                        setDeadlineFilter("all");
-                      }}
-                    >
+                  {hasActiveFilters && (
+                    <Button variant="outline" onClick={clearFilters}>
                       Clear Filters
                     </Button>
                   )}
