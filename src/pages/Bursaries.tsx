@@ -82,6 +82,7 @@ export default function Bursaries() {
     setCountyFilter("All Counties");
     setWardFilter("All Wards");
     setDeadlineFilter("all");
+    setSearchQuery("");
   };
 
   const hasActiveFilters =
