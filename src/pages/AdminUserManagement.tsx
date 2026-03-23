@@ -364,11 +364,54 @@ export default function AdminUserManagement() {
           </Card>
         )}
 
+        {/* Search & Filter Bar */}
+        <div className="mb-4 flex flex-col md:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by name, email, county, or ward..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+            {searchQuery && (
+              <Button variant="ghost" size="icon" className="absolute right-0 top-0 h-full px-2" onClick={() => setSearchQuery("")}>
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+          <Select value={filterRole} onValueChange={setFilterRole}>
+            <SelectTrigger className="w-full md:w-[180px]"><Filter className="h-4 w-4 mr-2 text-muted-foreground" /><SelectValue placeholder="Role" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Roles</SelectItem>
+              <SelectItem value="county_commissioner">Commissioner</SelectItem>
+              <SelectItem value="county_treasury">Treasury</SelectItem>
+              <SelectItem value="admin">Admin</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={filterCounty} onValueChange={v => { setFilterCounty(v); setFilterWard("all"); }}>
+            <SelectTrigger className="w-full md:w-[200px]"><SelectValue placeholder="County" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Counties</SelectItem>
+              {countyOptions.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          {filterWardOptions.length > 0 && (
+            <Select value={filterWard} onValueChange={setFilterWard}>
+              <SelectTrigger className="w-full md:w-[200px]"><SelectValue placeholder="Ward" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Wards</SelectItem>
+                {filterWardOptions.map(w => <SelectItem key={w} value={w}>{w}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+
         {/* User List */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />Managed Accounts ({users.length})
+              <Users className="h-5 w-5" />Managed Accounts ({filteredUsers.length}{filteredUsers.length !== users.length ? ` of ${users.length}` : ""})
             </CardTitle>
             <CardDescription>Commissioner and Treasury accounts created by admin</CardDescription>
           </CardHeader>
