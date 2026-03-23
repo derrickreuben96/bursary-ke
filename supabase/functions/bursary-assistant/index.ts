@@ -49,7 +49,7 @@ Keep answers clear, concise, and helpful. Use bullet points for lists. If you do
 Be concise and practical. Give specific examples when helpful.`
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
