@@ -33,8 +33,8 @@ interface AllocationResult {
   allocatedAmount?: number;
 }
 
-// Helper function to verify admin role or service role key (for internal cron calls)
-async function verifyAdminOrServiceRole(req: Request): Promise<{ isServiceRole: boolean; user?: { id: string } } | Response> {
+// Helper function to verify admin/commissioner role or service role key (for internal cron calls)
+async function verifyAuthorizedRole(req: Request): Promise<{ isServiceRole: boolean; user?: { id: string }; role?: string } | Response> {
   const authHeader = req.headers.get('Authorization');
   if (!authHeader) {
     return new Response(
@@ -69,7 +69,7 @@ async function verifyAdminOrServiceRole(req: Request): Promise<{ isServiceRole: 
     );
   }
 
-  // Check admin role using service role client for RLS bypass
+  // Check admin or commissioner role using service role client for RLS bypass
   const supabaseAdmin = createClient(
     Deno.env.get('SUPABASE_URL')!,
     serviceRoleKey,
@@ -82,17 +82,17 @@ async function verifyAdminOrServiceRole(req: Request): Promise<{ isServiceRole: 
     .from('user_roles')
     .select('role')
     .eq('user_id', user.id)
-    .eq('role', 'admin')
-    .maybeSingle();
+    .in('role', ['admin', 'county_commissioner']);
 
-  if (!roleData) {
+  if (!roleData || roleData.length === 0) {
     return new Response(
-      JSON.stringify({ error: 'Forbidden - Admin role required' }),
+      JSON.stringify({ error: 'Forbidden - Admin or Commissioner role required' }),
       { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 
-  return { isServiceRole: false, user };
+  const userRole = roleData[0].role;
+  return { isServiceRole: false, user, role: userRole };
 }
 
 Deno.serve(async (req) => {
