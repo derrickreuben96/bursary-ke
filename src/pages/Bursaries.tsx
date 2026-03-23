@@ -214,7 +214,16 @@ export default function Bursaries() {
                 <span className="text-sm font-medium">Filters:</span>
               </div>
               
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap gap-3 flex-1">
+                <div className="relative w-full sm:w-[250px]">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by title or description..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 bg-background"
+                  />
+                </div>
                 <Select value={countyFilter} onValueChange={handleCountyChange}>
                   <SelectTrigger className="w-[180px] bg-background">
                     <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
