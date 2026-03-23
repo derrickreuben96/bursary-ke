@@ -1,0 +1,1 @@
+ALTER TABLE public.bursary_adverts ADD COLUMN min_beneficiaries integer DEFAULT NULL;
