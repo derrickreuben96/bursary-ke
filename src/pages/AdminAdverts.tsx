@@ -103,6 +103,7 @@ export default function AdminAdverts() {
       ward: advert.ward || "",
       deadline: advert.deadline ? new Date(advert.deadline).toISOString().slice(0, 16) : "",
       budget_amount: advert.budget_amount?.toString() || "",
+      min_beneficiaries: advert.min_beneficiaries?.toString() || "",
       description: advert.description || "",
       required_documents: (advert.required_documents || []).join("\n"),
     });
