@@ -49,6 +49,32 @@ interface TreasuryReport {
   summary: string;
 }
 
+interface AnalysisResult {
+  totalApplicants: number;
+  pendingApplications: unknown[];
+  budget: number;
+  aiRecommendations: string | null;
+}
+
+interface FairnessAppResult {
+  applicationId: string;
+  nationalId: string;
+  previousAttempts: number;
+  previousFunded: number;
+  fairnessPriorityScore: number;
+  isFairnessPriorityCandidate: boolean;
+  fraudRiskLevel: "low" | "medium" | "high";
+  historicalStatus: "new" | "returning_unfunded" | "returning_funded" | "red_flagged";
+  adjustments: string[];
+}
+
+interface FairnessEvalResult {
+  advert: string;
+  county: string;
+  message: string;
+  results: FairnessAppResult[];
+}
+
 export default function AdminAllocation() {
   const { toast } = useToast();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -57,10 +83,10 @@ export default function AdminAllocation() {
   const [isEvaluatingFairness, setIsEvaluatingFairness] = useState(false);
   const [budget, setBudget] = useState("10000000");
   const [fiscalYear, setFiscalYear] = useState("2024/2025");
-  const [analysisResult, setAnalysisResult] = useState<any>(null);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [allocationReport, setAllocationReport] = useState<TreasuryReport | null>(null);
   const [treasuryReport, setTreasuryReport] = useState<string>("");
-  const [fairnessResult, setFairnessResult] = useState<any>(null);
+  const [fairnessResult, setFairnessResult] = useState<FairnessEvalResult[] | null>(null);
 
   const runFairnessEvaluation = async () => {
     setIsEvaluatingFairness(true);
@@ -77,7 +103,7 @@ export default function AdminAllocation() {
         return;
       }
 
-      const allResults: any[] = [];
+      const allResults: FairnessEvalResult[] = [];
       for (const advert of adverts) {
         const { data, error } = await supabase.functions.invoke("fairness-engine", {
           body: { action: "evaluate", advertId: advert.id },
@@ -88,7 +114,7 @@ export default function AdminAllocation() {
 
       setFairnessResult(allResults);
       const totalEvaluated = allResults.reduce((s, r) => s + (r.results?.length || 0), 0);
-      const totalPriority = allResults.reduce((s, r) => s + (r.results?.filter((x: any) => x.isFairnessPriorityCandidate)?.length || 0), 0);
+      const totalPriority = allResults.reduce((s, r) => s + (r.results?.filter((x: FairnessAppResult) => x.isFairnessPriorityCandidate)?.length || 0), 0);
       toast({
         title: "Fairness Evaluation Complete",
         description: `Evaluated ${totalEvaluated} applications. ${totalPriority} priority candidates identified.`,
@@ -281,10 +307,10 @@ export default function AdminAllocation() {
 
                 {fairnessResult && (
                   <div className="space-y-6 mt-6">
-                    {fairnessResult.map((result: any, idx: number) => {
-                      const priorityCount = result.results?.filter((r: any) => r.isFairnessPriorityCandidate)?.length || 0;
-                      const redFlagCount = result.results?.filter((r: any) => r.historicalStatus === "red_flagged")?.length || 0;
-                      const highFraud = result.results?.filter((r: any) => r.fraudRiskLevel === "high")?.length || 0;
+                    {fairnessResult.map((result: FairnessEvalResult, idx: number) => {
+                      const priorityCount = result.results?.filter((r: FairnessAppResult) => r.isFairnessPriorityCandidate)?.length || 0;
+                      const redFlagCount = result.results?.filter((r: FairnessAppResult) => r.historicalStatus === "red_flagged")?.length || 0;
+                      const highFraud = result.results?.filter((r: FairnessAppResult) => r.fraudRiskLevel === "high")?.length || 0;
 
                       return (
                         <div key={idx} className="border rounded-lg p-4">
@@ -330,7 +356,7 @@ export default function AdminAllocation() {
                                   </tr>
                                 </thead>
                                 <tbody>
-                                  {result.results.map((r: any, i: number) => (
+                                  {result.results.map((r: FairnessAppResult, i: number) => (
                                     <tr key={i} className="border-b last:border-0">
                                       <td className="py-2 pr-4 font-mono text-xs">{r.nationalId}</td>
                                       <td className="py-2 pr-4">
