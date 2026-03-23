@@ -478,7 +478,10 @@ export default function CommissionerDashboard() {
                   <Button
                     onClick={handleProcessApplications}
                     disabled={!deadlinePassed || stats.pending === 0 || isProcessing}
-                    className="bg-blue-600 hover:bg-blue-700"
+                    variant={!deadlinePassed ? "outline" : "default"}
+                    className={!deadlinePassed 
+                      ? "bg-muted text-muted-foreground border-muted cursor-not-allowed opacity-60" 
+                      : "bg-blue-600 hover:bg-blue-700"}
                   >
                     {isProcessing ? (
                       <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Processing...</>
