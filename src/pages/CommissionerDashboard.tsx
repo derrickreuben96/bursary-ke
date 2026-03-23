@@ -122,6 +122,25 @@ export default function CommissionerDashboard() {
       }
       setApplications(apps);
 
+      // Fetch status history for all loaded applications
+      if (apps.length > 0) {
+        const { data: historyData } = await supabase
+          .from("application_status_history")
+          .select("id, from_status, to_status, changed_at, application_id")
+          .in("application_id", apps.map((a) => a.id))
+          .order("changed_at", { ascending: true });
+
+        if (historyData) {
+          const grouped = historyData.reduce<Record<string, StatusHistoryEntry[]>>((acc, entry) => {
+            const key = (entry as any).application_id as string;
+            if (!acc[key]) acc[key] = [];
+            acc[key].push(entry as StatusHistoryEntry);
+            return acc;
+          }, {});
+          setStatusHistory(grouped);
+        }
+      }
+
       // Fetch fairness tracking data for all apps
       const appIds = apps.map(a => a.id).filter(Boolean);
       if (appIds.length > 0) {
