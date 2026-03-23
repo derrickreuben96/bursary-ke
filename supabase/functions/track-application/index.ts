@@ -13,20 +13,17 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Rate limit config: 10 requests per minute per IP
 const RATE_LIMIT_CONFIG = {
-  windowMs: 60 * 1000, // 1 minute
+  windowMs: 60 * 1000,
   maxRequests: 10,
 };
 
-// Input validation schema
 const TrackingSchema = z.object({
   trackingNumber: z.string().regex(/^BKE-[A-Z0-9]{6}$/, "Invalid tracking number format"),
   verificationValue: z.string().min(1, "Verification value required"),
   verificationType: z.enum(["phone", "national_id"]),
 });
 
-// Helper to format phone number to +254 format
 function formatPhone(phone: string): string {
   let formatted = phone.replace(/\s+/g, "").replace(/-/g, "");
   if (formatted.startsWith("0")) {
@@ -44,7 +41,6 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Apply rate limiting
   const clientIp = getClientIp(req);
   const rateLimitResult = checkRateLimit(clientIp, RATE_LIMIT_CONFIG);
   maybeCleanup(RATE_LIMIT_CONFIG.windowMs);
@@ -59,11 +55,7 @@ Deno.serve(async (req) => {
 
     if (!parseResult.success) {
       return new Response(
-        JSON.stringify({ 
-          found: false, 
-          error: "Invalid input",
-          details: parseResult.error.errors 
-        }),
+        JSON.stringify({ found: false, error: "Invalid input", details: parseResult.error.errors }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -72,22 +64,17 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // Build query with verification
     let query = supabaseAdmin
       .from("bursary_applications")
-      .select("tracking_number, student_type, status, created_at, updated_at")
+      .select("tracking_number, student_type, status, created_at, updated_at, allocated_amount, institution_name, released_to_treasury")
       .eq("tracking_number", trackingNumber.toUpperCase());
 
-    // Add verification condition based on type
     if (verificationType === "phone") {
-      // Format the phone number for comparison
       const formattedPhone = formatPhone(verificationValue);
-      // Check both formats - with and without +254 prefix
       query = query.or(`parent_phone.eq.${formattedPhone},parent_phone.eq.${verificationValue}`);
     } else {
       query = query.eq("parent_national_id", verificationValue);
@@ -104,35 +91,82 @@ Deno.serve(async (req) => {
     }
 
     if (!data) {
-      // Return generic not found - don't reveal if tracking number exists
       return new Response(
-        JSON.stringify({ 
-          found: false, 
-          message: "Application not found. Please verify your tracking number and verification details." 
-        }),
+        JSON.stringify({ found: false, message: "Application not found. Please verify your tracking number and verification details." }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Map status to stages for the timeline
-    const statusOrder = ["received", "review", "verification", "approved", "disbursed"];
-    const currentIndex = statusOrder.indexOf(data.status);
+    // Fetch actual status history for real dates
+    const { data: historyData } = await supabaseAdmin
+      .from("application_status_history")
+      .select("from_status, to_status, changed_at")
+      .eq("application_id", (await supabaseAdmin
+        .from("bursary_applications")
+        .select("id")
+        .eq("tracking_number", trackingNumber.toUpperCase())
+        .maybeSingle()).data?.id || "")
+      .order("changed_at", { ascending: true });
 
-    const stages = [
+    // Build a map of when each status was reached
+    const statusDates: Record<string, string> = {
+      received: data.created_at,
+    };
+    if (historyData) {
+      for (const entry of historyData) {
+        statusDates[entry.to_status] = entry.changed_at;
+      }
+    }
+
+    const isRejected = data.status === "rejected";
+    const statusOrder = ["received", "review", "verification", "approved", "disbursed"];
+    const currentIndex = isRejected 
+      ? statusOrder.indexOf("verification") // Show rejection at verification stage
+      : statusOrder.indexOf(data.status);
+
+    const stageDefinitions = [
       { name: "Application Received", key: "received", message: "Your application has been received and is in our system." },
       { name: "Under Review", key: "review", message: "Your application is being reviewed by our team." },
-      { name: "Verification", key: "verification", message: "We are verifying the information provided." },
-      { name: "Approval Decision", key: "approved", message: "Your application has been approved." },
-      { name: "Funds Disbursed", key: "disbursed", message: "Funds have been sent to your institution." },
-    ].map((stage, index) => ({
-      name: stage.name,
-      status: index < currentIndex ? "completed" : 
-              index === currentIndex ? "current" : "pending",
-      date: index <= currentIndex ? data.created_at : null,
-      message: stage.message,
-    }));
+      { name: "Verification & Screening", key: "verification", message: "Your application is being verified and screened by the Commissioner." },
+      { name: "Approval Decision", key: "approved", message: data.allocated_amount 
+        ? `Your application has been approved! Amount: KES ${data.allocated_amount.toLocaleString()}.`
+        : "Your application has been approved for funding." },
+      { name: "Funds Disbursed", key: "disbursed", message: `Funds have been sent to ${data.institution_name || "your institution"}.` },
+    ];
 
-    // Return limited, non-sensitive tracking info
+    const stages = stageDefinitions.map((stage, index) => {
+      let status: string;
+      let message = stage.message;
+
+      if (isRejected && index >= 3) {
+        // For rejected applications, show rejection at approval stage
+        if (index === 3) {
+          status = "current";
+          message = "Your application was not successful in this funding cycle. You may apply again in the next cycle.";
+          return {
+            name: "Application Not Successful",
+            status,
+            date: statusDates["rejected"] || data.updated_at,
+            message,
+          };
+        }
+        status = "pending";
+      } else if (index < currentIndex) {
+        status = "completed";
+      } else if (index === currentIndex) {
+        status = "current";
+      } else {
+        status = "pending";
+      }
+
+      return {
+        name: stage.name,
+        status,
+        date: statusDates[stage.key] || (index <= currentIndex ? data.created_at : null),
+        message,
+      };
+    });
+
     return new Response(
       JSON.stringify({
         found: true,

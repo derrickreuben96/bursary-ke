@@ -306,9 +306,18 @@ export default function CommissionerDashboard() {
 
       if (error) throw error;
 
+      // Trigger SMS notifications for approved applicants
+      try {
+        await supabase.functions.invoke("send-sms-notifications", {
+          body: { trigger: "release_to_treasury" },
+        });
+      } catch (smsErr) {
+        console.error("SMS notification error (non-blocking):", smsErr);
+      }
+
       toast({
         title: "Released to Treasury",
-        description: `${approvedIds.length} approved application(s) sent to County Treasury for disbursement.`,
+        description: `${approvedIds.length} approved application(s) sent to County Treasury for disbursement. Treasury has been notified.`,
       });
       fetchApplications();
     } catch (error) {
@@ -478,7 +487,10 @@ export default function CommissionerDashboard() {
                   <Button
                     onClick={handleProcessApplications}
                     disabled={!deadlinePassed || stats.pending === 0 || isProcessing}
-                    className="bg-blue-600 hover:bg-blue-700"
+                    variant={!deadlinePassed ? "outline" : "default"}
+                    className={!deadlinePassed 
+                      ? "bg-muted text-muted-foreground border-muted cursor-not-allowed opacity-60" 
+                      : "bg-blue-600 hover:bg-blue-700"}
                   >
                     {isProcessing ? (
                       <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Processing...</>

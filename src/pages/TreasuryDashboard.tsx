@@ -81,20 +81,29 @@ export default function TreasuryDashboard() {
   };
 
   useEffect(() => {
-    fetchApprovedApplications();
+    if (assignedCounty) {
+      fetchApprovedApplications();
+    }
 
-    // Subscribe to real-time updates
+    // Subscribe to real-time updates - notify when new apps are released to treasury
     const channel = supabase
       .channel("treasury-applications")
       .on(
         "postgres_changes",
         {
-          event: "*",
+          event: "UPDATE",
           schema: "public",
           table: "bursary_applications",
-          filter: "status=eq.approved",
         },
-        () => {
+        (payload) => {
+          const newRecord = payload.new as any;
+          if (newRecord?.released_to_treasury === true && newRecord?.status === "approved") {
+            toast({
+              title: "🔔 New Applications Released",
+              description: "The Commissioner has released new approved applications for your review and disbursement.",
+              duration: 10000,
+            });
+          }
           fetchApprovedApplications();
         }
       )
@@ -103,7 +112,7 @@ export default function TreasuryDashboard() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [assignedCounty]);
 
   const handleLogout = async () => {
     await signOut();
