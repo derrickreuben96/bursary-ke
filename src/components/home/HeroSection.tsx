@@ -91,7 +91,7 @@ export function HeroSection() {
       {heroSlides.map((slide, index) => (
         <div
           key={index}
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-1000 ease-in-out"
+          className={`absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-1000 ease-in-out ${currentSlide === index ? 'animate-ken-burns' : ''}`}
           style={{
             backgroundImage: `url('${slide}')`,
             opacity: currentSlide === index ? 1 : 0,
