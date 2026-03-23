@@ -169,6 +169,22 @@ export function HeroSection() {
               <span>Real-time Tracking</span>
             </div>
           </div>
+
+          {/* Slide indicator dots */}
+          <div className="flex justify-center gap-2 pt-2">
+            {heroSlides.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentSlide(index)}
+                className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
+                  currentSlide === index
+                    ? 'bg-primary w-6'
+                    : 'bg-white/40 hover:bg-white/60'
+                }`}
+                aria-label={`Go to slide ${index + 1}`}
+              />
+            ))}
+          </div>
         </div>
       </div>
 
