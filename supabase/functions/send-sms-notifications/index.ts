@@ -67,8 +67,7 @@ async function verifyAdminOrServiceRole(req: Request): Promise<{ isServiceRole: 
     .from('user_roles')
     .select('role')
     .eq('user_id', user.id)
-    .eq('role', 'admin')
-    .maybeSingle();
+    .in('role', ['admin', 'county_commissioner']);
 
   if (!roleData) {
     return new Response(
