@@ -441,7 +441,7 @@ export default function AdminUserManagement() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {users.map(u => {
+                    {filteredUsers.map(u => {
                       const expired = u.role !== "admin" && isPasswordExpired(u.password_changed_at);
                       return (
                         <TableRow key={u.user_id} className={expired ? "bg-destructive/5" : ""}>
