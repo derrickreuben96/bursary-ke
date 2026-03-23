@@ -306,9 +306,18 @@ export default function CommissionerDashboard() {
 
       if (error) throw error;
 
+      // Trigger SMS notifications for approved applicants
+      try {
+        await supabase.functions.invoke("send-sms-notifications", {
+          body: { trigger: "release_to_treasury" },
+        });
+      } catch (smsErr) {
+        console.error("SMS notification error (non-blocking):", smsErr);
+      }
+
       toast({
         title: "Released to Treasury",
-        description: `${approvedIds.length} approved application(s) sent to County Treasury for disbursement.`,
+        description: `${approvedIds.length} approved application(s) sent to County Treasury for disbursement. Treasury has been notified.`,
       });
       fetchApplications();
     } catch (error) {
