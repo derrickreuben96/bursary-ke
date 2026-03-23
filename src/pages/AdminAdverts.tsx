@@ -128,6 +128,7 @@ export default function AdminAdverts() {
       ward: form.ward || null,
       deadline: form.deadline,
       budget_amount: form.budget_amount ? parseFloat(form.budget_amount) : null,
+      min_beneficiaries: form.min_beneficiaries ? parseInt(form.min_beneficiaries) : null,
       description: form.description || null,
       required_documents: requiredDocs,
     };
