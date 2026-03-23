@@ -35,6 +35,13 @@ interface Application {
   household_dependents: number | null;
 }
 
+interface StatusHistoryEntry {
+  id: string;
+  from_status: string | null;
+  to_status: string;
+  changed_at: string;
+}
+
 interface FairnessInfo {
   applicationId: string;
   isFairnessPriority: boolean;
