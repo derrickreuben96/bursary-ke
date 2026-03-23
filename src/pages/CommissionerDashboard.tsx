@@ -469,59 +469,61 @@ export default function CommissionerDashboard() {
                       {approvedApps.map((app) => {
                         const f = fairnessMap.get(app.id);
                         return (
-                          <TableRow key={app.id}>
-                            <TableCell className="font-mono">{app.tracking_number}</TableCell>
-                            <TableCell className="capitalize">{app.student_type}</TableCell>
-                            <TableCell>{app.parent_county}</TableCell>
-                            <TableCell>
-                              <Badge variant="outline">{app.poverty_tier}</Badge>
-                            </TableCell>
-                            <TableCell>
-                              {f?.isFairnessPriority ? (
-                                <Badge className="bg-purple-100 text-purple-700">
-                                  <Star className="h-3 w-3 mr-1" />
-                                  Priority +{f.fairnessPriorityScore}
-                                </Badge>
-                              ) : f?.historicalStatus === "returning_funded" ? (
-                                <Badge variant="outline" className="text-amber-600">
-                                  <History className="h-3 w-3 mr-1" />
-                                  Returning
-                                </Badge>
-                              ) : (
-                                <Badge variant="secondary">New</Badge>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={f?.fraudRiskLevel === "high" ? "destructive" : f?.fraudRiskLevel === "medium" ? "secondary" : "outline"}>
-                                {f?.fraudRiskLevel || "low"}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="font-medium">
-                              KES {(app.allocated_amount || 0).toLocaleString()}
-                            </TableCell>
-                            <TableCell className="max-w-xs truncate text-sm text-muted-foreground">
-                              {app.ai_decision_reason || "—"}
-                            </TableCell>
-                          </TableRow>
-                          {statusHistory[app.id]?.length > 0 && (
+                          <React.Fragment key={app.id}>
                             <TableRow>
-                              <TableCell colSpan={8} className="py-1 px-6">
-                                <div className="space-y-0.5">
-                                  <p className="text-xs font-medium text-muted-foreground">Status History</p>
-                                  {statusHistory[app.id].map((entry) => (
-                                    <p key={entry.id} className="text-xs text-muted-foreground">
-                                      {entry.from_status ?? "submitted"} → {entry.to_status}{" "}
-                                      <span className="opacity-60">
-                                        {new Date(entry.changed_at).toLocaleDateString("en-KE", {
-                                          day: "numeric", month: "short", year: "numeric",
-                                        })}
-                                      </span>
-                                    </p>
-                                  ))}
-                                </div>
+                              <TableCell className="font-mono">{app.tracking_number}</TableCell>
+                              <TableCell className="capitalize">{app.student_type}</TableCell>
+                              <TableCell>{app.parent_county}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline">{app.poverty_tier}</Badge>
+                              </TableCell>
+                              <TableCell>
+                                {f?.isFairnessPriority ? (
+                                  <Badge className="bg-purple-100 text-purple-700">
+                                    <Star className="h-3 w-3 mr-1" />
+                                    Priority +{f.fairnessPriorityScore}
+                                  </Badge>
+                                ) : f?.historicalStatus === "returning_funded" ? (
+                                  <Badge variant="outline" className="text-amber-600">
+                                    <History className="h-3 w-3 mr-1" />
+                                    Returning
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="secondary">New</Badge>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={f?.fraudRiskLevel === "high" ? "destructive" : f?.fraudRiskLevel === "medium" ? "secondary" : "outline"}>
+                                  {f?.fraudRiskLevel || "low"}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="font-medium">
+                                KES {(app.allocated_amount || 0).toLocaleString()}
+                              </TableCell>
+                              <TableCell className="max-w-xs truncate text-sm text-muted-foreground">
+                                {app.ai_decision_reason || "—"}
                               </TableCell>
                             </TableRow>
-                          )}
+                            {statusHistory[app.id]?.length > 0 && (
+                              <TableRow>
+                                <TableCell colSpan={8} className="py-1 px-6">
+                                  <div className="space-y-0.5">
+                                    <p className="text-xs font-medium text-muted-foreground">Status History</p>
+                                    {statusHistory[app.id].map((entry) => (
+                                      <p key={entry.id} className="text-xs text-muted-foreground">
+                                        {entry.from_status ?? "submitted"} → {entry.to_status}{" "}
+                                        <span className="opacity-60">
+                                          {new Date(entry.changed_at).toLocaleDateString("en-KE", {
+                                            day: "numeric", month: "short", year: "numeric",
+                                          })}
+                                        </span>
+                                      </p>
+                                    ))}
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </React.Fragment>
                         );
                       })}
                     </TableBody>
