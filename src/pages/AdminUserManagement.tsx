@@ -93,6 +93,12 @@ export default function AdminUserManagement() {
     });
   }, [users, searchQuery, filterRole, filterCounty, filterWard]);
 
+  // Reset page when filters change
+  useEffect(() => { setCurrentPage(1); }, [searchQuery, filterRole, filterCounty, filterWard]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE));
+  const paginatedUsers = filteredUsers.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
   const expiredPasswordUsers = useMemo(
     () => users.filter(u => u.role !== "admin" && isPasswordExpired(u.password_changed_at)),
     [users]
