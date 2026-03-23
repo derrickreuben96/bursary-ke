@@ -66,6 +66,7 @@ export default function Bursaries() {
   const [countyFilter, setCountyFilter] = useState("All Counties");
   const [wardFilter, setWardFilter] = useState("All Wards");
   const [deadlineFilter, setDeadlineFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const availableWards = useMemo(() => {
     if (countyFilter === "All Counties") return [];
