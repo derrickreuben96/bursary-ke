@@ -25,7 +25,9 @@ import {
   GraduationCap,
   AlertCircle,
   X,
+  Search,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { wardsByCounty } from "@/lib/kenyanWards";
 
@@ -64,6 +66,7 @@ export default function Bursaries() {
   const [countyFilter, setCountyFilter] = useState("All Counties");
   const [wardFilter, setWardFilter] = useState("All Wards");
   const [deadlineFilter, setDeadlineFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const availableWards = useMemo(() => {
     if (countyFilter === "All Counties") return [];
@@ -79,11 +82,13 @@ export default function Bursaries() {
     setCountyFilter("All Counties");
     setWardFilter("All Wards");
     setDeadlineFilter("all");
+    setSearchQuery("");
   };
 
   const hasActiveFilters =
     countyFilter !== "All Counties" ||
     wardFilter !== "All Wards" ||
+    searchQuery.trim() !== "" ||
     deadlineFilter !== "all";
 
   useEffect(() => {
@@ -133,6 +138,13 @@ export default function Bursaries() {
 
       if (wardFilter !== "All Wards" && advert.ward !== wardFilter) {
         return false;
+      }
+
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchesTitle = advert.title.toLowerCase().includes(q);
+        const matchesDesc = advert.description?.toLowerCase().includes(q);
+        if (!matchesTitle && !matchesDesc) return false;
       }
 
       if (deadlineFilter !== "all") {
@@ -202,7 +214,16 @@ export default function Bursaries() {
                 <span className="text-sm font-medium">Filters:</span>
               </div>
               
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap gap-3 flex-1">
+                <div className="relative w-full sm:w-[250px]">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by title or description..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 bg-background"
+                  />
+                </div>
                 <Select value={countyFilter} onValueChange={handleCountyChange}>
                   <SelectTrigger className="w-[180px] bg-background">
                     <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
