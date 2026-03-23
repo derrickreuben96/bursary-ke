@@ -268,6 +268,7 @@ export type Database = {
           parent_ward: string | null
           poverty_score: number
           poverty_tier: Database["public"]["Enums"]["poverty_tier"]
+          released_to_treasury: boolean
           reviewed_at: string | null
           reviewed_by: string | null
           sms_consent: boolean
@@ -307,6 +308,7 @@ export type Database = {
           parent_ward?: string | null
           poverty_score: number
           poverty_tier: Database["public"]["Enums"]["poverty_tier"]
+          released_to_treasury?: boolean
           reviewed_at?: string | null
           reviewed_by?: string | null
           sms_consent?: boolean
@@ -346,6 +348,7 @@ export type Database = {
           parent_ward?: string | null
           poverty_score?: number
           poverty_tier?: Database["public"]["Enums"]["poverty_tier"]
+          released_to_treasury?: boolean
           reviewed_at?: string | null
           reviewed_by?: string | null
           sms_consent?: boolean
@@ -623,8 +626,10 @@ export type Database = {
           is_duplicate: boolean | null
           parent_county: string | null
           parent_name_masked: string | null
+          parent_ward: string | null
           poverty_score: number | null
           poverty_tier: string | null
+          released_to_treasury: boolean | null
           reviewed_at: string | null
           status: string | null
           student_name_masked: string | null
@@ -647,8 +652,10 @@ export type Database = {
           is_duplicate?: boolean | null
           parent_county?: string | null
           parent_name_masked?: never
+          parent_ward?: string | null
           poverty_score?: number | null
           poverty_tier?: never
+          released_to_treasury?: boolean | null
           reviewed_at?: string | null
           status?: never
           student_name_masked?: never
@@ -671,8 +678,10 @@ export type Database = {
           is_duplicate?: boolean | null
           parent_county?: string | null
           parent_name_masked?: never
+          parent_ward?: string | null
           poverty_score?: number | null
           poverty_tier?: never
+          released_to_treasury?: boolean | null
           reviewed_at?: string | null
           status?: never
           student_name_masked?: never
@@ -709,7 +718,7 @@ export type Database = {
         Insert: {
           allocated_amount?: number | null
           allocation_date?: string | null
-          county?: never
+          county?: string | null
           created_at?: string | null
           ecitizen_ref?: string | null
           id?: string | null
@@ -723,7 +732,7 @@ export type Database = {
         Update: {
           allocated_amount?: number | null
           allocation_date?: string | null
-          county?: never
+          county?: string | null
           created_at?: string | null
           ecitizen_ref?: string | null
           id?: string | null
@@ -755,8 +764,10 @@ export type Database = {
           is_duplicate: boolean
           parent_county: string
           parent_name_masked: string
+          parent_ward: string
           poverty_score: number
           poverty_tier: string
+          released_to_treasury: boolean
           reviewed_at: string
           status: string
           student_name_masked: string
