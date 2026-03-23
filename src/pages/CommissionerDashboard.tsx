@@ -565,54 +565,56 @@ export default function CommissionerDashboard() {
                       {rejectedApps.map((app) => {
                         const f = fairnessMap.get(app.id);
                         return (
-                          <TableRow key={app.id}>
-                            <TableCell className="font-mono">{app.tracking_number}</TableCell>
-                            <TableCell>{getStatusBadge(app.status, app.is_duplicate)}</TableCell>
-                            <TableCell className="capitalize">{app.student_type}</TableCell>
-                            <TableCell>{app.parent_county}</TableCell>
-                            <TableCell>
-                              {f?.fraudRiskLevel === "high" ? (
-                                <Badge variant="destructive"><ShieldAlert className="h-3 w-3 mr-1" />High</Badge>
-                              ) : f?.fraudRiskLevel === "medium" ? (
-                                <Badge variant="secondary">Medium</Badge>
-                              ) : (
-                                <Badge variant="outline">Low</Badge>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              {f?.historicalStatus === "red_flagged" ? (
-                                <Badge variant="destructive">Red Flagged</Badge>
-                              ) : f?.historicalStatus === "returning_unfunded" ? (
-                                <Badge className="bg-purple-100 text-purple-700">Unfunded Prior</Badge>
-                              ) : (
-                                <Badge variant="secondary">New</Badge>
-                              )}
-                            </TableCell>
-                            <TableCell className="max-w-md text-sm">
-                              <p className="text-muted-foreground">
-                                {app.ai_decision_reason || "No reason provided"}
-                              </p>
-                            </TableCell>
-                          </TableRow>
-                          {statusHistory[app.id]?.length > 0 && (
+                          <React.Fragment key={app.id}>
                             <TableRow>
-                              <TableCell colSpan={7} className="py-1 px-6">
-                                <div className="space-y-0.5">
-                                  <p className="text-xs font-medium text-muted-foreground">Status History</p>
-                                  {statusHistory[app.id].map((entry) => (
-                                    <p key={entry.id} className="text-xs text-muted-foreground">
-                                      {entry.from_status ?? "submitted"} → {entry.to_status}{" "}
-                                      <span className="opacity-60">
-                                        {new Date(entry.changed_at).toLocaleDateString("en-KE", {
-                                          day: "numeric", month: "short", year: "numeric",
-                                        })}
-                                      </span>
-                                    </p>
-                                  ))}
-                                </div>
+                              <TableCell className="font-mono">{app.tracking_number}</TableCell>
+                              <TableCell>{getStatusBadge(app.status, app.is_duplicate)}</TableCell>
+                              <TableCell className="capitalize">{app.student_type}</TableCell>
+                              <TableCell>{app.parent_county}</TableCell>
+                              <TableCell>
+                                {f?.fraudRiskLevel === "high" ? (
+                                  <Badge variant="destructive"><ShieldAlert className="h-3 w-3 mr-1" />High</Badge>
+                                ) : f?.fraudRiskLevel === "medium" ? (
+                                  <Badge variant="secondary">Medium</Badge>
+                                ) : (
+                                  <Badge variant="outline">Low</Badge>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {f?.historicalStatus === "red_flagged" ? (
+                                  <Badge variant="destructive">Red Flagged</Badge>
+                                ) : f?.historicalStatus === "returning_unfunded" ? (
+                                  <Badge className="bg-purple-100 text-purple-700">Unfunded Prior</Badge>
+                                ) : (
+                                  <Badge variant="secondary">New</Badge>
+                                )}
+                              </TableCell>
+                              <TableCell className="max-w-md text-sm">
+                                <p className="text-muted-foreground">
+                                  {app.ai_decision_reason || "No reason provided"}
+                                </p>
                               </TableCell>
                             </TableRow>
-                          )}
+                            {statusHistory[app.id]?.length > 0 && (
+                              <TableRow>
+                                <TableCell colSpan={7} className="py-1 px-6">
+                                  <div className="space-y-0.5">
+                                    <p className="text-xs font-medium text-muted-foreground">Status History</p>
+                                    {statusHistory[app.id].map((entry) => (
+                                      <p key={entry.id} className="text-xs text-muted-foreground">
+                                        {entry.from_status ?? "submitted"} → {entry.to_status}{" "}
+                                        <span className="opacity-60">
+                                          {new Date(entry.changed_at).toLocaleDateString("en-KE", {
+                                            day: "numeric", month: "short", year: "numeric",
+                                          })}
+                                        </span>
+                                      </p>
+                                    ))}
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </React.Fragment>
                         );
                       })}
                     </TableBody>
