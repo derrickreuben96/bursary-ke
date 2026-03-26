@@ -252,6 +252,7 @@ export type Database = {
           allocation_date: string | null
           class_form: string | null
           created_at: string
+          document_urls: Json | null
           duplicate_of: string | null
           ecitizen_ref: string | null
           fairness_priority_score: number | null
@@ -292,6 +293,7 @@ export type Database = {
           allocation_date?: string | null
           class_form?: string | null
           created_at?: string
+          document_urls?: Json | null
           duplicate_of?: string | null
           ecitizen_ref?: string | null
           fairness_priority_score?: number | null
@@ -332,6 +334,7 @@ export type Database = {
           allocation_date?: string | null
           class_form?: string | null
           created_at?: string
+          document_urls?: Json | null
           duplicate_of?: string | null
           ecitizen_ref?: string | null
           fairness_priority_score?: number | null
