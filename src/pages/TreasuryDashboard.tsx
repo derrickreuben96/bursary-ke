@@ -11,10 +11,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { 
-  Landmark, LogOut, Search, Download, ExternalLink, 
-  CheckCircle2, Loader2, RefreshCw, Copy, FileText
+  Landmark, LogOut, Search, Download, 
+  Loader2, RefreshCw, Copy, FileText
 } from "lucide-react";
-import { maskName } from "@/lib/maskData";
+import { TreasurySummaryCards } from "@/components/treasury/TreasurySummaryCards";
 
 interface ApprovedApplication {
   id: string;
@@ -37,7 +37,6 @@ export default function TreasuryDashboard() {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Fetch assigned county from profile
   useEffect(() => {
     const fetchProfile = async () => {
       if (!user) return;
@@ -46,72 +45,42 @@ export default function TreasuryDashboard() {
         .select("assigned_county")
         .eq("user_id", user.id)
         .maybeSingle();
-      if (data) {
-        setAssignedCounty(data.assigned_county);
-      }
+      if (data) setAssignedCounty(data.assigned_county);
     };
     fetchProfile();
   }, [user]);
 
   const fetchApprovedApplications = async () => {
     setIsLoading(true);
-    // Use restricted treasury view that only exposes payment-related fields
-    // This view masks PII and excludes sensitive personal details
-    const { data, error } = await supabase
-      .from("bursary_applications_treasury")
-      .select("id, tracking_number, student_name_masked, institution_name, student_type, allocated_amount, ecitizen_ref, county, allocation_date")
-      .order("allocation_date", { ascending: false });
+    // Use server-side RPC that enforces county filtering at database level
+    const { data, error } = await supabase.rpc("get_treasury_applications");
 
     if (error) {
       console.error("Error fetching applications:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load approved applications",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to load approved applications", variant: "destructive" });
     } else {
-      let apps = data || [];
-      // Filter by assigned county if treasury user has one
-      if (assignedCounty) {
-        apps = apps.filter((a: any) => a.county === assignedCounty);
-      }
-      setApplications(apps);
+      setApplications((data as ApprovedApplication[]) || []);
     }
     setIsLoading(false);
   };
 
   useEffect(() => {
-    if (assignedCounty) {
-      fetchApprovedApplications();
-    }
+    if (assignedCounty) fetchApprovedApplications();
 
-    // Subscribe to real-time updates - notify when new apps are released to treasury
     const channel = supabase
       .channel("treasury-applications")
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "bursary_applications",
-        },
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "bursary_applications" },
         (payload) => {
           const newRecord = payload.new as any;
           if (newRecord?.released_to_treasury === true && newRecord?.status === "approved") {
-            toast({
-              title: "🔔 New Applications Released",
-              description: "The Commissioner has released new approved applications for your review and disbursement.",
-              duration: 10000,
-            });
+            toast({ title: "🔔 New Applications Released", description: "The Commissioner has released new approved applications.", duration: 10000 });
           }
           fetchApprovedApplications();
         }
       )
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [assignedCounty]);
 
   const handleLogout = async () => {
@@ -121,22 +90,18 @@ export default function TreasuryDashboard() {
 
   const copyEcitizenRef = (ref: string) => {
     navigator.clipboard.writeText(ref);
-    toast({
-      title: "Copied",
-      description: "eCitizen reference copied to clipboard",
-    });
+    toast({ title: "Copied", description: "eCitizen reference copied to clipboard" });
   };
 
   const filteredApplications = applications.filter(app =>
-    app.tracking_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    app.institution_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    app.county.toLowerCase().includes(searchTerm.toLowerCase())
+    app.tracking_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    app.institution_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    app.county?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const totalAmount = applications.reduce((sum, app) => sum + (app.allocated_amount || 0), 0);
 
   const exportToCSV = async () => {
-    // Fetch fairness summary for the report
     const appIds = applications.map(a => a.id).filter(Boolean);
     let fairnessStats = { firstTime: 0, repeatUnfunded: 0, repeatFunded: 0, priorityAdjusted: 0 };
     
@@ -158,19 +123,13 @@ export default function TreasuryDashboard() {
 
     const headers = ["Tracking Number", "Institution", "Type", "Amount (KES)", "eCitizen Ref", "County", "Date"];
     const rows = applications.map(app => [
-      app.tracking_number,
-      app.institution_name,
-      app.student_type,
-      app.allocated_amount?.toString() || "0",
-      app.ecitizen_ref || "",
-      app.county,
-      app.allocation_date ? new Date(app.allocation_date).toLocaleDateString() : ""
+      app.tracking_number, app.institution_name, app.student_type,
+      app.allocated_amount?.toString() || "0", app.ecitizen_ref || "",
+      app.county, app.allocation_date ? new Date(app.allocation_date).toLocaleDateString() : ""
     ]);
 
-    // Add fairness distribution report section
     const fairnessSection = [
-      [],
-      ["FAIRNESS DISTRIBUTION REPORT"],
+      [], ["FAIRNESS DISTRIBUTION REPORT"],
       ["First-time beneficiaries", fairnessStats.firstTime.toString()],
       ["Repeat applicants (previously unfunded)", fairnessStats.repeatUnfunded.toString()],
       ["Repeat applicants (previously funded)", fairnessStats.repeatFunded.toString()],
@@ -185,18 +144,13 @@ export default function TreasuryDashboard() {
     a.download = `treasury-disbursements-${new Date().toISOString().split("T")[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-
-    toast({
-      title: "Exported",
-      description: "Disbursement list with fairness report exported to CSV",
-    });
+    toast({ title: "Exported", description: "Disbursement list with fairness report exported to CSV" });
   };
 
   return (
     <div className="min-h-screen flex flex-col bg-secondary/30">
       <Header />
       <main className="flex-1 container py-8">
-        {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/10">
@@ -210,79 +164,24 @@ export default function TreasuryDashboard() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={exportToCSV}>
-              <Download className="h-4 w-4 mr-2" />
-              Export CSV
-            </Button>
-            <Button variant="outline" onClick={handleLogout}>
-              <LogOut className="h-4 w-4 mr-2" />
-              Logout
-            </Button>
+            <Button variant="outline" onClick={exportToCSV}><Download className="h-4 w-4 mr-2" />Export CSV</Button>
+            <Button variant="outline" onClick={handleLogout}><LogOut className="h-4 w-4 mr-2" />Logout</Button>
           </div>
         </div>
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Approved
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{applications.length}</div>
-              <p className="text-xs text-muted-foreground">applications</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Disbursement
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-amber-600">
-                KES {totalAmount.toLocaleString()}
-              </div>
-              <p className="text-xs text-muted-foreground">ready for transfer</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                eCitizen Portal
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Button asChild className="w-full bg-amber-600 hover:bg-amber-700">
-                <a href="https://www.ecitizen.go.ke" target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Open eCitizen
-                </a>
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+        <TreasurySummaryCards totalApproved={applications.length} totalAmount={totalAmount} />
 
-        {/* Search and Table */}
         <Card>
           <CardHeader>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
                 <CardTitle>Approved Applications</CardTitle>
-                <CardDescription>
-                  Applications ready for fund disbursement via eCitizen
-                </CardDescription>
+                <CardDescription>Applications ready for fund disbursement via eCitizen</CardDescription>
               </div>
               <div className="flex gap-2 w-full md:w-auto">
                 <div className="relative flex-1 md:w-64">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search applications..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
+                  <Input placeholder="Search applications..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
                 </div>
                 <Button variant="outline" size="icon" onClick={fetchApprovedApplications}>
                   <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
@@ -292,9 +191,7 @@ export default function TreasuryDashboard() {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
+              <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
             ) : filteredApplications.length === 0 ? (
               <div className="text-center py-12">
                 <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -317,40 +214,23 @@ export default function TreasuryDashboard() {
                   <TableBody>
                     {filteredApplications.map((app) => (
                       <TableRow key={app.id}>
-                        <TableCell className="font-mono font-medium">
-                          {app.tracking_number}
-                        </TableCell>
+                        <TableCell className="font-mono font-medium">{app.tracking_number}</TableCell>
                         <TableCell>{app.institution_name}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary" className="capitalize">
-                            {app.student_type}
-                          </Badge>
-                        </TableCell>
+                        <TableCell><Badge variant="secondary" className="capitalize">{app.student_type}</Badge></TableCell>
                         <TableCell>{app.county}</TableCell>
-                        <TableCell className="text-right font-medium">
-                          {(app.allocated_amount || 0).toLocaleString()}
-                        </TableCell>
+                        <TableCell className="text-right font-medium">{(app.allocated_amount || 0).toLocaleString()}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <code className="text-xs bg-muted px-2 py-1 rounded">
-                              {app.ecitizen_ref || "—"}
-                            </code>
+                            <code className="text-xs bg-muted px-2 py-1 rounded">{app.ecitizen_ref || "—"}</code>
                             {app.ecitizen_ref && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6"
-                                onClick={() => copyEcitizenRef(app.ecitizen_ref)}
-                              >
+                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyEcitizenRef(app.ecitizen_ref)}>
                                 <Copy className="h-3 w-3" />
                               </Button>
                             )}
                           </div>
                         </TableCell>
                         <TableCell className="text-muted-foreground">
-                          {app.allocation_date
-                            ? new Date(app.allocation_date).toLocaleDateString()
-                            : "—"}
+                          {app.allocation_date ? new Date(app.allocation_date).toLocaleDateString() : "—"}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -361,7 +241,6 @@ export default function TreasuryDashboard() {
           </CardContent>
         </Card>
 
-        {/* Privacy Notice */}
         <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg">
           <p className="text-sm text-amber-800 dark:text-amber-200">
             <strong>Security Notice:</strong> This data is for official County Treasury use only. 

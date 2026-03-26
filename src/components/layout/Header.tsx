@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, GraduationCap, Shield, Building2, UserCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { LanguageToggle } from "@/lib/i18n";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -54,6 +55,9 @@ export function Header() {
             </Link>
           ))}
           
+          {/* Language Toggle */}
+          <LanguageToggle />
+          
           {/* Portal Access Buttons */}
           <div className="flex items-center gap-1 ml-2 border-l border-border pl-2">
             {portalLinks.map((portal) => {
@@ -79,15 +83,17 @@ export function Header() {
         </nav>
 
         {/* Mobile Menu Button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="md:hidden"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          aria-label="Toggle menu"
-        >
-          {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </Button>
+        <div className="flex items-center gap-2 md:hidden">
+          <LanguageToggle />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle menu"
+          >
+            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </Button>
+        </div>
       </div>
 
       {/* Mobile Navigation */}
@@ -109,7 +115,6 @@ export function Header() {
                 {link.label}
               </Link>
             ))}
-            {/* Portal Access Buttons (Mobile) */}
             <div className="border-t border-border pt-2 mt-2">
               <p className="px-4 py-1 text-xs font-semibold text-muted-foreground uppercase">Portals</p>
               {portalLinks.map((portal) => {
