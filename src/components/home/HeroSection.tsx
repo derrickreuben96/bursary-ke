@@ -8,10 +8,11 @@ import heroHs2 from "@/assets/hero-hs-students-2.jpg";
 import heroHs3 from "@/assets/hero-hs-students-3.jpg";
 import heroUni1 from "@/assets/hero-uni-students-1.jpg";
 import heroUni2 from "@/assets/hero-uni-students-2.jpg";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getCountyEmblem } from "@/lib/countyEmblems";
 import { useCountdown } from "@/hooks/useCountdown";
+import { useI18n } from "@/lib/i18n";
 
 const heroSlides = [heroImage, heroHs1, heroHs2, heroHs3, heroUni1, heroUni2];
 
@@ -62,6 +63,7 @@ function TickerItem({ advert }: { advert: TickerAdvert }) {
 export function HeroSection() {
   const [adverts, setAdverts] = useState<TickerAdvert[]>([]);
   const [currentSlide, setCurrentSlide] = useState(0);
+  const { t } = useI18n();
 
   useEffect(() => {
     supabase
@@ -75,7 +77,6 @@ export function HeroSection() {
       });
   }, []);
 
-  // Auto-cycle slides every 5 seconds
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
@@ -87,7 +88,6 @@ export function HeroSection() {
 
   return (
     <section className="relative min-h-[600px] flex flex-col justify-center overflow-hidden">
-      {/* Sliding Background Images */}
       {heroSlides.map((slide, index) => (
         <div
           key={index}
@@ -99,31 +99,24 @@ export function HeroSection() {
           }}
         />
       ))}
-      {/* Gradient overlay on top of all slides */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/60 to-black/80 z-[2]" />
 
-      {/* Content */}
       <div className="container relative z-10 py-20 text-center text-white flex-1 flex flex-col justify-center">
         <div className="max-w-3xl mx-auto space-y-6 animate-fade-in">
-          {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/20 border border-primary/30 text-sm font-medium">
             <span className="w-2 h-2 rounded-full bg-primary animate-pulse-soft" />
-            <span>Government of Kenya Initiative</span>
+            <span>{t("hero.badge")}</span>
           </div>
 
-          {/* Main Heading */}
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
-            Empowering Kenyan Students Through{" "}
-            <span className="text-primary">Transparent Bursaries</span>
+            {t("hero.title_1")}{" "}
+            <span className="text-primary">{t("hero.title_2")}</span>
           </h1>
 
-          {/* Subtitle */}
           <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto">
-            Access educational funding through a fair, transparent, and secure platform. 
-            Apply for bursaries for secondary school, university, or college education.
+            {t("hero.subtitle")}
           </p>
 
-          {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
             <Button
               asChild
@@ -131,7 +124,7 @@ export function HeroSection() {
               className="bg-primary hover:bg-primary/90 text-primary-foreground text-lg px-8 h-14 shadow-kenya hover:scale-105 hover:shadow-xl transition-all duration-300"
             >
               <Link to="/apply/secondary">
-                Apply Now
+                {t("hero.apply_now")}
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
@@ -143,34 +136,32 @@ export function HeroSection() {
             >
               <Link to="/track">
                 <Search className="mr-2 h-5 w-5" />
-                Track Application
+                {t("hero.track")}
               </Link>
             </Button>
           </div>
 
-          {/* Trust indicators */}
           <div className="flex flex-wrap justify-center gap-6 pt-4 text-sm text-white/60">
             <div className="flex items-center gap-2">
               <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
               </svg>
-              <span>100% Free Application</span>
+              <span>{t("hero.free")}</span>
             </div>
             <div className="flex items-center gap-2">
               <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
               </svg>
-              <span>Secure & Private</span>
+              <span>{t("hero.secure")}</span>
             </div>
             <div className="flex items-center gap-2">
               <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
               </svg>
-              <span>Real-time Tracking</span>
+              <span>{t("hero.realtime")}</span>
             </div>
           </div>
 
-          {/* Slide indicator dots */}
           <div className="flex justify-center gap-2 pt-2">
             {heroSlides.map((_, index) => (
               <button
@@ -188,7 +179,6 @@ export function HeroSection() {
         </div>
       </div>
 
-      {/* Running Bursary Ticker at bottom of hero */}
       {adverts.length > 0 && (
         <div className="relative z-10 py-4 bg-black/40 backdrop-blur-sm border-t border-white/10">
           <div className="container mb-2">
@@ -197,7 +187,7 @@ export function HeroSection() {
                 LIVE
               </Badge>
               <span className="text-xs font-medium text-white/70">
-                {adverts.length} Open Bursary Programs Across Kenya
+                {adverts.length} {t("hero.live_programs")}
               </span>
             </div>
           </div>
