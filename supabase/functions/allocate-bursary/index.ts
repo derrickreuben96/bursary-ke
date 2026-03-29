@@ -24,6 +24,7 @@ const AllocateBursarySchema = z.object({
   action: z.enum(['analyze', 'allocate', 'generate-treasury-report']),
   budget: z.number().min(100000).max(100000000).optional().default(10000000),
   fiscalYear: z.string().regex(/^\d{4}\/\d{4}$/).optional().default("2024/2025"),
+  maxSlots: z.number().int().min(1).max(10000).optional(),
 });
 
 interface AllocationResult {
@@ -135,7 +136,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { action, budget, fiscalYear } = parseResult.data;
+    const { action, budget, fiscalYear, maxSlots } = parseResult.data;
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -269,7 +270,8 @@ Deno.serve(async (req) => {
         const type = app.student_type as "secondary" | "university";
         const amount = allocationRates[tier][type];
 
-        if (remainingBudget >= amount) {
+        const quotaReached = maxSlots !== undefined && allocations.length >= maxSlots;
+        if (remainingBudget >= amount && !quotaReached) {
           // Allocate to this applicant
           allocations.push({
             trackingNumber: app.tracking_number,

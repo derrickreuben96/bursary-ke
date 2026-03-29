@@ -18,6 +18,7 @@ const RATE_LIMIT_CONFIG = { windowMs: 60_000, maxRequests: 5 };
 const ProcessAllocationsSchema = z.object({
   advertId: z.string().uuid(),
   budgetAmount: z.number().min(100000).max(100000000).optional(),
+  maxSlots: z.number().int().min(1).max(10000).optional(),
 });
 
 interface AllocationResult {
@@ -217,15 +218,17 @@ Deno.serve(async (req) => {
       })
       .sort((a, b) => b.combinedScore - a.combinedScore);
 
-    // Step 3: Determine quota — use min_beneficiaries if set, else budget-based
+    // Step 3: Determine quota — use maxSlots > min_beneficiaries > budget-based
     const budget = budgetAmount || advert.budget_amount || 0;
     const minBeneficiaries = advert.min_beneficiaries as number | null;
     const averageAllocation = 35000;
+    const budgetBasedMax = Math.floor(budget / averageAllocation);
 
-    // The quota is the exact number of top applicants to select
-    const maxApprovals = minBeneficiaries && minBeneficiaries > 0
-      ? minBeneficiaries
-      : Math.floor(budget / averageAllocation);
+    // Priority: explicit maxSlots param > advert min_beneficiaries > budget calculation
+    const effectiveSlots = parseResult.data.maxSlots || (minBeneficiaries && minBeneficiaries > 0 ? minBeneficiaries : null);
+    const maxApprovals = effectiveSlots
+      ? Math.min(effectiveSlots, budgetBasedMax)
+      : budgetBasedMax;
 
     console.log(`[ALLOCATION] Quota: ${maxApprovals} (min_beneficiaries: ${minBeneficiaries}, budget: ${budget})`);
 
@@ -265,13 +268,27 @@ Deno.serve(async (req) => {
       const canApprove = approvedCount < maxApprovals;
 
       if (canApprove) {
-        const fairnessNote = app.isFairnessPriority
-          ? ` Fairness priority boost applied (+${app.fairnessScore}).`
+        const fairnessPart = app.isFairnessPriority
+          ? `\n• Fairness boost applied: +${app.fairnessScore} pts (previously applied but not funded — priority restored)`
           : app.historicalStatus === "returning_funded"
-          ? ` Returning funded applicant (priority adjusted by ${app.fairnessScore}).`
+          ? `\n• History note: Previously funded applicant. Consistency check passed. Priority adjusted by ${app.fairnessScore} pts.`
+          : app.historicalStatus === "new"
+          ? `\n• First-time applicant. No prior history.`
           : "";
-        const reason = `Application approved. Poverty score: ${app.poverty_score}/100. Combined score: ${app.combinedScore}. ` +
-          `Tier: ${app.poverty_tier}. Amount: KES ${allocationAmount.toLocaleString()}.${fairnessNote}`;
+        const reason = [
+          `✅ APPROVED — KES ${allocationAmount.toLocaleString()} allocated`,
+          ``,
+          `📊 Assessment Summary:`,
+          `• Poverty score: ${app.poverty_score}/100 (${app.poverty_tier} priority tier)`,
+          `• Combined score (poverty + fairness): ${app.combinedScore}/120`,
+          `• Household income bracket: ${app.household_income !== null ? `Score ${app.household_income}/100` : "Not provided"}`,
+          `• Dependents in household: ${app.household_dependents ?? "Not provided"}`,
+          `• Student type: ${app.student_type}`,
+          `• Fraud risk level: ${app.fraudRisk}`,
+          fairnessPart,
+          ``,
+          `💡 Selection rationale: Ranked ${scoredApps.indexOf(app) + 1} of ${scoredApps.length} applicants by combined score. Meets budget and${effectiveSlots ? ` quota (${effectiveSlots} slots) and` : ""} poverty threshold requirements.`,
+        ].filter(l => l !== undefined).join("\n");
         approvedCount++;
         totalAllocated += allocationAmount;
 
@@ -285,9 +302,25 @@ Deno.serve(async (req) => {
 
         results.push({ applicationId: app.id, trackingNumber: app.tracking_number, status: "approved", reason, allocatedAmount: allocationAmount });
       } else {
-        // Rejected — quota exceeded
-        const reason = `Not approved. All ${maxApprovals} beneficiary slots have been filled by higher-scoring applicants. ` +
-          `Your combined score was ${app.combinedScore} (poverty: ${app.poverty_score}, fairness: ${app.fairnessScore}).`;
+        // Rejected — quota or budget exceeded
+        const rankPosition = scoredApps.indexOf(app) + 1;
+        const quotaCause = effectiveSlots && approvedCount >= effectiveSlots;
+        const reason = [
+          `❌ NOT SELECTED — ${quotaCause ? `Quota of ${effectiveSlots} recipients reached` : `Budget of KES ${budget.toLocaleString()} fully allocated`}`,
+          ``,
+          `📊 Your Assessment:`,
+          `• Poverty score: ${app.poverty_score}/100 (${app.poverty_tier} priority tier)`,
+          `• Combined score: ${app.combinedScore}/120`,
+          `• Your rank: ${rankPosition} of ${scoredApps.length} applicants`,
+          `• Applicants selected above you: ${approvedCount}`,
+          app.isFairnessPriority ? `• ✨ Priority boost was applied (+${app.fairnessScore} pts) but was insufficient to reach selection threshold` : "",
+          ``,
+          `🔄 Next Cycle:`,
+          `• Your application data has been saved automatically`,
+          `• You will receive a priority boost of +5 pts in the next cycle`,
+          `• Re-apply when the next bursary cycle opens — your history gives you an advantage`,
+          `• Ensure all information remains consistent across applications`,
+        ].filter(l => l !== "").join("\n");
 
         await supabaseAdmin.from("bursary_applications").update({
           status: "rejected",
