@@ -315,45 +315,38 @@ function shuffleArray<T>(array: T[]): T[] {
 }
 
 // Get questions for a session - randomized but balanced
-export function getRandomizedQuestions(count: number = 8): PovertyQuestion[] {
+export function getRandomizedQuestions(count: number = 10): PovertyQuestion[] {
   const selectedQuestions: PovertyQuestion[] = [];
-  
-  // Ensure we always include at least one disability question
-  const disabilityQuestions = allQuestions.filter(q => q.id.includes("disability"));
-  const shuffledDisability = shuffleArray(disabilityQuestions);
-  selectedQuestions.push(shuffledDisability[0]);
-  
-  // Ensure one income question
-  const incomeQuestions = allQuestions.filter(q => q.category === "income");
-  const shuffledIncome = shuffleArray(incomeQuestions);
-  selectedQuestions.push(shuffledIncome[0]);
-  
-  // Ensure one housing question
-  const housingQuestions = allQuestions.filter(q => q.category === "housing");
-  const shuffledHousing = shuffleArray(housingQuestions);
-  selectedQuestions.push(shuffledHousing[0]);
-  
-  // Ensure one employment question
-  const employmentQuestions = allQuestions.filter(q => q.category === "employment");
-  const shuffledEmployment = shuffleArray(employmentQuestions);
-  selectedQuestions.push(shuffledEmployment[0]);
-  
-  // Ensure one vulnerability question
-  const vulnerabilityQuestions = allQuestions.filter(q => q.category === "vulnerability");
-  const shuffledVulnerability = shuffleArray(vulnerabilityQuestions);
-  selectedQuestions.push(shuffledVulnerability[0]);
-  
-  // Fill remaining slots with random questions from other categories
-  const usedIds = new Set(selectedQuestions.map(q => q.id));
-  const remainingQuestions = allQuestions.filter(q => !usedIds.has(q.id));
-  const shuffledRemaining = shuffleArray(remainingQuestions);
-  
-  const slotsToFill = count - selectedQuestions.length;
-  for (let i = 0; i < slotsToFill && i < shuffledRemaining.length; i++) {
-    selectedQuestions.push(shuffledRemaining[i]);
+
+  // MANDATORY: always include exactly one from each critical category
+  const mandatory: { category?: string; ids?: string[] }[] = [
+    { ids: ["disability_student", "disability_family"] },
+    { category: "income" },
+    { category: "housing" },
+    { category: "employment" },
+    { category: "vulnerability" },
+    { category: "health" },
+  ];
+
+  for (const rule of mandatory) {
+    const pool = rule.ids
+      ? allQuestions.filter(q => rule.ids!.includes(q.id))
+      : allQuestions.filter(q => q.category === rule.category);
+    const shuffled = shuffleArray(pool);
+    if (shuffled.length > 0) {
+      selectedQuestions.push(shuffled[0]);
+    }
   }
-  
-  // Final shuffle to randomize order
+
+  // Fill remaining slots from unused questions
+  const usedIds = new Set(selectedQuestions.map(q => q.id));
+  const remaining = shuffleArray(allQuestions.filter(q => !usedIds.has(q.id)));
+  const slotsToFill = count - selectedQuestions.length;
+  for (let i = 0; i < slotsToFill && i < remaining.length; i++) {
+    selectedQuestions.push(remaining[i]);
+  }
+
+  // Final shuffle so mandatory questions don't always appear first
   return shuffleArray(selectedQuestions);
 }
 
@@ -362,26 +355,33 @@ export function calculatePovertyScoreFromAnswers(
   answers: Record<string, string>,
   questions: PovertyQuestion[]
 ): { score: number; maxPossible: number; percentage: number } {
-  let totalScore = 0;
-  let totalWeight = 0;
+  // Each question contributes equally to the final score regardless of weight.
+  // Weight is used only for within-question scoring granularity, not cross-question comparison.
+  // This ensures applicants with different question sets are scored on the same 0-100 scale.
   
+  let totalNormalizedScore = 0;
+  let answeredQuestions = 0;
+
   questions.forEach(question => {
     const answer = answers[question.id];
     if (answer && question.options) {
       const option = question.options.find(o => o.value === answer);
       if (option) {
-        totalScore += option.score * question.weight;
-        totalWeight += 100 * question.weight; // Max possible for this question
+        // Each question contributes its answer score (0-100) equally
+        totalNormalizedScore += option.score;
+        answeredQuestions++;
       }
     }
   });
-  
-  // Normalize to 0-100
-  const percentage = totalWeight > 0 ? Math.round((totalScore / totalWeight) * 100) : 0;
-  
+
+  // Average across all answered questions = final 0-100 percentage
+  const percentage = answeredQuestions > 0
+    ? Math.round(totalNormalizedScore / answeredQuestions)
+    : 0;
+
   return {
-    score: totalScore,
-    maxPossible: totalWeight,
+    score: totalNormalizedScore,
+    maxPossible: answeredQuestions * 100,
     percentage,
   };
 }

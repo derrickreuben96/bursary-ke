@@ -83,6 +83,7 @@ export default function AdminAllocation() {
   const [isEvaluatingFairness, setIsEvaluatingFairness] = useState(false);
   const [budget, setBudget] = useState("10000000");
   const [fiscalYear, setFiscalYear] = useState("2024/2025");
+  const [maxSlots, setMaxSlots] = useState<string>("");
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [allocationReport, setAllocationReport] = useState<TreasuryReport | null>(null);
   const [treasuryReport, setTreasuryReport] = useState<string>("");
@@ -165,6 +166,7 @@ export default function AdminAllocation() {
           action: "allocate",
           budget: parseInt(budget),
           fiscalYear,
+          maxSlots: maxSlots ? parseInt(maxSlots) : undefined,
         },
       });
 
@@ -247,7 +249,7 @@ export default function AdminAllocation() {
           {/* Configuration */}
           <Card className="p-6 mb-6">
             <h2 className="text-lg font-semibold mb-4">Allocation Configuration</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Budget (KES)</label>
                 <Input
@@ -264,6 +266,16 @@ export default function AdminAllocation() {
                   onChange={(e) => setFiscalYear(e.target.value)}
                   placeholder="2024/2025"
                 />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Max Recipients (Quota)</label>
+                <Input
+                  type="number"
+                  value={maxSlots}
+                  onChange={(e) => setMaxSlots(e.target.value)}
+                  placeholder="Leave blank for budget-limited only"
+                />
+                <p className="text-xs text-muted-foreground mt-1">The AI will select the top N applicants by combined score, where N is this quota.</p>
               </div>
             </div>
           </Card>

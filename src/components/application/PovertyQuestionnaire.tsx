@@ -35,7 +35,7 @@ export function PovertyQuestionnaire({ onNext, onBack }: PovertyQuestionnairePro
   const { data, updateData } = useApplication();
   
   // Generate randomized questions once per session
-  const questions = useMemo(() => getRandomizedQuestions(8), []);
+  const questions = useMemo(() => getRandomizedQuestions(10), []);
   
   // Build dynamic schema based on questions
   const dynamicSchema = useMemo(() => {
