@@ -50,6 +50,8 @@ interface FairnessInfo {
   historicalStatus: string;
   fraudRiskLevel: string;
   fairnessPriorityScore: number;
+  dataConsistencyScore: number;
+  consistencyFlags: string[];
 }
 
 interface BursaryAdvert {
@@ -74,6 +76,28 @@ interface Stats {
 }
 
 const COLORS = ["#10b981", "#ef4444", "#f59e0b", "#6366f1"];
+
+function AIReasonCell({ reason }: { reason: string | null }) {
+  const [expanded, setExpanded] = useState(false);
+  if (!reason) return <span className="text-muted-foreground">—</span>;
+  const firstLine = reason.split("\n")[0];
+  const hasMore = reason.includes("\n");
+  return (
+    <div className="space-y-1">
+      <p className={`text-sm ${expanded ? "" : "line-clamp-2"} whitespace-pre-line leading-relaxed`}>
+        {expanded ? reason : firstLine}
+      </p>
+      {hasMore && (
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="text-xs text-primary hover:underline focus:outline-none"
+        >
+          {expanded ? "Show less" : "View full reasoning →"}
+        </button>
+      )}
+    </div>
+  );
+}
 
 export default function CommissionerDashboard() {
   const [applications, setApplications] = useState<Application[]>([]);
@@ -176,7 +200,7 @@ export default function CommissionerDashboard() {
       if (appIds.length > 0) {
         const { data: fairnessData } = await supabase
           .from("fairness_tracking")
-          .select("application_id, is_fairness_priority_candidate, historical_status, fraud_risk_level, fairness_priority_score")
+          .select("application_id, is_fairness_priority_candidate, historical_status, fraud_risk_level, fairness_priority_score, data_consistency_score, consistency_flags")
           .in("application_id", appIds);
 
         const fMap = new Map<string, FairnessInfo>();
@@ -187,6 +211,8 @@ export default function CommissionerDashboard() {
             historicalStatus: f.historical_status,
             fraudRiskLevel: f.fraud_risk_level,
             fairnessPriorityScore: f.fairness_priority_score,
+            dataConsistencyScore: f.data_consistency_score ?? 100,
+            consistencyFlags: f.consistency_flags ?? [],
           });
         });
         setFairnessMap(fMap);
@@ -368,7 +394,7 @@ export default function CommissionerDashboard() {
           <TableHead>Fraud Risk</TableHead>
           {showAmount && <TableHead>Amount</TableHead>}
           <TableHead>Status</TableHead>
-          <TableHead>AI Reason</TableHead>
+          <TableHead className="max-w-sm">AI Decision Reasoning</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -392,6 +418,11 @@ export default function CommissionerDashboard() {
                   ) : (
                     <Badge variant="secondary">New</Badge>
                   )}
+                  {f?.dataConsistencyScore !== undefined && f.dataConsistencyScore < 90 && (
+                    <Badge variant="outline" className="text-amber-600 border-amber-300 text-xs mt-1">
+                      ⚠ Consistency {f.dataConsistencyScore}%
+                    </Badge>
+                  )}
                 </TableCell>
                 <TableCell>
                   <Badge variant={f?.fraudRiskLevel === "high" ? "destructive" : f?.fraudRiskLevel === "medium" ? "secondary" : "outline"}>
@@ -402,8 +433,8 @@ export default function CommissionerDashboard() {
                   <TableCell className="font-medium">KES {(app.allocated_amount || 0).toLocaleString()}</TableCell>
                 )}
                 <TableCell>{getStatusBadge(app.status, app.is_duplicate)}</TableCell>
-                <TableCell className="max-w-xs truncate text-sm text-muted-foreground">
-                  {app.ai_decision_reason || "—"}
+                <TableCell className="max-w-sm text-sm">
+                  <AIReasonCell reason={app.ai_decision_reason} />
                 </TableCell>
               </TableRow>
               {statusHistory[app.id]?.length > 0 && (
