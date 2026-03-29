@@ -205,6 +205,7 @@ export type Database = {
           description: string | null
           id: string
           is_active: boolean | null
+          max_slots: number | null
           min_beneficiaries: number | null
           required_documents: string[] | null
           title: string
@@ -220,6 +221,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean | null
+          max_slots?: number | null
           min_beneficiaries?: number | null
           required_documents?: string[] | null
           title: string
@@ -235,6 +237,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean | null
+          max_slots?: number | null
           min_beneficiaries?: number | null
           required_documents?: string[] | null
           title?: string
@@ -481,7 +484,9 @@ export type Database = {
       fairness_tracking: {
         Row: {
           application_id: string | null
+          consistency_flags: Json | null
           created_at: string
+          data_consistency_score: number | null
           eligibility_adjustments_log: Json | null
           fairness_priority_score: number
           fraud_risk_level: string
@@ -492,12 +497,17 @@ export type Database = {
           national_id: string
           previous_attempts_count: number
           previous_funded_count: number
+          previous_household_size: number | null
+          previous_income_bracket: string | null
+          previous_poverty_score: number | null
           priority_boost_applied: boolean
           updated_at: string
         }
         Insert: {
           application_id?: string | null
+          consistency_flags?: Json | null
           created_at?: string
+          data_consistency_score?: number | null
           eligibility_adjustments_log?: Json | null
           fairness_priority_score?: number
           fraud_risk_level?: string
@@ -508,12 +518,17 @@ export type Database = {
           national_id: string
           previous_attempts_count?: number
           previous_funded_count?: number
+          previous_household_size?: number | null
+          previous_income_bracket?: string | null
+          previous_poverty_score?: number | null
           priority_boost_applied?: boolean
           updated_at?: string
         }
         Update: {
           application_id?: string | null
+          consistency_flags?: Json | null
           created_at?: string
+          data_consistency_score?: number | null
           eligibility_adjustments_log?: Json | null
           fairness_priority_score?: number
           fraud_risk_level?: string
@@ -524,6 +539,9 @@ export type Database = {
           national_id?: string
           previous_attempts_count?: number
           previous_funded_count?: number
+          previous_household_size?: number | null
+          previous_income_bracket?: string | null
+          previous_poverty_score?: number | null
           priority_boost_applied?: boolean
           updated_at?: string
         }
