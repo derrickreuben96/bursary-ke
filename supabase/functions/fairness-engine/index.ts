@@ -172,7 +172,6 @@ Deno.serve(async (req) => {
 
         // Fraud risk assessment
         let fraudRiskLevel: FairnessResult["fraudRiskLevel"] = "low";
-        // Check for multiple applications with same phone but different national IDs
         if (app.parent_phone) {
           const { count } = await supabaseAdmin
             .from("bursary_applications")
@@ -189,7 +188,57 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Upsert fairness tracking record
+        // --- Data Consistency Check ---
+        let dataConsistencyScore = 100;
+        const consistencyFlags: string[] = [];
+
+        const { data: prevHistory } = await supabaseAdmin
+          .from("applicant_history")
+          .select("ai_score, allocated_amount")
+          .eq("national_id", app.parent_national_id)
+          .order("created_at", { ascending: false })
+          .limit(3);
+
+        const { data: prevFairness } = await supabaseAdmin
+          .from("fairness_tracking")
+          .select("previous_poverty_score, previous_income_bracket, previous_household_size")
+          .eq("national_id", app.parent_national_id)
+          .maybeSingle();
+
+        if (prevFairness && prevHistory && prevHistory.length > 0) {
+          if (prevFairness.previous_poverty_score !== null) {
+            const scoreDelta = Math.abs(app.poverty_score - prevFairness.previous_poverty_score);
+            if (scoreDelta > 40) {
+              dataConsistencyScore -= 30;
+              consistencyFlags.push(`Poverty score changed significantly: ${prevFairness.previous_poverty_score} → ${app.poverty_score} (delta: ${scoreDelta})`);
+            } else if (scoreDelta > 20) {
+              dataConsistencyScore -= 10;
+              consistencyFlags.push(`Poverty score changed moderately: ${prevFairness.previous_poverty_score} → ${app.poverty_score}`);
+            }
+          }
+
+          if (prevFairness.previous_household_size !== null && app.household_dependents !== null) {
+            const sizeDelta = Math.abs(app.household_dependents - prevFairness.previous_household_size);
+            if (sizeDelta > 4) {
+              dataConsistencyScore -= 20;
+              consistencyFlags.push(`Household size changed significantly: ${prevFairness.previous_household_size} → ${app.household_dependents}`);
+            }
+          }
+        }
+
+        dataConsistencyScore = Math.max(0, dataConsistencyScore);
+
+        let consistencyAdjustment = 0;
+        if (dataConsistencyScore < 70) {
+          consistencyAdjustment = -15;
+          adjustments.push(`Consistency deduction: -15 pts (score: ${dataConsistencyScore}/100 — significant data changes across cycles detected)`);
+        } else if (dataConsistencyScore < 90) {
+          consistencyAdjustment = -5;
+          adjustments.push(`Minor consistency deduction: -5 pts (score: ${dataConsistencyScore}/100)`);
+        }
+
+        fairnessPriorityScore += consistencyAdjustment;
+
         await supabaseAdmin.from("fairness_tracking").upsert(
           {
             national_id: app.parent_national_id,
@@ -202,6 +251,10 @@ Deno.serve(async (req) => {
             is_fairness_priority_candidate: isFairnessPriorityCandidate,
             fraud_risk_level: fraudRiskLevel,
             historical_status: historicalStatus,
+            data_consistency_score: dataConsistencyScore,
+            consistency_flags: consistencyFlags,
+            previous_poverty_score: app.poverty_score,
+            previous_household_size: app.household_dependents ?? null,
             updated_at: new Date().toISOString(),
           },
           { onConflict: "application_id" }
