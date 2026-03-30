@@ -257,7 +257,7 @@ Deno.serve(async (req) => {
             previous_household_size: app.household_dependents ?? null,
             updated_at: new Date().toISOString(),
           },
-          { onConflict: "application_id" }
+          { onConflict: "national_id" }
         );
 
         // Update application with fairness data

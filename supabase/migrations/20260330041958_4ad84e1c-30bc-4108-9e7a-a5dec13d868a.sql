@@ -1,0 +1,1 @@
+ALTER TABLE public.fairness_tracking ADD CONSTRAINT fairness_tracking_national_id_unique UNIQUE (national_id);
