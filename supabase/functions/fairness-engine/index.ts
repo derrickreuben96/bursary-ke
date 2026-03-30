@@ -109,7 +109,7 @@ Deno.serve(async (req) => {
       // Get current pending applications
       const { data: applications } = await supabaseAdmin
         .from("bursary_applications")
-        .select("id, parent_national_id, parent_phone, poverty_score")
+        .select("id, parent_national_id, parent_phone, poverty_score, household_dependents")
         .eq("parent_county", advert.county)
         .eq("status", "received")
         .eq("is_duplicate", false);
@@ -257,7 +257,7 @@ Deno.serve(async (req) => {
             previous_household_size: app.household_dependents ?? null,
             updated_at: new Date().toISOString(),
           },
-          { onConflict: "application_id" }
+          { onConflict: "national_id" }
         );
 
         // Update application with fairness data
