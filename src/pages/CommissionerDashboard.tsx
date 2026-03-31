@@ -445,7 +445,7 @@ export default function CommissionerDashboard() {
                   <TableCell className="font-medium">KES {(app.allocated_amount || 0).toLocaleString()}</TableCell>
                 )}
                 <TableCell>{getStatusBadge(app.status, app.is_duplicate)}</TableCell>
-                <TableCell className="max-w-sm text-sm">
+                <TableCell className="min-w-[320px]">
                   <AIReasonCell reason={app.ai_decision_reason} />
                 </TableCell>
               </TableRow>
