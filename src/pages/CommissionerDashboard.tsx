@@ -61,6 +61,7 @@ interface BursaryAdvert {
   ward: string | null;
   deadline: string;
   budget_amount: number | null;
+  max_slots: number | null;
   is_active: boolean;
 }
 
@@ -150,7 +151,7 @@ export default function CommissionerDashboard() {
       if (!assignedWard && !assignedCounty) return;
       let query = supabase
         .from("bursary_adverts")
-        .select("id, title, county, ward, deadline, budget_amount, is_active");
+        .select("id, title, county, ward, deadline, budget_amount, max_slots, is_active");
 
       if (assignedWard) {
         query = query.eq("ward", assignedWard);
@@ -306,7 +307,11 @@ export default function CommissionerDashboard() {
 
       // Then trigger allocation
       const { data, error } = await supabase.functions.invoke("process-allocations", {
-        body: { advertId: activeAdvert.id, budgetAmount: activeAdvert.budget_amount },
+        body: { 
+          advertId: activeAdvert.id, 
+          budgetAmount: activeAdvert.budget_amount,
+          ...(activeAdvert.max_slots ? { maxSlots: activeAdvert.max_slots } : {}),
+        },
       });
 
       if (error) throw error;
