@@ -151,7 +151,7 @@ export default function CommissionerDashboard() {
       if (!assignedWard && !assignedCounty) return;
       let query = supabase
         .from("bursary_adverts")
-        .select("id, title, county, ward, deadline, budget_amount, is_active");
+        .select("id, title, county, ward, deadline, budget_amount, max_slots, is_active");
 
       if (assignedWard) {
         query = query.eq("ward", assignedWard);
