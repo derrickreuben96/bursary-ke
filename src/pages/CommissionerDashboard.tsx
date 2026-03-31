@@ -406,7 +406,7 @@ export default function CommissionerDashboard() {
           <TableHead>Fraud Risk</TableHead>
           {showAmount && <TableHead>Amount</TableHead>}
           <TableHead>Status</TableHead>
-          <TableHead className="max-w-sm">AI Decision Reasoning</TableHead>
+          <TableHead className="min-w-[320px]">AI Decision Reasoning</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
