@@ -61,6 +61,7 @@ interface BursaryAdvert {
   ward: string | null;
   deadline: string;
   budget_amount: number | null;
+  max_slots: number | null;
   is_active: boolean;
 }
 
