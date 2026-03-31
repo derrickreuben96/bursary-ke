@@ -307,7 +307,11 @@ export default function CommissionerDashboard() {
 
       // Then trigger allocation
       const { data, error } = await supabase.functions.invoke("process-allocations", {
-        body: { advertId: activeAdvert.id, budgetAmount: activeAdvert.budget_amount },
+        body: { 
+          advertId: activeAdvert.id, 
+          budgetAmount: activeAdvert.budget_amount,
+          ...(activeAdvert.max_slots ? { maxSlots: activeAdvert.max_slots } : {}),
+        },
       });
 
       if (error) throw error;
