@@ -80,19 +80,31 @@ const COLORS = ["#10b981", "#ef4444", "#f59e0b", "#6366f1"];
 function AIReasonCell({ reason }: { reason: string | null }) {
   const [expanded, setExpanded] = useState(false);
   if (!reason) return <span className="text-muted-foreground">—</span>;
-  const firstLine = reason.split("\n")[0];
-  const hasMore = reason.includes("\n");
+  const lines = reason.split("\n").filter(l => l.trim() !== "");
+  const firstLine = lines[0] || "";
+  const hasMore = lines.length > 1;
   return (
-    <div className="space-y-1">
-      <p className={`text-sm ${expanded ? "" : "line-clamp-2"} whitespace-pre-line leading-relaxed`}>
-        {expanded ? reason : firstLine}
-      </p>
+    <div className="space-y-1.5">
+      {expanded ? (
+        <div className="whitespace-pre-line text-sm leading-relaxed space-y-1 bg-muted/50 rounded-lg p-3 border border-border">
+          {lines.map((line, i) => {
+            const isHeader = line.startsWith("✅") || line.startsWith("❌") || line.startsWith("📊") || line.startsWith("💡") || line.startsWith("🔄");
+            return (
+              <p key={i} className={isHeader ? "font-semibold text-foreground" : "text-muted-foreground"}>
+                {line}
+              </p>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="text-sm text-foreground font-medium">{firstLine}</p>
+      )}
       {hasMore && (
         <button
           onClick={() => setExpanded(!expanded)}
-          className="text-xs text-primary hover:underline focus:outline-none"
+          className="text-xs font-medium text-primary hover:underline focus:outline-none"
         >
-          {expanded ? "Show less" : "View full reasoning →"}
+          {expanded ? "▲ Collapse" : "▼ View full reasoning"}
         </button>
       )}
     </div>
@@ -394,7 +406,7 @@ export default function CommissionerDashboard() {
           <TableHead>Fraud Risk</TableHead>
           {showAmount && <TableHead>Amount</TableHead>}
           <TableHead>Status</TableHead>
-          <TableHead className="max-w-sm">AI Decision Reasoning</TableHead>
+          <TableHead className="min-w-[320px]">AI Decision Reasoning</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -433,7 +445,7 @@ export default function CommissionerDashboard() {
                   <TableCell className="font-medium">KES {(app.allocated_amount || 0).toLocaleString()}</TableCell>
                 )}
                 <TableCell>{getStatusBadge(app.status, app.is_duplicate)}</TableCell>
-                <TableCell className="max-w-sm text-sm">
+                <TableCell className="min-w-[320px]">
                   <AIReasonCell reason={app.ai_decision_reason} />
                 </TableCell>
               </TableRow>
