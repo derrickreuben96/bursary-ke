@@ -799,8 +799,15 @@ export default function CommissionerDashboard() {
           <TabsContent value="rejected">
             <Card>
               <CardHeader>
-                <CardTitle>Non-Successful Applications</CardTitle>
-                <CardDescription>Applications rejected with AI reasoning</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Non-Successful Applications</CardTitle>
+                    <CardDescription>Applications rejected with AI reasoning</CardDescription>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => handleExportPDF("rejected")} disabled={rejectedApps.length === 0}>
+                    <FileDown className="h-4 w-4 mr-2" />Export PDF
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 {isLoading ? (
