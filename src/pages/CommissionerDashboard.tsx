@@ -823,11 +823,18 @@ export default function CommissionerDashboard() {
           <TabsContent value="archive">
             <Card>
               <CardHeader>
-                <CardTitle>Audit Archive</CardTitle>
-                <CardDescription>
-                  All processed applications are retained here for audit and future reference. 
-                  Data remains masked to ensure anonymity and prevent fraud.
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Audit Archive</CardTitle>
+                    <CardDescription>
+                      All processed applications are retained here for audit and future reference. 
+                      Data remains masked to ensure anonymity and prevent fraud.
+                    </CardDescription>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => handleExportPDF("all")} disabled={applications.length === 0}>
+                    <FileDown className="h-4 w-4 mr-2" />Export PDF
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 {isLoading ? (
