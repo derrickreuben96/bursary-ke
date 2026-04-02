@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { 
   GraduationCap, LogOut, CheckCircle2, XCircle, Clock, 
   Loader2, RefreshCw, AlertTriangle, BarChart3, Users, Banknote,
-  ShieldAlert, Star, History, Send, Play, Inbox, Archive
+  ShieldAlert, Star, History, Send, Play, Inbox, Archive, FileDown
 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 
