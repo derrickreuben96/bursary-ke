@@ -376,6 +376,69 @@ export default function CommissionerDashboard() {
     navigate("/");
   };
 
+  const handleExportPDF = (filter: "all" | "approved" | "rejected") => {
+    const appsToExport = filter === "approved" ? approvedApps 
+      : filter === "rejected" ? rejectedApps 
+      : applications;
+    
+    if (appsToExport.length === 0) {
+      toast({ title: "No Data", description: "No applications to export.", variant: "destructive" });
+      return;
+    }
+
+    // Build HTML for print-to-PDF
+    const rows = appsToExport.map((app, i) => {
+      const f = fairnessMap.get(app.id);
+      return `<tr>
+        <td>${i + 1}</td>
+        <td>${app.tracking_number}</td>
+        <td>${app.student_name_masked}</td>
+        <td>${app.student_type}</td>
+        <td>${app.parent_ward || app.parent_county}</td>
+        <td>${app.poverty_tier} (${app.poverty_score || 0}/100)</td>
+        <td>${f?.fraudRiskLevel || "low"}</td>
+        <td>KES ${(app.allocated_amount || 0).toLocaleString()}</td>
+        <td>${app.status}</td>
+        <td style="white-space:pre-line;max-width:300px;font-size:10px">${(app.ai_decision_reason || "—").replace(/</g, "&lt;")}</td>
+      </tr>`;
+    }).join("");
+
+    const filterLabel = filter === "all" ? "All Applications" : filter === "approved" ? "Approved Applications" : "Rejected Applications";
+    const html = `<!DOCTYPE html><html><head><title>Allocation Report</title>
+    <style>
+      body{font-family:Arial,sans-serif;margin:20px;font-size:12px}
+      h1{font-size:18px;margin-bottom:4px}
+      .meta{color:#666;margin-bottom:16px;font-size:11px}
+      table{width:100%;border-collapse:collapse;margin-top:8px}
+      th,td{border:1px solid #ccc;padding:6px 8px;text-align:left;vertical-align:top}
+      th{background:#f5f5f5;font-weight:600;font-size:11px}
+      td{font-size:10px}
+      .summary{display:flex;gap:24px;margin-bottom:12px}
+      .summary div{background:#f9f9f9;padding:8px 12px;border-radius:4px}
+      @media print{body{margin:10px}th{background:#eee!important;-webkit-print-color-adjust:exact}}
+    </style></head><body>
+    <h1>Bursary Allocation Report — ${filterLabel}</h1>
+    <p class="meta">Ward: ${assignedWard || "N/A"} | County: ${assignedCounty || "N/A"} | Generated: ${new Date().toLocaleDateString("en-KE", { day: "numeric", month: "long", year: "numeric" })}</p>
+    <div class="summary">
+      <div><strong>Total:</strong> ${appsToExport.length}</div>
+      <div><strong>Approved:</strong> ${appsToExport.filter(a => a.status === "approved").length}</div>
+      <div><strong>Rejected:</strong> ${appsToExport.filter(a => a.status === "rejected").length}</div>
+      <div><strong>Allocated:</strong> KES ${appsToExport.reduce((s, a) => s + (a.allocated_amount || 0), 0).toLocaleString()}</div>
+    </div>
+    <table><thead><tr>
+      <th>#</th><th>Tracking</th><th>Student</th><th>Type</th><th>Ward</th><th>Poverty</th><th>Fraud Risk</th><th>Amount</th><th>Status</th><th>AI Decision Reasoning</th>
+    </tr></thead><tbody>${rows}</tbody></table>
+    <p style="margin-top:16px;font-size:10px;color:#888">This report contains masked data. Compliant with the Kenya Data Protection Act, 2019.</p>
+    </body></html>`;
+
+    const printWindow = window.open("", "_blank");
+    if (printWindow) {
+      printWindow.document.write(html);
+      printWindow.document.close();
+      setTimeout(() => printWindow.print(), 500);
+    }
+  };
+
   const statusData = [
     { name: "Approved", value: stats.approved },
     { name: "Rejected", value: stats.rejected },
