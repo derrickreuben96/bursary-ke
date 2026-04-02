@@ -772,12 +772,17 @@ export default function CommissionerDashboard() {
                     <CardTitle>Approved Applications</CardTitle>
                     <CardDescription>Applications approved by AI allocation system</CardDescription>
                   </div>
-                  {hasUnreleasedApproved && (
-                    <Button onClick={handleReleaseToTreasury} disabled={isReleasing}>
-                      {isReleasing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
-                      Release to Treasury
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => handleExportPDF("approved")} disabled={approvedApps.length === 0}>
+                      <FileDown className="h-4 w-4 mr-2" />Export PDF
                     </Button>
-                  )}
+                    {hasUnreleasedApproved && (
+                      <Button onClick={handleReleaseToTreasury} disabled={isReleasing}>
+                        {isReleasing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
+                        Release to Treasury
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
