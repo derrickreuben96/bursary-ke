@@ -242,7 +242,7 @@ export default function TreasuryDashboard() {
               </div>
               <div className="flex gap-2 w-full md:w-auto">
                 {applications.some(a => a.status === "approved") && (
-                  <Button size="sm" onClick={handleMarkAllDisbursed} disabled={disbursingIds.size > 0}>
+                  <Button size="sm" onClick={() => setConfirmDialog({ open: true, mode: "bulk" })} disabled={disbursingIds.size > 0}>
                     {disbursingIds.size > 0 ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
                     Mark All Disbursed
                   </Button>
