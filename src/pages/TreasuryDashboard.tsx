@@ -257,15 +257,17 @@ export default function TreasuryDashboard() {
             ) : (
               <div className="overflow-x-auto">
                 <Table>
-                  <TableHeader>
+                   <TableHeader>
                     <TableRow>
                       <TableHead>Tracking #</TableHead>
                       <TableHead>Institution</TableHead>
                       <TableHead>Type</TableHead>
+                      <TableHead>Status</TableHead>
                       <TableHead>County</TableHead>
                       <TableHead className="text-right">Amount (KES)</TableHead>
                       <TableHead>eCitizen Ref</TableHead>
                       <TableHead>Date</TableHead>
+                      <TableHead>Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -274,6 +276,11 @@ export default function TreasuryDashboard() {
                         <TableCell className="font-mono font-medium">{app.tracking_number}</TableCell>
                         <TableCell>{app.institution_name}</TableCell>
                         <TableCell><Badge variant="secondary" className="capitalize">{app.student_type}</Badge></TableCell>
+                        <TableCell>
+                          <Badge variant={app.status === "disbursed" ? "default" : "outline"} className={app.status === "disbursed" ? "bg-emerald-600" : ""}>
+                            {app.status === "disbursed" ? "Disbursed" : "Approved"}
+                          </Badge>
+                        </TableCell>
                         <TableCell>{app.county}</TableCell>
                         <TableCell className="text-right font-medium">{(app.allocated_amount || 0).toLocaleString()}</TableCell>
                         <TableCell>
@@ -288,6 +295,27 @@ export default function TreasuryDashboard() {
                         </TableCell>
                         <TableCell className="text-muted-foreground">
                           {app.allocation_date ? new Date(app.allocation_date).toLocaleDateString() : "—"}
+                        </TableCell>
+                        <TableCell>
+                          {app.status === "approved" ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleMarkDisbursed(app)}
+                              disabled={disbursingIds.has(app.id)}
+                            >
+                              {disbursingIds.has(app.id) ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <>
+                                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                                  Disburse
+                                </>
+                              )}
+                            </Button>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">Done</span>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}
