@@ -94,6 +94,56 @@ export default function TreasuryDashboard() {
     toast({ title: "Copied", description: "eCitizen reference copied to clipboard" });
   };
 
+  const [disbursingIds, setDisbursingIds] = useState<Set<string>>(new Set());
+
+  const handleMarkDisbursed = async (app: ApprovedApplication) => {
+    setDisbursingIds(prev => new Set(prev).add(app.id));
+    try {
+      const { error } = await supabase
+        .from("bursary_applications")
+        .update({ status: "disbursed" as any })
+        .eq("id", app.id);
+
+      if (error) throw error;
+
+      toast({ title: "✅ Marked as Disbursed", description: `${app.tracking_number} has been marked as disbursed.` });
+      fetchApprovedApplications();
+    } catch (err) {
+      console.error("Disbursement error:", err);
+      toast({ title: "Error", description: "Failed to mark as disbursed", variant: "destructive" });
+    } finally {
+      setDisbursingIds(prev => {
+        const next = new Set(prev);
+        next.delete(app.id);
+        return next;
+      });
+    }
+  };
+
+  const handleMarkAllDisbursed = async () => {
+    const pendingApps = applications.filter(a => a.status === "approved");
+    if (pendingApps.length === 0) return;
+
+    const ids = pendingApps.map(a => a.id);
+    setDisbursingIds(new Set(ids));
+    try {
+      const { error } = await supabase
+        .from("bursary_applications")
+        .update({ status: "disbursed" as any })
+        .in("id", ids);
+
+      if (error) throw error;
+
+      toast({ title: "✅ All Marked as Disbursed", description: `${pendingApps.length} applications marked as disbursed.` });
+      fetchApprovedApplications();
+    } catch (err) {
+      console.error("Bulk disbursement error:", err);
+      toast({ title: "Error", description: "Failed to mark applications as disbursed", variant: "destructive" });
+    } finally {
+      setDisbursingIds(new Set());
+    }
+  };
+
   const filteredApplications = applications.filter(app =>
     app.tracking_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     app.institution_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
