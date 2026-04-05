@@ -22,6 +22,7 @@ interface ApprovedApplication {
   student_name_masked: string;
   institution_name: string;
   student_type: string;
+  status: string;
   allocated_amount: number;
   ecitizen_ref: string;
   county: string;
