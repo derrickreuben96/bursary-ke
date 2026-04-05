@@ -220,7 +220,7 @@ export default function TreasuryDashboard() {
           </div>
         </div>
 
-        <TreasurySummaryCards totalApproved={applications.length} totalAmount={totalAmount} />
+        <TreasurySummaryCards totalApproved={applications.length} totalAmount={totalAmount} disbursedCount={applications.filter(a => a.status === "disbursed").length} />
 
         <Card>
           <CardHeader>
