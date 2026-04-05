@@ -96,8 +96,9 @@ export default function TreasuryDashboard() {
   };
 
   const [disbursingIds, setDisbursingIds] = useState<Set<string>>(new Set());
+  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; mode: "single" | "bulk"; app?: ApprovedApplication }>({ open: false, mode: "single" });
 
-  const handleMarkDisbursed = async (app: ApprovedApplication) => {
+  const executeDisbursement = async (app: ApprovedApplication) => {
     setDisbursingIds(prev => new Set(prev).add(app.id));
     try {
       const { error } = await supabase
@@ -121,7 +122,7 @@ export default function TreasuryDashboard() {
     }
   };
 
-  const handleMarkAllDisbursed = async () => {
+  const executeBulkDisbursement = async () => {
     const pendingApps = applications.filter(a => a.status === "approved");
     if (pendingApps.length === 0) return;
 
@@ -142,6 +143,15 @@ export default function TreasuryDashboard() {
       toast({ title: "Error", description: "Failed to mark applications as disbursed", variant: "destructive" });
     } finally {
       setDisbursingIds(new Set());
+    }
+  };
+
+  const handleConfirmDisburse = () => {
+    setConfirmDialog(prev => ({ ...prev, open: false }));
+    if (confirmDialog.mode === "single" && confirmDialog.app) {
+      executeDisbursement(confirmDialog.app);
+    } else {
+      executeBulkDisbursement();
     }
   };
 
