@@ -230,6 +230,12 @@ export default function TreasuryDashboard() {
                 <CardDescription>Applications ready for fund disbursement via eCitizen</CardDescription>
               </div>
               <div className="flex gap-2 w-full md:w-auto">
+                {applications.some(a => a.status === "approved") && (
+                  <Button size="sm" onClick={handleMarkAllDisbursed} disabled={disbursingIds.size > 0}>
+                    {disbursingIds.size > 0 ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
+                    Mark All Disbursed
+                  </Button>
+                )}
                 <div className="relative flex-1 md:w-64">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input placeholder="Search applications..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
