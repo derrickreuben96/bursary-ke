@@ -343,6 +343,26 @@ export default function TreasuryDashboard() {
             All access is logged and audited. Student names are masked for privacy compliance.
           </p>
         </div>
+
+        <AlertDialog open={confirmDialog.open} onOpenChange={(open) => setConfirmDialog(prev => ({ ...prev, open }))}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirm Disbursement</AlertDialogTitle>
+              <AlertDialogDescription>
+                {confirmDialog.mode === "single" && confirmDialog.app
+                  ? `Are you sure you want to mark ${confirmDialog.app.tracking_number} (KES ${(confirmDialog.app.allocated_amount || 0).toLocaleString()}) as disbursed? This action cannot be undone.`
+                  : `Are you sure you want to mark all ${applications.filter(a => a.status === "approved").length} pending applications as disbursed? This action cannot be undone.`
+                }
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirmDisburse}>
+                Confirm Disbursement
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </main>
       <Footer />
     </div>
