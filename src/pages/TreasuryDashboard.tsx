@@ -4,6 +4,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -95,8 +96,9 @@ export default function TreasuryDashboard() {
   };
 
   const [disbursingIds, setDisbursingIds] = useState<Set<string>>(new Set());
+  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; mode: "single" | "bulk"; app?: ApprovedApplication }>({ open: false, mode: "single" });
 
-  const handleMarkDisbursed = async (app: ApprovedApplication) => {
+  const executeDisbursement = async (app: ApprovedApplication) => {
     setDisbursingIds(prev => new Set(prev).add(app.id));
     try {
       const { error } = await supabase
@@ -120,7 +122,7 @@ export default function TreasuryDashboard() {
     }
   };
 
-  const handleMarkAllDisbursed = async () => {
+  const executeBulkDisbursement = async () => {
     const pendingApps = applications.filter(a => a.status === "approved");
     if (pendingApps.length === 0) return;
 
@@ -141,6 +143,15 @@ export default function TreasuryDashboard() {
       toast({ title: "Error", description: "Failed to mark applications as disbursed", variant: "destructive" });
     } finally {
       setDisbursingIds(new Set());
+    }
+  };
+
+  const handleConfirmDisburse = () => {
+    setConfirmDialog(prev => ({ ...prev, open: false }));
+    if (confirmDialog.mode === "single" && confirmDialog.app) {
+      executeDisbursement(confirmDialog.app);
+    } else {
+      executeBulkDisbursement();
     }
   };
 
@@ -231,7 +242,7 @@ export default function TreasuryDashboard() {
               </div>
               <div className="flex gap-2 w-full md:w-auto">
                 {applications.some(a => a.status === "approved") && (
-                  <Button size="sm" onClick={handleMarkAllDisbursed} disabled={disbursingIds.size > 0}>
+                  <Button size="sm" onClick={() => setConfirmDialog({ open: true, mode: "bulk" })} disabled={disbursingIds.size > 0}>
                     {disbursingIds.size > 0 ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
                     Mark All Disbursed
                   </Button>
@@ -301,7 +312,7 @@ export default function TreasuryDashboard() {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => handleMarkDisbursed(app)}
+                              onClick={() => setConfirmDialog({ open: true, mode: "single", app })}
                               disabled={disbursingIds.has(app.id)}
                             >
                               {disbursingIds.has(app.id) ? (
@@ -332,6 +343,26 @@ export default function TreasuryDashboard() {
             All access is logged and audited. Student names are masked for privacy compliance.
           </p>
         </div>
+
+        <AlertDialog open={confirmDialog.open} onOpenChange={(open) => setConfirmDialog(prev => ({ ...prev, open }))}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirm Disbursement</AlertDialogTitle>
+              <AlertDialogDescription>
+                {confirmDialog.mode === "single" && confirmDialog.app
+                  ? `Are you sure you want to mark ${confirmDialog.app.tracking_number} (KES ${(confirmDialog.app.allocated_amount || 0).toLocaleString()}) as disbursed? This action cannot be undone.`
+                  : `Are you sure you want to mark all ${applications.filter(a => a.status === "approved").length} pending applications as disbursed? This action cannot be undone.`
+                }
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirmDisburse}>
+                Confirm Disbursement
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </main>
       <Footer />
     </div>
