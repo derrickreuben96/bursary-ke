@@ -12,7 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Landmark, LogOut, Search, Download, 
-  Loader2, RefreshCw, Copy, FileText
+  Loader2, RefreshCw, Copy, FileText, CheckCircle2
 } from "lucide-react";
 import { TreasurySummaryCards } from "@/components/treasury/TreasurySummaryCards";
 
@@ -22,6 +22,7 @@ interface ApprovedApplication {
   student_name_masked: string;
   institution_name: string;
   student_type: string;
+  status: string;
   allocated_amount: number;
   ecitizen_ref: string;
   county: string;
@@ -91,6 +92,56 @@ export default function TreasuryDashboard() {
   const copyEcitizenRef = (ref: string) => {
     navigator.clipboard.writeText(ref);
     toast({ title: "Copied", description: "eCitizen reference copied to clipboard" });
+  };
+
+  const [disbursingIds, setDisbursingIds] = useState<Set<string>>(new Set());
+
+  const handleMarkDisbursed = async (app: ApprovedApplication) => {
+    setDisbursingIds(prev => new Set(prev).add(app.id));
+    try {
+      const { error } = await supabase
+        .from("bursary_applications")
+        .update({ status: "disbursed" as any })
+        .eq("id", app.id);
+
+      if (error) throw error;
+
+      toast({ title: "✅ Marked as Disbursed", description: `${app.tracking_number} has been marked as disbursed.` });
+      fetchApprovedApplications();
+    } catch (err) {
+      console.error("Disbursement error:", err);
+      toast({ title: "Error", description: "Failed to mark as disbursed", variant: "destructive" });
+    } finally {
+      setDisbursingIds(prev => {
+        const next = new Set(prev);
+        next.delete(app.id);
+        return next;
+      });
+    }
+  };
+
+  const handleMarkAllDisbursed = async () => {
+    const pendingApps = applications.filter(a => a.status === "approved");
+    if (pendingApps.length === 0) return;
+
+    const ids = pendingApps.map(a => a.id);
+    setDisbursingIds(new Set(ids));
+    try {
+      const { error } = await supabase
+        .from("bursary_applications")
+        .update({ status: "disbursed" as any })
+        .in("id", ids);
+
+      if (error) throw error;
+
+      toast({ title: "✅ All Marked as Disbursed", description: `${pendingApps.length} applications marked as disbursed.` });
+      fetchApprovedApplications();
+    } catch (err) {
+      console.error("Bulk disbursement error:", err);
+      toast({ title: "Error", description: "Failed to mark applications as disbursed", variant: "destructive" });
+    } finally {
+      setDisbursingIds(new Set());
+    }
   };
 
   const filteredApplications = applications.filter(app =>
@@ -169,7 +220,7 @@ export default function TreasuryDashboard() {
           </div>
         </div>
 
-        <TreasurySummaryCards totalApproved={applications.length} totalAmount={totalAmount} />
+        <TreasurySummaryCards totalApproved={applications.length} totalAmount={totalAmount} disbursedCount={applications.filter(a => a.status === "disbursed").length} />
 
         <Card>
           <CardHeader>
@@ -179,6 +230,12 @@ export default function TreasuryDashboard() {
                 <CardDescription>Applications ready for fund disbursement via eCitizen</CardDescription>
               </div>
               <div className="flex gap-2 w-full md:w-auto">
+                {applications.some(a => a.status === "approved") && (
+                  <Button size="sm" onClick={handleMarkAllDisbursed} disabled={disbursingIds.size > 0}>
+                    {disbursingIds.size > 0 ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
+                    Mark All Disbursed
+                  </Button>
+                )}
                 <div className="relative flex-1 md:w-64">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input placeholder="Search applications..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
@@ -200,15 +257,17 @@ export default function TreasuryDashboard() {
             ) : (
               <div className="overflow-x-auto">
                 <Table>
-                  <TableHeader>
+                   <TableHeader>
                     <TableRow>
                       <TableHead>Tracking #</TableHead>
                       <TableHead>Institution</TableHead>
                       <TableHead>Type</TableHead>
+                      <TableHead>Status</TableHead>
                       <TableHead>County</TableHead>
                       <TableHead className="text-right">Amount (KES)</TableHead>
                       <TableHead>eCitizen Ref</TableHead>
                       <TableHead>Date</TableHead>
+                      <TableHead>Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -217,6 +276,11 @@ export default function TreasuryDashboard() {
                         <TableCell className="font-mono font-medium">{app.tracking_number}</TableCell>
                         <TableCell>{app.institution_name}</TableCell>
                         <TableCell><Badge variant="secondary" className="capitalize">{app.student_type}</Badge></TableCell>
+                        <TableCell>
+                          <Badge variant={app.status === "disbursed" ? "default" : "outline"} className={app.status === "disbursed" ? "bg-emerald-600" : ""}>
+                            {app.status === "disbursed" ? "Disbursed" : "Approved"}
+                          </Badge>
+                        </TableCell>
                         <TableCell>{app.county}</TableCell>
                         <TableCell className="text-right font-medium">{(app.allocated_amount || 0).toLocaleString()}</TableCell>
                         <TableCell>
@@ -231,6 +295,27 @@ export default function TreasuryDashboard() {
                         </TableCell>
                         <TableCell className="text-muted-foreground">
                           {app.allocation_date ? new Date(app.allocation_date).toLocaleDateString() : "—"}
+                        </TableCell>
+                        <TableCell>
+                          {app.status === "approved" ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleMarkDisbursed(app)}
+                              disabled={disbursingIds.has(app.id)}
+                            >
+                              {disbursingIds.has(app.id) ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <>
+                                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                                  Disburse
+                                </>
+                              )}
+                            </Button>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">Done</span>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}
