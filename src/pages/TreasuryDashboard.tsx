@@ -312,7 +312,7 @@ export default function TreasuryDashboard() {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => handleMarkDisbursed(app)}
+                              onClick={() => setConfirmDialog({ open: true, mode: "single", app })}
                               disabled={disbursingIds.has(app.id)}
                             >
                               {disbursingIds.has(app.id) ? (
