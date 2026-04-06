@@ -98,6 +98,16 @@ export default function TreasuryDashboard() {
   const [disbursingIds, setDisbursingIds] = useState<Set<string>>(new Set());
   const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; mode: "single" | "bulk"; app?: ApprovedApplication }>({ open: false, mode: "single" });
 
+  const sendDisbursementNotifications = async () => {
+    try {
+      await supabase.functions.invoke("send-sms-notifications", {
+        body: { trigger: "disbursement" },
+      });
+    } catch (err) {
+      console.error("Disbursement notification error:", err);
+    }
+  };
+
   const executeDisbursement = async (app: ApprovedApplication) => {
     setDisbursingIds(prev => new Set(prev).add(app.id));
     try {
@@ -109,6 +119,7 @@ export default function TreasuryDashboard() {
       if (error) throw error;
 
       toast({ title: "✅ Marked as Disbursed", description: `${app.tracking_number} has been marked as disbursed.` });
+      sendDisbursementNotifications();
       fetchApprovedApplications();
     } catch (err) {
       console.error("Disbursement error:", err);
@@ -137,6 +148,7 @@ export default function TreasuryDashboard() {
       if (error) throw error;
 
       toast({ title: "✅ All Marked as Disbursed", description: `${pendingApps.length} applications marked as disbursed.` });
+      sendDisbursementNotifications();
       fetchApprovedApplications();
     } catch (err) {
       console.error("Bulk disbursement error:", err);
