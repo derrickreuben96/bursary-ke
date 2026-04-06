@@ -148,6 +148,7 @@ export default function TreasuryDashboard() {
       if (error) throw error;
 
       toast({ title: "✅ All Marked as Disbursed", description: `${pendingApps.length} applications marked as disbursed.` });
+      sendDisbursementNotifications();
       fetchApprovedApplications();
     } catch (err) {
       console.error("Bulk disbursement error:", err);
