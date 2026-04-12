@@ -142,14 +142,16 @@ export default function TreasuryDashboard() {
     const ids = pendingApps.map(a => a.id);
     setDisbursingIds(new Set(ids));
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("bursary_applications")
         .update({ status: "disbursed" as any })
-        .in("id", ids);
+        .in("id", ids)
+        .select();
 
       if (error) throw error;
+      if (!data || data.length === 0) throw new Error("Update was blocked by access policy. Please try logging in again.");
 
-      toast({ title: "✅ All Marked as Disbursed", description: `${pendingApps.length} applications marked as disbursed.` });
+      toast({ title: "✅ All Marked as Disbursed", description: `${data.length} applications marked as disbursed.` });
       sendDisbursementNotifications();
       fetchApprovedApplications();
     } catch (err) {
