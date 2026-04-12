@@ -8,10 +8,11 @@ import { faqItems } from "@/lib/mockData";
 import { HelpCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/lib/i18n";
 
 export function FAQSection() {
-  // Show only first 5 FAQs on homepage
   const displayedFaqs = faqItems.slice(0, 5);
+  const { t } = useI18n();
 
   return (
     <section className="py-16 bg-background">
@@ -23,10 +24,10 @@ export function FAQSection() {
             </div>
           </div>
           <h2 className="text-3xl font-bold text-foreground mb-3">
-            Frequently Asked Questions
+            {t("faq.title")}
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Find answers to common questions about the bursary application process
+            {t("faq.subtitle")}
           </p>
         </div>
 
@@ -50,7 +51,7 @@ export function FAQSection() {
 
           <div className="text-center mt-8">
             <Button asChild variant="outline" size="lg">
-              <Link to="/faq">View All FAQs</Link>
+              <Link to="/faq">{t("faq.view_all")}</Link>
             </Button>
           </div>
         </div>

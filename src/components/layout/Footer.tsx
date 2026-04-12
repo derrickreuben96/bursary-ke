@@ -1,8 +1,10 @@
 import { Link } from "react-router-dom";
 import { GraduationCap, Mail, Phone, MapPin, Facebook, Twitter } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
+  const { t } = useI18n();
 
   return (
     <footer className="bg-foreground text-background">
@@ -17,37 +19,37 @@ export function Footer() {
               <span className="text-xl font-bold">Bursary-KE</span>
             </Link>
             <p className="text-sm text-background/70">
-              Empowering Kenyan students through transparent, accessible, and fair bursary distribution.
+              {t("footer.tagline")}
             </p>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h3 className="font-semibold mb-4">Quick Links</h3>
+            <h3 className="font-semibold mb-4">{t("footer.quick_links")}</h3>
             <ul className="space-y-2 text-sm text-background/70">
               <li>
                 <Link to="/" className="hover:text-background transition-colors">
-                  Home
+                  {t("nav.home")}
                 </Link>
               </li>
               <li>
                 <Link to="/apply/secondary" className="hover:text-background transition-colors">
-                  Apply (Secondary)
+                  {t("nav.apply_secondary")}
                 </Link>
               </li>
               <li>
                 <Link to="/apply/university" className="hover:text-background transition-colors">
-                  Apply (University)
+                  {t("nav.apply_university")}
                 </Link>
               </li>
               <li>
                 <Link to="/track" className="hover:text-background transition-colors">
-                  Track Application
+                  {t("nav.track")}
                 </Link>
               </li>
               <li>
                 <Link to="/faq" className="hover:text-background transition-colors">
-                  FAQ
+                  {t("nav.faq")}
                 </Link>
               </li>
             </ul>
@@ -55,7 +57,7 @@ export function Footer() {
 
           {/* Contact */}
           <div>
-            <h3 className="font-semibold mb-4">Contact Us</h3>
+            <h3 className="font-semibold mb-4">{t("footer.contact_us")}</h3>
             <ul className="space-y-3 text-sm text-background/70">
               <li className="flex items-center gap-2">
                 <Phone className="h-4 w-4" />
@@ -78,26 +80,26 @@ export function Footer() {
 
           {/* Legal & Social */}
           <div>
-            <h3 className="font-semibold mb-4">Legal</h3>
+            <h3 className="font-semibold mb-4">{t("footer.legal")}</h3>
             <ul className="space-y-2 text-sm text-background/70 mb-6">
               <li>
                 <a href="https://www.odpc.go.ke/dpa-act/" target="_blank" rel="noopener noreferrer" className="hover:text-background transition-colors">
-                  Privacy Policy
+                  {t("footer.privacy")}
                 </a>
               </li>
               <li>
                 <a href="http://kenyalaw.org/kl/fileadmin/pdfdownloads/Acts/ComputerMisuseandCybercrimesAct_No5of2018.pdf" target="_blank" rel="noopener noreferrer" className="hover:text-background transition-colors">
-                  Terms of Service
+                  {t("footer.terms")}
                 </a>
               </li>
               <li>
                 <a href="https://www.odpc.go.ke/dpa-act/" target="_blank" rel="noopener noreferrer" className="hover:text-background transition-colors">
-                  Data Protection
+                  {t("footer.data_protection")}
                 </a>
               </li>
             </ul>
 
-            <h3 className="font-semibold mb-3">Follow Us</h3>
+            <h3 className="font-semibold mb-3">{t("footer.follow_us")}</h3>
             <div className="flex gap-3">
               <a
                 href="https://facebook.com"
@@ -121,26 +123,17 @@ export function Footer() {
           </div>
         </div>
 
-        {/* Bottom Bar */}
         {/* Compliance Disclaimer */}
         <div className="mt-10 p-4 rounded-lg bg-background/5 border border-background/10 text-xs text-background/60 leading-relaxed">
           <p>
-            This platform complies with the{" "}
-            <a href="https://www.odpc.go.ke/dpa-act/" target="_blank" rel="noopener noreferrer" className="underline hover:text-background transition-colors">
-              Kenya Data Protection Act, 2019
-            </a>
-            . All personal data collected is processed lawfully, used solely for bursary administration, and protected in accordance with the principles set out by the{" "}
-            <a href="https://www.odpc.go.ke" target="_blank" rel="noopener noreferrer" className="underline hover:text-background transition-colors">
-              Office of the Data Protection Commissioner (ODPC)
-            </a>
-            . By using this platform, you consent to the collection and processing of your data for the purposes stated herein.
+            {t("footer.compliance")}
           </p>
         </div>
 
         {/* Bottom Bar */}
         <div className="mt-6 pt-6 border-t border-background/10 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-background/60">
-          <p>© {currentYear} Bursary-KE. All rights reserved.</p>
-          <p>A Government of Kenya Initiative</p>
+          <p>© {currentYear} Bursary-KE. {t("footer.rights")}</p>
+          <p>{t("footer.gov_initiative")}</p>
         </div>
       </div>
     </footer>

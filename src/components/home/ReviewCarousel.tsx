@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Star, Quote } from "lucide-react";
 import { beneficiaryReviews } from "@/lib/mockData";
 import { getRelativeTime } from "@/lib/formatters";
+import { useI18n } from "@/lib/i18n";
 
 export function ReviewCarousel() {
+  const { t } = useI18n();
   const [emblaRef, emblaApi] = useEmblaCarousel({
     loop: true,
     align: "start",
@@ -32,7 +34,6 @@ export function ReviewCarousel() {
     emblaApi.on("select", onSelect);
     emblaApi.on("reInit", onSelect);
 
-    // Auto-play
     const autoPlay = setInterval(() => {
       emblaApi.scrollNext();
     }, 5000);
@@ -48,15 +49,14 @@ export function ReviewCarousel() {
       <div className="container">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold text-foreground mb-3">
-            What Beneficiaries Say
+            {t("reviews.title")}
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Real stories from students and parents who have benefited from Bursary-KE
+            {t("reviews.subtitle")}
           </p>
         </div>
 
         <div className="relative">
-          {/* Carousel */}
           <div className="overflow-hidden" ref={emblaRef}>
             <div className="flex gap-6">
               {beneficiaryReviews.map((review) => (
@@ -66,17 +66,12 @@ export function ReviewCarousel() {
                 >
                   <Card className="h-full p-6 shadow-soft hover:shadow-card transition-shadow">
                     <div className="flex flex-col h-full">
-                      {/* Quote icon */}
                       <div className="mb-4">
                         <Quote className="h-8 w-8 text-primary/30" />
                       </div>
-
-                      {/* Review text */}
                       <p className="text-foreground flex-1 leading-relaxed">
                         "{review.message}"
                       </p>
-
-                      {/* Rating */}
                       <div className="flex gap-1 my-4">
                         {Array.from({ length: 5 }).map((_, i) => (
                           <Star
@@ -89,8 +84,6 @@ export function ReviewCarousel() {
                           />
                         ))}
                       </div>
-
-                      {/* Author */}
                       <div className="border-t border-border pt-4">
                         <p className="font-semibold text-foreground">{review.name}</p>
                         <p className="text-sm text-muted-foreground">
@@ -104,7 +97,6 @@ export function ReviewCarousel() {
             </div>
           </div>
 
-          {/* Navigation Buttons */}
           <Button
             variant="outline"
             size="icon"
@@ -126,7 +118,6 @@ export function ReviewCarousel() {
             <ChevronRight className="h-5 w-5" />
           </Button>
 
-          {/* Dots */}
           <div className="flex justify-center gap-2 mt-6">
             {beneficiaryReviews.map((_, index) => (
               <button

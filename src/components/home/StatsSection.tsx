@@ -2,7 +2,8 @@ import { useEffect, useState, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { TrendingUp, Users, Award, Sparkles } from "lucide-react";
 import { platformStats } from "@/lib/mockData";
-import { formatKES, formatNumber, formatPercentage } from "@/lib/formatters";
+import { formatNumber } from "@/lib/formatters";
+import { useI18n } from "@/lib/i18n";
 
 interface StatCardProps {
   icon: React.ReactNode;
@@ -91,7 +92,6 @@ function StatCard({ icon, label, value, formatter, suffix, subtext, delay, color
         </div>
       </div>
       
-      {/* Progress bar animation on hover */}
       <div className="mt-4 h-1 bg-secondary rounded-full overflow-hidden">
         <div 
           className={`h-full bg-gradient-kenya transition-all duration-700 ${isHovered ? "w-full" : "w-0"}`}
@@ -102,43 +102,45 @@ function StatCard({ icon, label, value, formatter, suffix, subtext, delay, color
 }
 
 export function StatsSection() {
+  const { t } = useI18n();
+
   return (
     <section className="py-16 bg-secondary/30">
       <div className="container">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-foreground mb-3">Making a Difference</h2>
+          <h2 className="text-3xl font-bold text-foreground mb-3">{t("stats.title")}</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Real impact numbers from our bursary program across Kenya
+            {t("stats.subtitle")}
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <StatCard
             icon={<TrendingUp className="h-6 w-6 text-white" />}
-            label="Total Amount Distributed"
+            label={t("stats.total_distributed")}
             value={platformStats.totalDistributed}
             formatter={(val) => `KES ${(val / 1000000).toFixed(1)}M`}
-            subtext="Since program inception"
+            subtext={t("stats.since_inception")}
             delay={0}
             color="bg-primary"
           />
           <StatCard
             icon={<Users className="h-6 w-6 text-white" />}
-            label="Students Supported"
+            label={t("stats.students_supported")}
             value={platformStats.totalBeneficiaries}
             formatter={formatNumber}
             suffix="+"
-            subtext="Across all 47 counties"
+            subtext={t("stats.across_counties")}
             delay={150}
             color="bg-accent"
           />
           <StatCard
             icon={<Award className="h-6 w-6 text-foreground" />}
-            label="Success Rate"
+            label={t("stats.success_rate")}
             value={platformStats.successRate * 100}
             formatter={(val) => val.toFixed(0)}
             suffix="%"
-            subtext="Beneficiary satisfaction"
+            subtext={t("stats.satisfaction")}
             delay={300}
             color="bg-yellow-400"
           />
