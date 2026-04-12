@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
+import { useI18n } from "@/lib/i18n";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { wardsByCounty } from "@/lib/kenyanWards";
 import { CountdownTimer } from "./CountdownTimer";
@@ -51,6 +52,7 @@ export function BursarySlider() {
   const [current, setCurrent] = useState(0);
   const [filterCounty, setFilterCounty] = useState<string>("");
   const [filterWard, setFilterWard] = useState<string>("");
+  const { t } = useI18n();
   
   const autoplayPlugin = useRef(
     Autoplay({
@@ -157,13 +159,13 @@ export function BursarySlider() {
           <div className="text-center mb-10">
             <Badge className="mb-4 bg-primary text-primary-foreground shadow-lg animate-fade-in">
               <GraduationCap className="h-3 w-3 mr-1" />
-              Bursary Programs
+              {t("bursary.programs_badge")}
             </Badge>
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-3">
-              County Bursary Programs
+              {t("bursary.county_programs")}
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto mb-6">
-              No active bursary programs at the moment. Subscribe to get notified when new opportunities open.
+              {t("bursary.no_active")}
             </p>
           </div>
           
@@ -175,10 +177,10 @@ export function BursarySlider() {
               </div>
               <div className="space-y-2">
                 <h3 className="text-xl font-semibold text-foreground">
-                  Stay Informed
+                  {t("bursary.stay_informed")}
                 </h3>
                 <p className="text-muted-foreground max-w-md mx-auto">
-                  Subscribe to receive instant notifications when new bursary opportunities become available in your county.
+                  {t("bursary.subscribe_desc")}
                 </p>
               </div>
               <SubscribeNotifications />
@@ -186,7 +188,7 @@ export function BursarySlider() {
                 <Button asChild variant="outline">
                   <Link to="/bursaries">
                     <ExternalLink className="h-4 w-4 mr-2" />
-                    View Past Bursaries
+                    {t("bursary.view_past")}
                   </Link>
                 </Button>
               </div>
@@ -204,13 +206,13 @@ export function BursarySlider() {
         <div className="text-center mb-10">
           <Badge className="mb-4 bg-primary text-primary-foreground shadow-lg animate-fade-in">
             <GraduationCap className="h-3 w-3 mr-1" />
-            Open Applications
+            {t("bursary.open_apps")}
           </Badge>
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-3">
-            County Bursary Programs
+            {t("bursary.county_programs")}
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto mb-4">
-            Don't miss out! Apply now for active bursary opportunities in your county.
+            {t("bursary.dont_miss")}
           </p>
           {/* Subscribe Button */}
           <SubscribeNotifications />
@@ -221,11 +223,11 @@ export function BursarySlider() {
           <div className="flex flex-col sm:flex-row items-center gap-3 bg-card border border-border rounded-xl p-4 shadow-md">
             <div className="flex items-center gap-2 text-muted-foreground shrink-0">
               <Search className="h-5 w-5 text-primary" />
-              <span className="font-medium text-sm text-foreground">Quick Search:</span>
+              <span className="font-medium text-sm text-foreground">{t("bursary.quick_search")}</span>
             </div>
             <Select value={filterCounty} onValueChange={(val) => { setFilterCounty(val); setFilterWard(""); }}>
               <SelectTrigger className="w-full sm:w-[200px]">
-                <SelectValue placeholder="Select County" />
+                <SelectValue placeholder={t("bursary.select_county")} />
               </SelectTrigger>
               <SelectContent>
                 {availableCounties.map(county => (
@@ -235,7 +237,7 @@ export function BursarySlider() {
             </Select>
             <Select value={filterWard} onValueChange={setFilterWard} disabled={!filterCounty}>
               <SelectTrigger className="w-full sm:w-[200px]">
-                <SelectValue placeholder="Select Ward" />
+                <SelectValue placeholder={t("bursary.select_ward")} />
               </SelectTrigger>
               <SelectContent>
                 {availableWards.map(ward => (
@@ -246,14 +248,14 @@ export function BursarySlider() {
             {(filterCounty || filterWard) && (
               <Button variant="ghost" size="sm" onClick={handleClearFilters} className="shrink-0">
                 <X className="h-4 w-4 mr-1" />
-                Clear
+                {t("bursary.clear")}
               </Button>
             )}
           </div>
           {(filterCounty || filterWard) && (
             <p className="text-sm text-muted-foreground text-center mt-2">
-              Showing {filteredAdverts.length} result{filteredAdverts.length !== 1 ? 's' : ''}
-              {filterCounty && ` in ${filterCounty}`}
+              {t("bursary.showing")} {filteredAdverts.length} {filteredAdverts.length !== 1 ? t("bursary.results") : t("bursary.result")}
+              {filterCounty && ` ${t("bursary.in")} ${filterCounty}`}
               {filterWard && ` • ${filterWard}`}
             </p>
           )}
@@ -261,8 +263,8 @@ export function BursarySlider() {
 
         {filteredAdverts.length === 0 && (filterCounty || filterWard) ? (
           <div className="text-center py-12">
-            <p className="text-muted-foreground mb-3">No bursaries found for this selection.</p>
-            <Button variant="outline" onClick={handleClearFilters}>Clear Filters</Button>
+            <p className="text-muted-foreground mb-3">{t("bursary.no_results")}</p>
+            <Button variant="outline" onClick={handleClearFilters}>{t("bursary.clear_filters")}</Button>
           </div>
         ) : (
         <>
@@ -323,7 +325,7 @@ export function BursarySlider() {
                           <div className="inline-flex items-center gap-2 bg-secondary/50 px-4 py-2 rounded-full">
                             <Building2 className="h-4 w-4 text-primary" />
                             <span className="font-semibold text-foreground">
-                              Budget: KES {advert.budget_amount.toLocaleString()}
+                              {t("bursary.budget")}: KES {advert.budget_amount.toLocaleString()}
                             </span>
                           </div>
                         )}
@@ -335,13 +337,13 @@ export function BursarySlider() {
                         <div className="flex flex-wrap gap-3 pt-2">
                           <Button asChild size="lg" className="shadow-lg hover:scale-105 transition-transform">
                             <Link to={`/apply/secondary?advert=${advert.id}`}>
-                              Apply Now
+                              {t("bursary.apply_now")}
                             </Link>
                           </Button>
                           <Button asChild variant="outline" size="lg" className="hover:scale-105 transition-transform">
                             <Link to="/bursaries">
                               <ExternalLink className="h-4 w-4 mr-2" />
-                              View All
+                              {t("bursary.view_all")}
                             </Link>
                           </Button>
                         </div>
@@ -354,7 +356,7 @@ export function BursarySlider() {
                           <div className="space-y-3">
                             <h4 className="font-semibold flex items-center gap-2 text-foreground">
                               <FileText className="h-4 w-4 text-primary" />
-                              Required Documents
+                              {t("bursary.required_docs")}
                             </h4>
                             <ul className="space-y-2">
                               {advert.required_documents.slice(0, 6).map((doc, idx) => (
@@ -365,7 +367,7 @@ export function BursarySlider() {
                               ))}
                               {advert.required_documents.length > 6 && (
                                 <li className="text-sm text-primary font-medium">
-                                  +{advert.required_documents.length - 6} more documents...
+                                  +{advert.required_documents.length - 6} {t("bursary.more_docs")}
                                 </li>
                               )}
                             </ul>
@@ -377,7 +379,7 @@ export function BursarySlider() {
                           <div className="space-y-3">
                             <h4 className="font-semibold flex items-center gap-2 text-foreground">
                               <MapPin className="h-4 w-4 text-primary" />
-                              Assistance Centers
+                              {t("bursary.assistance_centers")}
                             </h4>
                             <div className="space-y-2">
                               {advert.venues.slice(0, 2).map((venue, idx) => (
@@ -398,7 +400,7 @@ export function BursarySlider() {
                         <div className="pt-2">
                           <p className="text-sm text-muted-foreground flex items-center gap-2">
                             <Bell className="h-4 w-4" />
-                            Want alerts for {advert.county}? 
+                            {t("bursary.want_alerts")} {advert.county}? 
                             <SubscribeNotifications variant="inline" />
                           </p>
                         </div>
