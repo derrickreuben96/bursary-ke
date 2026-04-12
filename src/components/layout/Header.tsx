@@ -3,15 +3,15 @@ import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, GraduationCap, Shield, Building2, UserCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { LanguageToggle } from "@/lib/i18n";
+import { LanguageToggle, useI18n } from "@/lib/i18n";
 
 const navLinks = [
-  { href: "/", label: "Home" },
-  { href: "/bursaries", label: "Browse Bursaries" },
-  { href: "/apply/secondary", label: "Apply (Secondary)" },
-  { href: "/apply/university", label: "Apply (University)" },
-  { href: "/track", label: "Track Application" },
-  { href: "/faq", label: "FAQ" },
+  { href: "/", labelKey: "nav.home" },
+  { href: "/bursaries", labelKey: "nav.browse" },
+  { href: "/apply/secondary", labelKey: "nav.apply_secondary" },
+  { href: "/apply/university", labelKey: "nav.apply_university" },
+  { href: "/track", labelKey: "nav.track" },
+  { href: "/faq", labelKey: "nav.faq" },
 ];
 
 const portalLinks = [
@@ -23,6 +23,7 @@ const portalLinks = [
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const { t } = useI18n();
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -51,7 +52,7 @@ export function Header() {
                   : "text-muted-foreground hover:text-foreground hover:bg-secondary"
               )}
             >
-              {link.label}
+              {t(link.labelKey)}
             </Link>
           ))}
           
@@ -112,11 +113,11 @@ export function Header() {
                     : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                 )}
               >
-                {link.label}
+                {t(link.labelKey)}
               </Link>
             ))}
             <div className="border-t border-border pt-2 mt-2">
-              <p className="px-4 py-1 text-xs font-semibold text-muted-foreground uppercase">Portals</p>
+              <p className="px-4 py-1 text-xs font-semibold text-muted-foreground uppercase">{t("nav.portals")}</p>
               {portalLinks.map((portal) => {
                 const Icon = portal.icon;
                 const isActive = location.pathname.startsWith(portal.href.replace("/login", ""));
@@ -133,7 +134,7 @@ export function Header() {
                     )}
                   >
                     <Icon className="h-4 w-4" />
-                    {portal.label} Portal
+                    {portal.label} {t("nav.portal")}
                   </Link>
                 );
               })}

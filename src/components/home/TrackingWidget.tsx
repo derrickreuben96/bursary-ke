@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Search, AlertCircle, CheckCircle2, Clock, Loader2 } from "lucide-react";
 import { isValidTrackingNumber } from "@/lib/maskData";
 import { sampleTrackingData } from "@/lib/mockData";
+import { useI18n } from "@/lib/i18n";
 
 export function TrackingWidget() {
   const [trackingNumber, setTrackingNumber] = useState("");
@@ -17,6 +18,7 @@ export function TrackingWidget() {
     stage?: string;
   } | null>(null);
   const navigate = useNavigate();
+  const { t } = useI18n();
 
   const handleTrack = async () => {
     setError("");
@@ -25,18 +27,16 @@ export function TrackingWidget() {
     const normalizedNumber = trackingNumber.toUpperCase().trim();
 
     if (!normalizedNumber) {
-      setError("Please enter a tracking number");
+      setError(t("tracking.error_empty"));
       return;
     }
 
     if (!isValidTrackingNumber(normalizedNumber)) {
-      setError("Invalid format. Use BKE-XXXXXX (e.g., BKE-ABC123)");
+      setError(t("tracking.error_format"));
       return;
     }
 
     setIsLoading(true);
-
-    // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
     const data = sampleTrackingData[normalizedNumber];
@@ -65,17 +65,17 @@ export function TrackingWidget() {
         <Card className="max-w-2xl mx-auto p-8 shadow-card">
           <div className="text-center mb-6">
             <h2 className="text-2xl font-bold text-foreground mb-2">
-              Track Your Application
+              {t("tracking.title")}
             </h2>
             <p className="text-muted-foreground">
-              Enter your tracking number to check your application status
+              {t("tracking.subtitle")}
             </p>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex-1">
               <Input
-                placeholder="Enter tracking number (e.g., BKE-ABC123)"
+                placeholder={t("tracking.placeholder")}
                 value={trackingNumber}
                 onChange={(e) => {
                   setTrackingNumber(e.target.value.toUpperCase());
@@ -96,13 +96,12 @@ export function TrackingWidget() {
               ) : (
                 <>
                   <Search className="h-5 w-5 mr-2" />
-                  Track
+                  {t("tracking.button")}
                 </>
               )}
             </Button>
           </div>
 
-          {/* Error message */}
           {error && (
             <div className="flex items-center gap-2 mt-4 text-destructive text-sm">
               <AlertCircle className="h-4 w-4" />
@@ -110,7 +109,6 @@ export function TrackingWidget() {
             </div>
           )}
 
-          {/* Result */}
           {result && (
             <div className="mt-6 p-4 rounded-lg bg-secondary/50 animate-fade-in">
               {result.found ? (
@@ -124,17 +122,17 @@ export function TrackingWidget() {
                   </div>
                   <div className="flex-1">
                     <p className="font-semibold text-foreground">
-                      Application Found
+                      {t("tracking.found")}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      Current Stage: <span className="font-medium">{result.stage}</span>
+                      {t("tracking.current_stage")}: <span className="font-medium">{result.stage}</span>
                     </p>
                     <Button
                       variant="link"
                       className="p-0 h-auto text-primary mt-1"
                       onClick={handleViewDetails}
                     >
-                      View full details →
+                      {t("tracking.view_details")}
                     </Button>
                   </div>
                 </div>
@@ -145,10 +143,10 @@ export function TrackingWidget() {
                   </div>
                   <div>
                     <p className="font-semibold text-foreground">
-                      Application Not Found
+                      {t("tracking.not_found")}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      Please check your tracking number and try again
+                      {t("tracking.not_found_hint")}
                     </p>
                   </div>
                 </div>
@@ -156,11 +154,10 @@ export function TrackingWidget() {
             </div>
           )}
 
-          {/* Help text */}
           <p className="text-center text-sm text-muted-foreground mt-6">
-            Lost your tracking number?{" "}
+            {t("tracking.lost_number")}{" "}
             <a href="/faq" className="text-primary hover:underline">
-              Contact support
+              {t("tracking.contact_support")}
             </a>
           </p>
         </Card>
