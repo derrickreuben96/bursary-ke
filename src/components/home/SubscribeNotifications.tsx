@@ -54,6 +54,7 @@ export function SubscribeNotifications({ variant = "button" }: SubscribeNotifica
   const [isSuccess, setIsSuccess] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { toast } = useToast();
+  const { t } = useI18n();
 
   const resetForm = () => {
     setCounty("");
@@ -140,12 +141,12 @@ export function SubscribeNotifications({ variant = "button" }: SubscribeNotifica
   const TriggerButton = variant === "inline" ? (
     <button className="inline-flex items-center gap-1 text-primary hover:underline font-medium">
       <Bell className="h-4 w-4" />
-      Get notified
+      {t("subscribe.get_notified")}
     </button>
   ) : (
     <Button variant="outline" size="lg" className="gap-2 hover:scale-105 transition-transform">
       <Bell className="h-4 w-4" />
-      Subscribe for Alerts
+      {t("subscribe.button")}
     </Button>
   );
 
