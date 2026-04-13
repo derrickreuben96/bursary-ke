@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { MapPin, Clock, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useCountdown } from "@/hooks/useCountdown";
+import { useI18n } from "@/lib/i18n";
 
 interface TickerAdvert {
   id: string;
