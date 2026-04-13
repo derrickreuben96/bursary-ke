@@ -12,10 +12,12 @@ import { Search, AlertCircle, Loader2, FileSearch, GraduationCap, School, Shield
 import { isValidTrackingNumber } from "@/lib/maskData";
 import { sampleTrackingData, type TrackingInfo } from "@/lib/mockData";
 import { supabase } from "@/integrations/supabase/client";
+import { useI18n } from "@/lib/i18n";
 
 export default function Track() {
   const [searchParams] = useSearchParams();
   const initialNumber = searchParams.get("number") || "";
+  const { t } = useI18n();
   
   const [trackingNumber, setTrackingNumber] = useState(initialNumber);
   const [verificationValue, setVerificationValue] = useState("");
@@ -35,24 +37,23 @@ export default function Track() {
     const normalizedNumber = trackingNumber.toUpperCase().trim();
 
     if (!normalizedNumber) {
-      setError("Please enter a tracking number");
+      setError(t("track.error_enter_tracking"));
       return;
     }
 
     if (!isValidTrackingNumber(normalizedNumber)) {
-      setError("Invalid format. Use BKE-XXXXXX (e.g., BKE-ABC123)");
+      setError(t("track.error_invalid_format"));
       return;
     }
 
     if (!verificationValue.trim()) {
-      setError(`Please enter your ${verificationType === "phone" ? "phone number" : "national ID"} for verification`);
+      setError(`${t(verificationType === "phone" ? "track.phone_number" : "track.national_id")} ${t("track.error_enter_verification")}`);
       return;
     }
 
     setIsLoading(true);
 
     try {
-      // Call the secure tracking edge function
       const { data: funcData, error: funcError } = await supabase.functions.invoke(
         "track-application",
         {
@@ -65,7 +66,6 @@ export default function Track() {
       );
 
       if (funcError) {
-        // For 404 "not found" responses, handle gracefully instead of throwing
         if (funcData && funcData.found === false) {
           setNotFound(true);
           setIsLoading(false);
@@ -76,7 +76,6 @@ export default function Track() {
       }
 
       if (funcData?.found) {
-        // Convert API result to TrackingInfo format
         setResult({
           trackingNumber: funcData.trackingNumber,
           studentType: funcData.studentType,
@@ -87,7 +86,6 @@ export default function Track() {
           })),
         });
       } else {
-        // Check sample data for demo
         const sampleData = sampleTrackingData[normalizedNumber];
         if (sampleData) {
           setResult(sampleData);
@@ -97,7 +95,6 @@ export default function Track() {
       }
     } catch (err) {
       console.error("Tracking lookup error:", err);
-      // Fallback to sample data for demo
       const sampleData = sampleTrackingData[trackingNumber.toUpperCase().trim()];
       if (sampleData) {
         setResult(sampleData);
@@ -123,24 +120,23 @@ export default function Track() {
               </div>
             </div>
             <h1 className="text-3xl font-bold text-foreground mb-2">
-              Track Your Application
+              {t("track.page_title")}
             </h1>
             <p className="text-muted-foreground">
-              Enter your tracking number and verification details to see your bursary application status
+              {t("track.page_subtitle")}
             </p>
           </div>
 
           {/* Search Card */}
           <Card className="p-6 mb-8 shadow-card">
             <div className="space-y-4">
-              {/* Tracking Number Input */}
               <div>
                 <Label htmlFor="tracking" className="text-sm font-medium mb-2 block">
-                  Tracking Number
+                  {t("track.tracking_number")}
                 </Label>
                 <Input
                   id="tracking"
-                  placeholder="Enter tracking number (e.g., BKE-ABC123)"
+                  placeholder={t("tracking.placeholder")}
                   value={trackingNumber}
                   onChange={(e) => {
                     setTrackingNumber(e.target.value.toUpperCase());
@@ -155,10 +151,10 @@ export default function Track() {
               <div className="p-4 bg-secondary/50 rounded-lg border">
                 <div className="flex items-center gap-2 mb-3">
                   <Shield className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-medium">Verification Required</span>
+                  <span className="text-sm font-medium">{t("track.verification_required")}</span>
                 </div>
                 <p className="text-xs text-muted-foreground mb-4">
-                  For security, please verify your identity using the phone number or national ID used during application.
+                  {t("track.verification_desc")}
                 </p>
 
                 <RadioGroup
@@ -168,16 +164,16 @@ export default function Track() {
                 >
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="phone" id="phone" />
-                    <Label htmlFor="phone" className="text-sm cursor-pointer">Phone Number</Label>
+                    <Label htmlFor="phone" className="text-sm cursor-pointer">{t("track.phone_number")}</Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="national_id" id="national_id" />
-                    <Label htmlFor="national_id" className="text-sm cursor-pointer">National ID</Label>
+                    <Label htmlFor="national_id" className="text-sm cursor-pointer">{t("track.national_id")}</Label>
                   </div>
                 </RadioGroup>
 
                 <Input
-                  placeholder={verificationType === "phone" ? "Enter phone (e.g., 0712345678)" : "Enter National ID"}
+                  placeholder={verificationType === "phone" ? t("track.enter_phone") : t("track.enter_national_id")}
                   value={verificationValue}
                   onChange={(e) => {
                     setVerificationValue(e.target.value);
@@ -187,7 +183,6 @@ export default function Track() {
                 />
               </div>
 
-              {/* Track Button */}
               <Button
                 onClick={handleTrack}
                 disabled={isLoading}
@@ -198,7 +193,7 @@ export default function Track() {
                 ) : (
                   <>
                     <Search className="h-5 w-5 mr-2" />
-                    Track Application
+                    {t("track.track_button")}
                   </>
                 )}
               </Button>
@@ -220,15 +215,14 @@ export default function Track() {
                   <AlertCircle className="h-8 w-8 text-destructive" />
                 </div>
               </div>
-              <h2 className="text-xl font-semibold mb-2">Application Not Found</h2>
+              <h2 className="text-xl font-semibold mb-2">{t("track.not_found_title")}</h2>
               <p className="text-muted-foreground mb-4">
-                We couldn't find an application matching your tracking number and verification details.
+                {t("track.not_found_desc")}
               </p>
               <p className="text-sm text-muted-foreground">
-                Please verify your tracking number and ensure you're using the same phone number or national ID 
-                that was provided during application. If you believe this is an error,{" "}
+                {t("track.not_found_hint")}{" "}
                 <a href="/faq" className="text-primary hover:underline">
-                  contact support
+                  {t("track.contact_support")}
                 </a>.
               </p>
             </Card>
@@ -237,7 +231,6 @@ export default function Track() {
           {/* Result */}
           {result && (
             <div className="space-y-6 animate-fade-in">
-              {/* Application Info Card */}
               <Card className="p-6 shadow-card">
                 <div className="flex items-start gap-4 mb-6">
                   <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
@@ -249,10 +242,10 @@ export default function Track() {
                   </div>
                   <div>
                     <h2 className="text-xl font-semibold text-foreground">
-                      Application Details
+                      {t("track.application_details")}
                     </h2>
                     <p className="text-muted-foreground">
-                      Tracking Number:{" "}
+                      {t("track.tracking_number")}:{" "}
                       <span className="font-mono font-semibold text-foreground">
                         {result.trackingNumber}
                       </span>
@@ -262,11 +255,13 @@ export default function Track() {
 
                 <div className="grid grid-cols-2 gap-4 p-4 bg-secondary/50 rounded-lg">
                   <div>
-                    <p className="text-sm text-muted-foreground">Application Type</p>
-                    <p className="font-medium capitalize">{result.studentType} Student</p>
+                    <p className="text-sm text-muted-foreground">{t("track.application_type")}</p>
+                    <p className="font-medium">
+                      {result.studentType === "secondary" ? t("track.secondary_student") : t("track.university_student")}
+                    </p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Current Stage</p>
+                    <p className="text-sm text-muted-foreground">{t("track.current_stage")}</p>
                     <p className="font-medium text-primary">
                       {result.stages[result.currentStage - 1]?.name}
                     </p>
@@ -274,20 +269,18 @@ export default function Track() {
                 </div>
               </Card>
 
-              {/* Timeline Card */}
               <Card className="p-6 shadow-card">
-                <h3 className="text-lg font-semibold mb-6">Application Progress</h3>
+                <h3 className="text-lg font-semibold mb-6">{t("track.progress")}</h3>
                 <ProgressTimeline stages={result.stages} currentStage={result.currentStage} />
               </Card>
 
-              {/* Help Text */}
               <div className="text-center text-sm text-muted-foreground">
                 <p>
-                  Need help with your application?{" "}
+                  {t("track.need_help")}{" "}
                   <a href="/faq" className="text-primary hover:underline">
-                    Visit our FAQ
+                    {t("track.visit_faq")}
                   </a>{" "}
-                  or contact support at{" "}
+                  {t("track.or_contact")}{" "}
                   <a href="mailto:support@bursary-ke.go.ke" className="text-primary hover:underline">
                     support@bursary-ke.go.ke
                   </a>
@@ -299,9 +292,9 @@ export default function Track() {
           {/* Demo Help */}
           {!result && !notFound && (
             <Card className="p-6 bg-primary/5 border-primary/20">
-              <h3 className="font-semibold text-foreground mb-2">Demo Tracking Numbers</h3>
+              <h3 className="font-semibold text-foreground mb-2">{t("track.demo_title")}</h3>
               <p className="text-sm text-muted-foreground mb-3">
-                Try these sample tracking numbers to see the tracking system in action:
+                {t("track.demo_desc")}
               </p>
               <div className="flex flex-wrap gap-2">
                 <Button

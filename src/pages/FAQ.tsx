@@ -9,15 +9,17 @@ import {
 } from "@/components/ui/accordion";
 import { Input } from "@/components/ui/input";
 import { faqItems } from "@/lib/mockData";
-import { HelpCircle, Search, MessageCircle, Phone, Mail, Sparkles } from "lucide-react";
+import { HelpCircle, Search, Sparkles, Phone, Mail } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { AIChatWidget } from "@/components/chat/AIChatWidget";
+import { useI18n } from "@/lib/i18n";
 
 export default function FAQ() {
   const [showAIChat, setShowAIChat] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const { t } = useI18n();
 
   const filteredFaqs = faqItems.filter(
     (faq) =>
@@ -37,10 +39,9 @@ export default function FAQ() {
                 <HelpCircle className="h-8 w-8" />
               </div>
             </div>
-            <h1 className="text-4xl font-bold mb-4">Frequently Asked Questions</h1>
+            <h1 className="text-4xl font-bold mb-4">{t("faq.title")}</h1>
             <p className="text-white/80 max-w-2xl mx-auto text-lg">
-              Find answers to common questions about the Bursary-KE application process, 
-              eligibility, and fund distribution.
+              {t("faq.page_subtitle")}
             </p>
           </div>
         </section>
@@ -53,7 +54,7 @@ export default function FAQ() {
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
                   type="text"
-                  placeholder="Search questions..."
+                  placeholder={t("faq.search_placeholder")}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-12 h-14 text-lg border-2 focus:border-primary"
@@ -61,7 +62,7 @@ export default function FAQ() {
               </div>
               {searchQuery && (
                 <p className="text-sm text-muted-foreground mt-2 text-center">
-                  Found {filteredFaqs.length} result{filteredFaqs.length !== 1 ? "s" : ""} for "{searchQuery}"
+                  {t("faq.found")} {filteredFaqs.length} {filteredFaqs.length !== 1 ? t("bursary.results") : t("bursary.result")} {t("faq.results_for")} "{searchQuery}"
                 </p>
               )}
             </div>
@@ -97,16 +98,16 @@ export default function FAQ() {
               ) : (
                 <div className="text-center py-12">
                   <HelpCircle className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-foreground mb-2">No results found</h3>
+                  <h3 className="text-xl font-semibold text-foreground mb-2">{t("faq.no_results")}</h3>
                   <p className="text-muted-foreground">
-                    Try adjusting your search terms or browse all questions below.
+                    {t("faq.no_results_hint")}
                   </p>
                   <Button
                     variant="outline"
                     className="mt-4"
                     onClick={() => setSearchQuery("")}
                   >
-                    Clear Search
+                    {t("faq.clear_search")}
                   </Button>
                 </div>
               )}
@@ -118,9 +119,9 @@ export default function FAQ() {
         <section className="py-16 bg-secondary/30">
           <div className="container">
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-foreground mb-3">Still Have Questions?</h2>
+              <h2 className="text-3xl font-bold text-foreground mb-3">{t("faq.still_questions")}</h2>
               <p className="text-muted-foreground max-w-xl mx-auto">
-                Can't find what you're looking for? Our support team is here to help.
+                {t("faq.still_questions_desc")}
               </p>
             </div>
 
@@ -132,11 +133,11 @@ export default function FAQ() {
                       <Sparkles className="h-6 w-6 text-primary" />
                     </div>
                   </div>
-                  <CardTitle className="text-lg">AI Assistant</CardTitle>
+                  <CardTitle className="text-lg">{t("faq.ai_assistant")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Get instant answers powered by AI
+                    {t("faq.ai_instant")}
                   </p>
                   <Button 
                     variant="default" 
@@ -145,7 +146,7 @@ export default function FAQ() {
                     onClick={() => setShowAIChat(true)}
                   >
                     <Sparkles className="h-4 w-4 mr-2" />
-                    Ask AI
+                    {t("faq.ask_ai")}
                   </Button>
                 </CardContent>
               </Card>
@@ -157,11 +158,11 @@ export default function FAQ() {
                       <Phone className="h-6 w-6 text-primary" />
                     </div>
                   </div>
-                  <CardTitle className="text-lg">Call Us</CardTitle>
+                  <CardTitle className="text-lg">{t("faq.call_us")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Mon-Fri 8:00 AM - 5:00 PM EAT
+                    {t("faq.call_hours")}
                   </p>
                   <Button variant="outline" size="sm" className="hover:scale-105 transition-transform">
                     +254 800 123 456
@@ -176,11 +177,11 @@ export default function FAQ() {
                       <Mail className="h-6 w-6 text-primary" />
                     </div>
                   </div>
-                  <CardTitle className="text-lg">Email Us</CardTitle>
+                  <CardTitle className="text-lg">{t("faq.email_us")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground mb-4">
-                    We'll respond within 24 hours
+                    {t("faq.email_response")}
                   </p>
                   <Button variant="outline" size="sm" className="hover:scale-105 transition-transform">
                     support@bursary.ke
@@ -194,16 +195,16 @@ export default function FAQ() {
         {/* CTA Section */}
         <section className="py-16 bg-background">
           <div className="container text-center">
-            <h2 className="text-2xl font-bold text-foreground mb-4">Ready to Apply?</h2>
+            <h2 className="text-2xl font-bold text-foreground mb-4">{t("faq.ready_apply")}</h2>
             <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
-              Start your bursary application today and take the first step towards achieving your educational goals.
+              {t("faq.ready_apply_desc")}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button asChild size="lg" className="hover:scale-105 transition-transform">
-                <Link to="/apply/secondary">Apply for Secondary</Link>
+                <Link to="/apply/secondary">{t("faq.apply_secondary")}</Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="hover:scale-105 transition-transform">
-                <Link to="/apply/university">Apply for University</Link>
+                <Link to="/apply/university">{t("faq.apply_university")}</Link>
               </Button>
             </div>
           </div>
@@ -211,7 +212,6 @@ export default function FAQ() {
       </main>
       <Footer />
       
-      {/* AI Chat Widget */}
       {showAIChat && <AIChatWidget type="faq" title="Bursary AI Assistant" />}
     </div>
   );

@@ -14,8 +14,7 @@ import { FormAssistant } from "@/components/chat/FormAssistant";
 import { Button } from "@/components/ui/button";
 import { GraduationCap, Shield, Lock, ArrowLeft, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-
-const steps = ["Parent/Guardian", "Student Info", "Assessment", "Documents", "Review"];
+import { useI18n } from "@/lib/i18n";
 
 const DEFAULT_DOCS = [
   "National ID (Parent/Guardian)",
@@ -35,6 +34,9 @@ function ApplicationFormContent() {
   const [advertTitle, setAdvertTitle] = useState<string | null>(null);
   const [requiredDocs, setRequiredDocs] = useState<string[]>(DEFAULT_DOCS);
   const [uploadedDocs, setUploadedDocs] = useState<any[]>([]);
+  const { t } = useI18n();
+
+  const steps = [t("step.parent_guardian"), t("step.student_info"), t("step.assessment"), t("step.documents"), t("step.review")];
 
   useEffect(() => {
     if (advertId) {
@@ -71,24 +73,24 @@ function ApplicationFormContent() {
             </div>
           </div>
           <h1 className="text-3xl font-bold text-foreground mb-2">
-            Secondary School Bursary Application
+            {t("apply.secondary_title")}
           </h1>
           {advertTitle && (
             <p className="text-sm text-primary font-medium mb-1">
-              Applying to: {advertTitle}
+              {t("apply.applying_to")} {advertTitle}
             </p>
           )}
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Complete the form below to apply for educational funding. Your information is encrypted and protected.
+            {t("apply.form_desc")}
           </p>
           <div className="flex justify-center items-center gap-6 mt-4">
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <Shield className="h-4 w-4 text-primary" />
-              <span>Secure Form</span>
+              <span>{t("apply.secure_form")}</span>
             </div>
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <Lock className="h-4 w-4 text-primary" />
-              <span>Data Encrypted</span>
+              <span>{t("apply.data_encrypted")}</span>
             </div>
             <FormAssistant context="Secondary school bursary application form" />
           </div>
@@ -122,10 +124,10 @@ function ApplicationFormContent() {
               />
               <div className="flex justify-between">
                 <Button variant="outline" onClick={() => setCurrentStep(3)}>
-                  <ArrowLeft className="h-4 w-4 mr-2" />Back
+                  <ArrowLeft className="h-4 w-4 mr-2" />{t("apply.back")}
                 </Button>
                 <Button onClick={() => setCurrentStep(5)}>
-                  Continue to Review<ArrowRight className="h-4 w-4 ml-2" />
+                  {t("apply.continue_review")}<ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
               </div>
             </div>
