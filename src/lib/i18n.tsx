@@ -12,6 +12,7 @@ const translations: Record<string, Record<Language, string>> = {
   "nav.faq": { en: "FAQ", sw: "Maswali" },
   "nav.portals": { en: "Portals", sw: "Milango" },
   "nav.portal": { en: "Portal", sw: "Mlango" },
+  "header.tagline": { en: "Empowering Education", sw: "Kuwezesha Elimu" },
 
   // Hero
   "hero.badge": { en: "Government of Kenya Initiative", sw: "Mpango wa Serikali ya Kenya" },
@@ -86,10 +87,108 @@ const translations: Record<string, Record<Language, string>> = {
   "bursary.assistance_centers": { en: "Assistance Centers", sw: "Vituo vya Msaada" },
   "bursary.want_alerts": { en: "Want alerts for", sw: "Unataka arifa za" },
 
-  // FAQ
+  // Countdown Timer
+  "timer.time_remaining": { en: "Time Remaining", sw: "Muda Uliobaki" },
+  "timer.deadline_approaching": { en: "⏰ Deadline Approaching!", sw: "⏰ Muda Unakaribia!" },
+  "timer.closed": { en: "Application Closed", sw: "Maombi Yamefungwa" },
+  "timer.days": { en: "Days", sw: "Siku" },
+  "timer.hours": { en: "Hours", sw: "Masaa" },
+  "timer.mins": { en: "Mins", sw: "Dakika" },
+  "timer.secs": { en: "Secs", sw: "Sekunde" },
+
+  // Subscribe / Notifications
+  "subscribe.button": { en: "Subscribe for Alerts", sw: "Jiandikishe kwa Arifa" },
+  "subscribe.get_notified": { en: "Get notified", sw: "Pata arifa" },
+  "subscribe.dialog_title": { en: "Subscribe for Bursary Alerts", sw: "Jiandikishe kwa Arifa za Bursari" },
+  "subscribe.dialog_desc": { en: "Get notified via SMS or email when new bursary opportunities open in your county.", sw: "Pata arifa kupitia SMS au barua pepe fursa mpya za bursari zinapofunguka katika kaunti yako." },
+  "subscribe.select_county": { en: "Select Your County *", sw: "Chagua Kaunti Yako *" },
+  "subscribe.choose_county": { en: "Choose county...", sw: "Chagua kaunti..." },
+  "subscribe.phone_label": { en: "Phone Number (SMS alerts)", sw: "Nambari ya Simu (arifa za SMS)" },
+  "subscribe.email_label": { en: "Email Address", sw: "Anwani ya Barua Pepe" },
+  "subscribe.contact_required": { en: "* At least one contact method (phone or email) is required.", sw: "* Angalau njia moja ya mawasiliano (simu au barua pepe) inahitajika." },
+  "subscribe.subscribing": { en: "Subscribing...", sw: "Inajiandikisha..." },
+  "subscribe.success": { en: "You're now subscribed! We'll notify you when new bursaries open in", sw: "Umejiandikisha! Tutakuarifu bursari mpya zinapofunguka katika" },
+
+  // Bursary Ticker
+  "ticker.heading": { en: "Open Bursary Applications Across Kenya", sw: "Maombi ya Bursari Yaliyo Wazi Kenya" },
+  "ticker.counties_accepting": { en: "counties accepting applications", sw: "kaunti zinazopokea maombi" },
+
+  // FAQ Page
   "faq.title": { en: "Frequently Asked Questions", sw: "Maswali Yanayoulizwa Mara kwa Mara" },
   "faq.subtitle": { en: "Find answers to common questions about the bursary application process", sw: "Pata majibu ya maswali ya kawaida kuhusu mchakato wa maombi ya bursari" },
   "faq.view_all": { en: "View All FAQs", sw: "Tazama Maswali Yote" },
+  "faq.page_subtitle": { en: "Find answers to common questions about the Bursary-KE application process, eligibility, and fund distribution.", sw: "Pata majibu ya maswali ya kawaida kuhusu mchakato wa maombi ya Bursary-KE, vigezo, na usambazaji wa fedha." },
+  "faq.search_placeholder": { en: "Search questions...", sw: "Tafuta maswali..." },
+  "faq.found": { en: "Found", sw: "Imepatikana" },
+  "faq.results_for": { en: "for", sw: "kwa" },
+  "faq.no_results": { en: "No results found", sw: "Hakuna matokeo yaliyopatikana" },
+  "faq.no_results_hint": { en: "Try adjusting your search terms or browse all questions below.", sw: "Jaribu kubadilisha maneno ya utafutaji au tazama maswali yote hapa chini." },
+  "faq.clear_search": { en: "Clear Search", sw: "Futa Utafutaji" },
+  "faq.still_questions": { en: "Still Have Questions?", sw: "Bado Una Maswali?" },
+  "faq.still_questions_desc": { en: "Can't find what you're looking for? Our support team is here to help.", sw: "Hupati unachotafuta? Timu yetu ya msaada ipo hapa kukusaidia." },
+  "faq.ai_assistant": { en: "AI Assistant", sw: "Msaidizi wa AI" },
+  "faq.ai_instant": { en: "Get instant answers powered by AI", sw: "Pata majibu ya papo hapo kupitia AI" },
+  "faq.ask_ai": { en: "Ask AI", sw: "Uliza AI" },
+  "faq.call_us": { en: "Call Us", sw: "Tupigie" },
+  "faq.call_hours": { en: "Mon-Fri 8:00 AM - 5:00 PM EAT", sw: "Jumatatu-Ijumaa 8:00 asubuhi - 5:00 jioni EAT" },
+  "faq.email_us": { en: "Email Us", sw: "Tutumie Barua Pepe" },
+  "faq.email_response": { en: "We'll respond within 24 hours", sw: "Tutajibu ndani ya masaa 24" },
+  "faq.ready_apply": { en: "Ready to Apply?", sw: "Uko Tayari Kuomba?" },
+  "faq.ready_apply_desc": { en: "Start your bursary application today and take the first step towards achieving your educational goals.", sw: "Anza maombi yako ya bursari leo na uchukue hatua ya kwanza kuelekea kufikia malengo yako ya kielimu." },
+  "faq.apply_secondary": { en: "Apply for Secondary", sw: "Omba kwa Sekondari" },
+  "faq.apply_university": { en: "Apply for University", sw: "Omba kwa Chuo Kikuu" },
+
+  // Track Page
+  "track.page_title": { en: "Track Your Application", sw: "Fuatilia Maombi Yako" },
+  "track.page_subtitle": { en: "Enter your tracking number and verification details to see your bursary application status", sw: "Ingiza nambari yako ya ufuatiliaji na maelezo ya uthibitisho kuona hali ya maombi yako ya bursari" },
+  "track.tracking_number": { en: "Tracking Number", sw: "Nambari ya Ufuatiliaji" },
+  "track.verification_required": { en: "Verification Required", sw: "Uthibitisho Unahitajika" },
+  "track.verification_desc": { en: "For security, please verify your identity using the phone number or national ID used during application.", sw: "Kwa usalama, tafadhali thibitisha utambulisho wako kwa kutumia nambari ya simu au kitambulisho cha taifa ulichotumia wakati wa maombi." },
+  "track.phone_number": { en: "Phone Number", sw: "Nambari ya Simu" },
+  "track.national_id": { en: "National ID", sw: "Kitambulisho cha Taifa" },
+  "track.enter_phone": { en: "Enter phone (e.g., 0712345678)", sw: "Ingiza simu (mfano, 0712345678)" },
+  "track.enter_national_id": { en: "Enter National ID", sw: "Ingiza Kitambulisho cha Taifa" },
+  "track.track_button": { en: "Track Application", sw: "Fuatilia Maombi" },
+  "track.error_enter_tracking": { en: "Please enter a tracking number", sw: "Tafadhali ingiza nambari ya ufuatiliaji" },
+  "track.error_invalid_format": { en: "Invalid format. Use BKE-XXXXXX (e.g., BKE-ABC123)", sw: "Muundo batili. Tumia BKE-XXXXXX (mfano, BKE-ABC123)" },
+  "track.error_enter_verification": { en: "for verification", sw: "kwa uthibitisho" },
+  "track.not_found_title": { en: "Application Not Found", sw: "Maombi Hayajapatikana" },
+  "track.not_found_desc": { en: "We couldn't find an application matching your tracking number and verification details.", sw: "Hatukuweza kupata maombi yanayolingana na nambari yako ya ufuatiliaji na maelezo ya uthibitisho." },
+  "track.not_found_hint": { en: "Please verify your tracking number and ensure you're using the same phone number or national ID that was provided during application. If you believe this is an error,", sw: "Tafadhali thibitisha nambari yako ya ufuatiliaji na uhakikishe unatumia nambari ya simu au kitambulisho cha taifa kilichotolewa wakati wa maombi. Ikiwa unaamini hii ni kosa," },
+  "track.contact_support": { en: "contact support", sw: "wasiliana na msaada" },
+  "track.application_details": { en: "Application Details", sw: "Maelezo ya Maombi" },
+  "track.application_type": { en: "Application Type", sw: "Aina ya Maombi" },
+  "track.current_stage": { en: "Current Stage", sw: "Hatua ya Sasa" },
+  "track.secondary_student": { en: "Secondary Student", sw: "Mwanafunzi wa Sekondari" },
+  "track.university_student": { en: "University Student", sw: "Mwanafunzi wa Chuo Kikuu" },
+  "track.progress": { en: "Application Progress", sw: "Maendeleo ya Maombi" },
+  "track.need_help": { en: "Need help with your application?", sw: "Unahitaji msaada na maombi yako?" },
+  "track.visit_faq": { en: "Visit our FAQ", sw: "Tembelea Maswali Yetu" },
+  "track.or_contact": { en: "or contact support at", sw: "au wasiliana na msaada kwa" },
+  "track.demo_title": { en: "Demo Tracking Numbers", sw: "Nambari za Ufuatiliaji za Maonyesho" },
+  "track.demo_desc": { en: "Try these sample tracking numbers to see the tracking system in action:", sw: "Jaribu nambari hizi za ufuatiliaji kuona mfumo wa ufuatiliaji unavyofanya kazi:" },
+
+  // Application Forms
+  "apply.secondary_title": { en: "Secondary School Bursary Application", sw: "Maombi ya Bursari ya Shule ya Sekondari" },
+  "apply.university_title": { en: "University/College Bursary Application", sw: "Maombi ya Bursari ya Chuo Kikuu" },
+  "apply.university_subtitle": { en: "Apply for financial assistance for your higher education", sw: "Omba msaada wa kifedha kwa elimu yako ya juu" },
+  "apply.applying_to": { en: "Applying to:", sw: "Unaomba kwa:" },
+  "apply.secure_form": { en: "Secure Form", sw: "Fomu Salama" },
+  "apply.data_encrypted": { en: "Data Encrypted", sw: "Data Imesimbwa" },
+  "apply.form_desc": { en: "Complete the form below to apply for educational funding. Your information is encrypted and protected.", sw: "Jaza fomu hapa chini kuomba ufadhili wa elimu. Taarifa zako zimesimbwa na kulindwa." },
+  "apply.need_help": { en: "Need help?", sw: "Unahitaji msaada?" },
+  "apply.view_faq": { en: "View FAQ", sw: "Tazama Maswali" },
+  "apply.or_contact": { en: "or contact", sw: "au wasiliana" },
+  "apply.back": { en: "Back", sw: "Rudi" },
+  "apply.continue_review": { en: "Continue to Review", sw: "Endelea Kukagua" },
+
+  // Steps
+  "step.parent_info": { en: "Parent Info", sw: "Taarifa za Mzazi" },
+  "step.student_info": { en: "Student Info", sw: "Taarifa za Mwanafunzi" },
+  "step.assessment": { en: "Assessment", sw: "Tathmini" },
+  "step.documents": { en: "Documents", sw: "Nyaraka" },
+  "step.review": { en: "Review", sw: "Kagua" },
+  "step.parent_guardian": { en: "Parent/Guardian", sw: "Mzazi/Mlezi" },
 
   // Footer
   "footer.tagline": { en: "Empowering Kenyan students through transparent, accessible, and fair bursary distribution.", sw: "Kuwawezesha wanafunzi wa Kenya kupitia usambazaji wa bursari wenye uwazi, upatikanaji, na haki." },
@@ -107,7 +206,7 @@ const translations: Record<string, Record<Language, string>> = {
     sw: "Jukwaa hili linazingatia Sheria ya Ulinzi wa Data ya Kenya, 2019. Data zote za kibinafsi zinazokusanywa zinashughulikiwa kisheria, zinatumika tu kwa usimamizi wa bursari, na zinalindwa kulingana na kanuni zilizowekwa na Ofisi ya Kamishna wa Ulinzi wa Data (ODPC). Kwa kutumia jukwaa hili, unakubali ukusanyaji na usindikaji wa data yako kwa madhumuni yaliyoelezwa hapa.",
   },
 
-  // Application Form
+  // Form fields (kept from before)
   "form.parent_title": { en: "Parent/Guardian Information", sw: "Taarifa za Mzazi/Mlezi" },
   "form.student_title": { en: "Student Information", sw: "Taarifa za Mwanafunzi" },
   "form.assessment": { en: "Poverty Assessment", sw: "Tathmini ya Umaskini" },

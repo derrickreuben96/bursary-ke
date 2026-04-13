@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { MapPin, Clock, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useCountdown } from "@/hooks/useCountdown";
+import { useI18n } from "@/lib/i18n";
 
 interface TickerAdvert {
   id: string;
@@ -63,6 +64,7 @@ function TickerItem({ advert }: { advert: TickerAdvert }) {
 export function BursaryTicker() {
   const [adverts, setAdverts] = useState<TickerAdvert[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { t } = useI18n();
 
   useEffect(() => {
     const fetchAdverts = async () => {
@@ -100,10 +102,10 @@ export function BursaryTicker() {
             LIVE
           </Badge>
           <h3 className="text-sm font-semibold text-foreground">
-            Open Bursary Applications Across Kenya
+            {t("ticker.heading")}
           </h3>
           <span className="text-xs text-muted-foreground hidden sm:inline">
-            ({adverts.length} counties accepting applications)
+            ({adverts.length} {t("ticker.counties_accepting")})
           </span>
         </div>
       </div>

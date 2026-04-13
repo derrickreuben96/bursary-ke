@@ -35,7 +35,7 @@ export function Header() {
           </div>
           <div className="flex flex-col">
             <span className="text-xl font-bold text-foreground">Bursary-KE</span>
-            <span className="text-xs text-muted-foreground">Empowering Education</span>
+            <span className="text-xs text-muted-foreground">{t("header.tagline")}</span>
           </div>
         </Link>
 

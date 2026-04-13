@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useI18n } from "@/lib/i18n";
 import {
   Dialog,
   DialogContent,
@@ -53,6 +54,7 @@ export function SubscribeNotifications({ variant = "button" }: SubscribeNotifica
   const [isSuccess, setIsSuccess] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { toast } = useToast();
+  const { t } = useI18n();
 
   const resetForm = () => {
     setCounty("");
@@ -139,12 +141,12 @@ export function SubscribeNotifications({ variant = "button" }: SubscribeNotifica
   const TriggerButton = variant === "inline" ? (
     <button className="inline-flex items-center gap-1 text-primary hover:underline font-medium">
       <Bell className="h-4 w-4" />
-      Get notified
+      {t("subscribe.get_notified")}
     </button>
   ) : (
     <Button variant="outline" size="lg" className="gap-2 hover:scale-105 transition-transform">
       <Bell className="h-4 w-4" />
-      Subscribe for Alerts
+      {t("subscribe.button")}
     </Button>
   );
 
@@ -157,10 +159,10 @@ export function SubscribeNotifications({ variant = "button" }: SubscribeNotifica
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Bell className="h-5 w-5 text-primary" />
-            Subscribe for Bursary Alerts
+            {t("subscribe.dialog_title")}
           </DialogTitle>
           <DialogDescription>
-            Get notified via SMS or email when new bursary opportunities open in your county.
+            {t("subscribe.dialog_desc")}
           </DialogDescription>
         </DialogHeader>
 
@@ -170,17 +172,17 @@ export function SubscribeNotifications({ variant = "button" }: SubscribeNotifica
               <CheckCircle2 className="h-8 w-8 text-primary" />
             </div>
             <p className="text-center text-muted-foreground">
-              You're now subscribed! We'll notify you when new bursaries open in <strong>{county}</strong>.
+              {t("subscribe.success")} <strong>{county}</strong>.
             </p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* County Selection */}
             <div className="space-y-2">
-              <Label htmlFor="county">Select Your County *</Label>
+              <Label htmlFor="county">{t("subscribe.select_county")}</Label>
               <Select value={county} onValueChange={setCounty}>
                 <SelectTrigger id="county" className={errors.county ? "border-destructive" : ""}>
-                  <SelectValue placeholder="Choose county..." />
+                  <SelectValue placeholder={t("subscribe.choose_county")} />
                 </SelectTrigger>
                 <SelectContent className="max-h-60">
                   {KENYAN_COUNTIES.map((c) => (
@@ -193,7 +195,7 @@ export function SubscribeNotifications({ variant = "button" }: SubscribeNotifica
 
             {/* Phone */}
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number (SMS alerts)</Label>
+              <Label htmlFor="phone">{t("subscribe.phone_label")}</Label>
               <Input
                 id="phone"
                 type="tel"
@@ -207,7 +209,7 @@ export function SubscribeNotifications({ variant = "button" }: SubscribeNotifica
 
             {/* Email */}
             <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
+              <Label htmlFor="email">{t("subscribe.email_label")}</Label>
               <Input
                 id="email"
                 type="email"
@@ -224,19 +226,19 @@ export function SubscribeNotifications({ variant = "button" }: SubscribeNotifica
             )}
 
             <p className="text-xs text-muted-foreground">
-              * At least one contact method (phone or email) is required.
+              {t("subscribe.contact_required")}
             </p>
 
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Subscribing...
+                  {t("subscribe.subscribing")}
                 </>
               ) : (
                 <>
                   <Bell className="h-4 w-4 mr-2" />
-                  Subscribe for Alerts
+                  {t("subscribe.button")}
                 </>
               )}
             </Button>
