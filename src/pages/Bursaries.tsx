@@ -14,6 +14,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { format, differenceInDays } from "date-fns";
 import { Link } from "react-router-dom";
+import { useI18n } from "@/lib/i18n";
 import {
   MapPin,
   Calendar,
@@ -61,6 +62,7 @@ const DEADLINE_FILTERS = [
 ];
 
 export default function Bursaries() {
+  const { t } = useI18n();
   const [adverts, setAdverts] = useState<BursaryAdvert[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [countyFilter, setCountyFilter] = useState("All Counties");
@@ -164,17 +166,17 @@ export default function Bursaries() {
 
   const getUrgencyBadge = (daysRemaining: number) => {
     if (daysRemaining <= 3) {
-      return <Badge variant="destructive" className="animate-pulse">Urgent - {daysRemaining} days left</Badge>;
+      return <Badge variant="destructive" className="animate-pulse">{t("bursaries.urgent")} - {daysRemaining} {t("bursaries.days_left")}</Badge>;
     } else if (daysRemaining <= 7) {
-      return <Badge className="bg-destructive/80 hover:bg-destructive text-destructive-foreground">{daysRemaining} days left</Badge>;
+      return <Badge className="bg-destructive/80 hover:bg-destructive text-destructive-foreground">{daysRemaining} {t("bursaries.days_left")}</Badge>;
     } else if (daysRemaining <= 14) {
-      return <Badge className="bg-accent hover:bg-accent/80 text-accent-foreground">{daysRemaining} days left</Badge>;
+      return <Badge className="bg-accent hover:bg-accent/80 text-accent-foreground">{daysRemaining} {t("bursaries.days_left")}</Badge>;
     }
-    return <Badge variant="secondary">{daysRemaining} days left</Badge>;
+    return <Badge variant="secondary">{daysRemaining} {t("bursaries.days_left")}</Badge>;
   };
 
   const formatBudget = (amount: number | null) => {
-    if (!amount) return "Not specified";
+    if (!amount) return t("bursaries.not_specified");
     return new Intl.NumberFormat("en-KE", {
       style: "currency",
       currency: "KES",
@@ -195,10 +197,10 @@ export default function Bursaries() {
               </div>
               <div>
                 <h1 className="text-3xl md:text-4xl font-bold text-foreground">
-                  Available Bursaries
+                  {t("bursaries.title")}
                 </h1>
                 <p className="text-muted-foreground">
-                  Browse and apply for county bursary programs
+                  {t("bursaries.subtitle")}
                 </p>
               </div>
             </div>
@@ -211,14 +213,14 @@ export default function Bursaries() {
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Filter className="h-4 w-4" />
-                <span className="text-sm font-medium">Filters:</span>
+                <span className="text-sm font-medium">{t("bursaries.filters")}</span>
               </div>
               
               <div className="flex flex-wrap gap-3 flex-1">
                 <div className="relative w-full sm:w-[250px]">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search by title or description..."
+                    placeholder={t("bursaries.search_placeholder")}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-9 bg-background"
@@ -277,13 +279,13 @@ export default function Bursaries() {
                     className="text-muted-foreground hover:text-foreground"
                   >
                     <X className="h-4 w-4 mr-1" />
-                    Clear
+                    {t("bursaries.clear")}
                   </Button>
                 )}
               </div>
 
               <div className="ml-auto text-sm text-muted-foreground">
-                {filteredAdverts.length} bursary program{filteredAdverts.length !== 1 ? "s" : ""} found
+                {filteredAdverts.length} {filteredAdverts.length !== 1 ? t("bursaries.programs_found_plural") : t("bursaries.programs_found")} {t("bursaries.found")}
               </div>
             </div>
           </div>
@@ -315,16 +317,16 @@ export default function Bursaries() {
                     <AlertCircle className="h-8 w-8 text-muted-foreground" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold">No bursaries found</h3>
+                    <h3 className="text-lg font-semibold">{t("bursaries.no_found")}</h3>
                     <p className="text-muted-foreground mt-1">
                       {hasActiveFilters
-                        ? "Try adjusting your filters to see more results."
-                        : "There are no active bursary programs at the moment. Please check back later."}
+                        ? t("bursaries.adjust_filters")
+                        : t("bursaries.no_active")}
                     </p>
                   </div>
                   {hasActiveFilters && (
                     <Button variant="outline" onClick={clearFilters}>
-                      Clear Filters
+                      {t("bursaries.clear_filters")}
                     </Button>
                   )}
                 </div>
@@ -362,21 +364,21 @@ export default function Bursaries() {
                           <div className="flex items-center gap-2 text-muted-foreground">
                             <Calendar className="h-4 w-4 text-primary" />
                             <span>
-                              Deadline: {format(new Date(advert.deadline), "PPP")}
+                              {t("bursaries.deadline")} {format(new Date(advert.deadline), "PPP")}
                             </span>
                           </div>
 
                           <div className="flex items-center gap-2 text-muted-foreground">
                             <Wallet className="h-4 w-4 text-primary" />
-                            <span>Budget: {formatBudget(advert.budget_amount)}</span>
+                            <span>{t("bursaries.budget")} {formatBudget(advert.budget_amount)}</span>
                           </div>
 
                           {advert.venues.length > 0 && (
                             <div className="flex items-start gap-2 text-muted-foreground">
                               <Building2 className="h-4 w-4 text-primary mt-0.5" />
                               <span>
-                                {advert.venues.length} assistance center
-                                {advert.venues.length !== 1 ? "s" : ""}
+                                {advert.venues.length} {advert.venues.length !== 1 ? t("bursaries.assistance_centers") : t("bursaries.assistance_center")}
+                              </span>
                               </span>
                             </div>
                           )}
@@ -385,15 +387,15 @@ export default function Bursaries() {
                             <div className="flex items-start gap-2 text-muted-foreground">
                               <FileText className="h-4 w-4 text-primary mt-0.5" />
                               <span>
-                                {advert.required_documents.length} required document
-                                {advert.required_documents.length !== 1 ? "s" : ""}
+                                {advert.required_documents.length} {advert.required_documents.length !== 1 ? t("bursaries.required_docs") : t("bursaries.required_doc")}
+                              </span>
                               </span>
                             </div>
                           )}
                         </div>
 
                         <Button asChild className="w-full mt-4">
-                          <Link to="/apply/secondary">Apply Now</Link>
+                          <Link to="/apply/secondary">{t("bursaries.apply_now")}</Link>
                         </Button>
                       </CardContent>
                     </Card>
