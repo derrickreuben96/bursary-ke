@@ -379,7 +379,6 @@ export default function Bursaries() {
                               <span>
                                 {advert.venues.length} {advert.venues.length !== 1 ? t("bursaries.assistance_centers") : t("bursaries.assistance_center")}
                               </span>
-                              </span>
                             </div>
                           )}
 
