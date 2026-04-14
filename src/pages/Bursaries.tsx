@@ -388,7 +388,6 @@ export default function Bursaries() {
                               <span>
                                 {advert.required_documents.length} {advert.required_documents.length !== 1 ? t("bursaries.required_docs") : t("bursaries.required_doc")}
                               </span>
-                              </span>
                             </div>
                           )}
                         </div>
