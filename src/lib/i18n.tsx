@@ -224,6 +224,62 @@ const translations: Record<string, Record<Language, string>> = {
   "docs.fee_structure": { en: "Fee Structure", sw: "Muundo wa Ada" },
   "docs.transcripts": { en: "Academic Transcripts", sw: "Nakala za Kielimu" },
   "docs.max_size": { en: "Max 5MB per file. PDF, JPG, PNG accepted.", sw: "Upeo wa 5MB kwa faili. PDF, JPG, PNG zinakubalika." },
+
+  // Hero Ticker
+  "hero.county_label": { en: "County", sw: "Kaunti" },
+  "hero.days_hours_left": { en: "left", sw: "zimebaki" },
+
+  // BursaryAdverts component
+  "adverts.open_apps": { en: "Open Applications", sw: "Maombi Yaliyo Wazi" },
+  "adverts.county_programs": { en: "County Bursary Programs", sw: "Programu za Bursari za Kaunti" },
+  "adverts.browse_desc": { en: "Browse active bursary opportunities in your county. Apply online or visit our assistance centers.", sw: "Tazama fursa za bursari zinazoendelea katika kaunti yako. Omba mtandaoni au tembelea vituo vyetu vya msaada." },
+  "adverts.deadline": { en: "Application Deadline", sw: "Mwisho wa Maombi" },
+  "adverts.days_left": { en: "days left!", sw: "siku zimebaki!" },
+  "adverts.budget_label": { en: "Budget:", sw: "Bajeti:" },
+  "adverts.physical_centers": { en: "Physical Assistance Centers:", sw: "Vituo vya Msaada wa Ana kwa Ana:" },
+  "adverts.docs_required": { en: "Documents Required (In-Person):", sw: "Nyaraka Zinazohitajika (Ana kwa Ana):" },
+  "adverts.more": { en: "more...", sw: "zaidi..." },
+  "adverts.apply_now": { en: "Apply Now", sw: "Omba Sasa" },
+  "adverts.showing_count": { en: "active bursary programs. More counties coming soon.", sw: "programu za bursari zinazoendelea. Kaunti zaidi zinakuja hivi karibuni." },
+
+  // Bursaries page
+  "bursaries.title": { en: "Available Bursaries", sw: "Bursari Zinazopatikana" },
+  "bursaries.subtitle": { en: "Browse and apply for county bursary programs", sw: "Tazama na uombe programu za bursari za kaunti" },
+  "bursaries.filters": { en: "Filters:", sw: "Vichujio:" },
+  "bursaries.search_placeholder": { en: "Search by title or description...", sw: "Tafuta kwa kichwa au maelezo..." },
+  "bursaries.all_counties": { en: "All Counties", sw: "Kaunti Zote" },
+  "bursaries.all_wards": { en: "All Wards", sw: "Wadi Zote" },
+  "bursaries.all_deadlines": { en: "All Deadlines", sw: "Tarehe Zote za Mwisho" },
+  "bursaries.within_days": { en: "Within", sw: "Ndani ya" },
+  "bursaries.days": { en: "days", sw: "siku" },
+  "bursaries.within_months": { en: "Within 3 months", sw: "Ndani ya miezi 3" },
+  "bursaries.clear": { en: "Clear", sw: "Futa" },
+  "bursaries.clear_filters": { en: "Clear Filters", sw: "Futa Vichujio" },
+  "bursaries.programs_found": { en: "bursary program", sw: "programu ya bursari" },
+  "bursaries.programs_found_plural": { en: "bursary programs", sw: "programu za bursari" },
+  "bursaries.found": { en: "found", sw: "zimepatikana" },
+  "bursaries.no_found": { en: "No bursaries found", sw: "Hakuna bursari zilizopatikana" },
+  "bursaries.adjust_filters": { en: "Try adjusting your filters to see more results.", sw: "Jaribu kubadilisha vichujio vyako kuona matokeo zaidi." },
+  "bursaries.no_active": { en: "There are no active bursary programs at the moment. Please check back later.", sw: "Hakuna programu za bursari zinazoendelea kwa sasa. Tafadhali rudi baadaye." },
+  "bursaries.urgent": { en: "Urgent", sw: "Haraka" },
+  "bursaries.days_left": { en: "days left", sw: "siku zimebaki" },
+  "bursaries.deadline": { en: "Deadline:", sw: "Mwisho:" },
+  "bursaries.budget": { en: "Budget:", sw: "Bajeti:" },
+  "bursaries.not_specified": { en: "Not specified", sw: "Haijatajwa" },
+  "bursaries.assistance_center": { en: "assistance center", sw: "kituo cha msaada" },
+  "bursaries.assistance_centers": { en: "assistance centers", sw: "vituo vya msaada" },
+  "bursaries.required_doc": { en: "required document", sw: "nyaraka inayohitajika" },
+  "bursaries.required_docs": { en: "required documents", sw: "nyaraka zinazohitajika" },
+  "bursaries.apply_now": { en: "Apply Now", sw: "Omba Sasa" },
+
+  // Tracking stages
+  "stage.received": { en: "Application Received", sw: "Maombi Yamepokelewa" },
+  "stage.review": { en: "Under Review", sw: "Inakaguliwa" },
+  "stage.verification": { en: "Verification", sw: "Uthibitishaji" },
+  "stage.approved": { en: "Approved", sw: "Imeidhinishwa" },
+  "stage.approval_decision": { en: "Approval Decision", sw: "Uamuzi wa Idhini" },
+  "stage.rejected": { en: "Application Rejected", sw: "Maombi Yamekataliwa" },
+  "stage.disbursed": { en: "Funds Disbursed", sw: "Fedha Zimetolewa" },
 };
 
 interface I18nContextType {
