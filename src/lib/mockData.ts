@@ -17,45 +17,55 @@ export const beneficiaryReviews = [
   {
     id: 1,
     name: "M***a K.",
-    county: "Kiambu County",
-    message:
-      "This bursary helped me complete my Form 4 education. I am now pursuing a degree in Engineering. Thank you Bursary-KE!",
+    county: { en: "Kiambu County", sw: "Kaunti ya Kiambu" },
+    message: {
+      en: "This bursary helped me complete my Form 4 education. I am now pursuing a degree in Engineering. Thank you Bursary-KE!",
+      sw: "Bursari hii ilinisaidia kumaliza elimu yangu ya Kidato cha 4. Sasa ninasomea shahada ya Uhandisi. Asante Bursary-KE!",
+    },
     rating: 5,
     date: new Date("2025-12-15"),
   },
   {
     id: 2,
     name: "J***n O.",
-    county: "Kisumu County",
-    message:
-      "The application process was simple and transparent. Within weeks, my fees were paid directly to my school.",
+    county: { en: "Kisumu County", sw: "Kaunti ya Kisumu" },
+    message: {
+      en: "The application process was simple and transparent. Within weeks, my fees were paid directly to my school.",
+      sw: "Mchakato wa maombi ulikuwa rahisi na wa uwazi. Ndani ya wiki, ada yangu ililipwa moja kwa moja shuleni.",
+    },
     rating: 5,
     date: new Date("2025-11-28"),
   },
   {
     id: 3,
     name: "A***a W.",
-    county: "Mombasa County",
-    message:
-      "As a single mother, I couldn't afford university fees for my daughter. Bursary-KE made her dreams possible.",
+    county: { en: "Mombasa County", sw: "Kaunti ya Mombasa" },
+    message: {
+      en: "As a single mother, I couldn't afford university fees for my daughter. Bursary-KE made her dreams possible.",
+      sw: "Kama mama mzazi peke yangu, sikuweza kumudu ada ya chuo kikuu kwa binti yangu. Bursary-KE ilifanya ndoto zake ziwezekane.",
+    },
     rating: 5,
     date: new Date("2025-10-20"),
   },
   {
     id: 4,
     name: "P***r M.",
-    county: "Nakuru County",
-    message:
-      "Transparent tracking system let me know exactly where my application was. Funds were disbursed on time.",
+    county: { en: "Nakuru County", sw: "Kaunti ya Nakuru" },
+    message: {
+      en: "Transparent tracking system let me know exactly where my application was. Funds were disbursed on time.",
+      sw: "Mfumo wa ufuatiliaji wa uwazi ulinijulisha mahali maombi yangu yalikuwa. Fedha zilitolewa kwa wakati.",
+    },
     rating: 4,
     date: new Date("2025-09-14"),
   },
   {
     id: 5,
     name: "G***e N.",
-    county: "Nairobi County",
-    message:
-      "I applied for three of my children and all were approved. The poverty assessment was fair and accurate.",
+    county: { en: "Nairobi County", sw: "Kaunti ya Nairobi" },
+    message: {
+      en: "I applied for three of my children and all were approved. The poverty assessment was fair and accurate.",
+      sw: "Niliomba kwa watoto wangu watatu na wote walipitishwa. Tathmini ya umaskini ilikuwa ya haki na sahihi.",
+    },
     rating: 5,
     date: new Date("2025-08-30"),
   },
