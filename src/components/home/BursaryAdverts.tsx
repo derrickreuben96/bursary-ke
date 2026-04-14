@@ -147,7 +147,6 @@ export function BursaryAdverts() {
                             <AlertCircle className="h-3 w-3 mr-1" />
                             {daysRemaining} {t("adverts.days_left")}
                           </Badge>
-                          </Badge>
                         )}
                       </div>
                       <CardTitle className="text-lg leading-tight">
