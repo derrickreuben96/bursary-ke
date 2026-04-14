@@ -12,7 +12,7 @@ import { useI18n } from "@/lib/i18n";
 
 export function FAQSection() {
   const displayedFaqs = faqItems.slice(0, 5);
-  const { t } = useI18n();
+  const { t, language } = useI18n();
 
   return (
     <section className="py-16 bg-background">
@@ -40,10 +40,10 @@ export function FAQSection() {
                 className="border border-border rounded-lg px-6 data-[state=open]:shadow-soft transition-shadow"
               >
                 <AccordionTrigger className="text-left font-semibold hover:no-underline">
-                  {faq.question}
+                  {faq.question[language]}
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground leading-relaxed">
-                  {faq.answer}
+                  {faq.answer[language]}
                 </AccordionContent>
               </AccordionItem>
             ))}

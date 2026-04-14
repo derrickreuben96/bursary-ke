@@ -19,12 +19,12 @@ import { useI18n } from "@/lib/i18n";
 export default function FAQ() {
   const [showAIChat, setShowAIChat] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const { t } = useI18n();
+  const { t, language } = useI18n();
 
   const filteredFaqs = faqItems.filter(
     (faq) =>
-      faq.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      faq.answer.toLowerCase().includes(searchQuery.toLowerCase())
+      faq.question[language].toLowerCase().includes(searchQuery.toLowerCase()) ||
+      faq.answer[language].toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -86,11 +86,11 @@ export default function FAQ() {
                           <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-sm font-bold">
                             {index + 1}
                           </span>
-                          <span>{faq.question}</span>
+                          <span>{faq.question[language]}</span>
                         </span>
                       </AccordionTrigger>
                       <AccordionContent className="text-muted-foreground leading-relaxed pb-5 pl-9">
-                        {faq.answer}
+                        {faq.answer[language]}
                       </AccordionContent>
                     </AccordionItem>
                   ))}

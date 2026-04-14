@@ -8,7 +8,7 @@ import { getRelativeTime } from "@/lib/formatters";
 import { useI18n } from "@/lib/i18n";
 
 export function ReviewCarousel() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const [emblaRef, emblaApi] = useEmblaCarousel({
     loop: true,
     align: "start",
@@ -70,7 +70,7 @@ export function ReviewCarousel() {
                         <Quote className="h-8 w-8 text-primary/30" />
                       </div>
                       <p className="text-foreground flex-1 leading-relaxed">
-                        "{review.message}"
+                        "{review.message[language]}"
                       </p>
                       <div className="flex gap-1 my-4">
                         {Array.from({ length: 5 }).map((_, i) => (
@@ -87,7 +87,7 @@ export function ReviewCarousel() {
                       <div className="border-t border-border pt-4">
                         <p className="font-semibold text-foreground">{review.name}</p>
                         <p className="text-sm text-muted-foreground">
-                          {review.county} • {getRelativeTime(review.date)}
+                          {review.county[language]} • {getRelativeTime(review.date)}
                         </p>
                       </div>
                     </div>

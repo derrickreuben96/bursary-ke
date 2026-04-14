@@ -20,6 +20,7 @@ function TickerItem({ advert }: { advert: TickerAdvert }) {
   const { days, hours, isExpired } = useCountdown(advert.deadline);
   const emblem = getCountyEmblem(advert.county);
   const isUrgent = days <= 7;
+  const { t } = useI18n();
 
   if (isExpired) return null;
 
@@ -40,13 +41,13 @@ function TickerItem({ advert }: { advert: TickerAdvert }) {
       {/* Info */}
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">
-          {advert.county} County
+          {advert.county} {t("hero.county_label")}
         </p>
         <p className="text-xs text-muted-foreground truncate">{advert.title}</p>
         <div className="flex items-center gap-2 mt-0.5">
           <span className={`text-xs font-medium flex items-center gap-1 ${isUrgent ? 'text-destructive' : 'text-primary'}`}>
             <Clock className="h-3 w-3" />
-            {days}d {hours}h left
+            {days}d {hours}h {t("hero.days_hours_left")}
           </span>
           {advert.budget_amount && (
             <span className="text-xs text-muted-foreground">

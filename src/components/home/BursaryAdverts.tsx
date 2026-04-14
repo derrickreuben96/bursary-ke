@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
+import { useI18n } from "@/lib/i18n";
 import {
   Carousel,
   CarouselContent,
@@ -36,6 +37,7 @@ interface BursaryAdvert {
 }
 
 export function BursaryAdverts() {
+  const { t } = useI18n();
   const [adverts, setAdverts] = useState<BursaryAdvert[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -114,13 +116,13 @@ export function BursaryAdverts() {
       <div className="container">
         <div className="text-center mb-10">
           <Badge className="mb-4 bg-primary/10 text-primary border-primary/30">
-            Open Applications
+            {t("adverts.open_apps")}
           </Badge>
           <h2 className="text-3xl font-bold text-foreground mb-3">
-            County Bursary Programs
+            {t("adverts.county_programs")}
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Browse active bursary opportunities in your county. Apply online or visit our assistance centers.
+            {t("adverts.browse_desc")}
           </p>
         </div>
 
@@ -143,7 +145,7 @@ export function BursaryAdverts() {
                         {isUrgent && (
                           <Badge variant="destructive" className="animate-pulse">
                             <AlertCircle className="h-3 w-3 mr-1" />
-                            {daysRemaining} days left!
+                            {daysRemaining} {t("adverts.days_left")}
                           </Badge>
                         )}
                       </div>
@@ -162,7 +164,7 @@ export function BursaryAdverts() {
                       <div className="flex items-center gap-2 p-3 bg-destructive/10 rounded-lg">
                         <Calendar className="h-5 w-5 text-destructive" />
                         <div>
-                          <p className="text-xs text-muted-foreground">Application Deadline</p>
+                          <p className="text-xs text-muted-foreground">{t("adverts.deadline")}</p>
                           <p className="font-semibold text-destructive">
                             {formatDeadline(advert.deadline)}
                           </p>
@@ -173,7 +175,7 @@ export function BursaryAdverts() {
                       {advert.budget_amount && (
                         <div className="flex items-center gap-2 text-sm">
                           <Building2 className="h-4 w-4 text-muted-foreground" />
-                          <span>Budget: KES {advert.budget_amount.toLocaleString()}</span>
+                          <span>{t("adverts.budget_label")} KES {advert.budget_amount.toLocaleString()}</span>
                         </div>
                       )}
 
@@ -182,7 +184,7 @@ export function BursaryAdverts() {
                         <div className="space-y-2">
                           <p className="text-sm font-medium flex items-center gap-2">
                             <MapPin className="h-4 w-4" />
-                            Physical Assistance Centers:
+                            {t("adverts.physical_centers")}
                           </p>
                           <div className="space-y-2 pl-6">
                             {advert.venues.slice(0, 2).map((venue, idx) => (
@@ -204,7 +206,7 @@ export function BursaryAdverts() {
                         <div className="space-y-2">
                           <p className="text-sm font-medium flex items-center gap-2">
                             <FileText className="h-4 w-4" />
-                            Documents Required (In-Person):
+                            {t("adverts.docs_required")}
                           </p>
                           <ul className="text-xs text-muted-foreground space-y-1 pl-6">
                             {advert.required_documents.slice(0, 5).map((doc, idx) => (
@@ -215,7 +217,7 @@ export function BursaryAdverts() {
                             ))}
                             {advert.required_documents.length > 5 && (
                               <li className="text-primary">
-                                +{advert.required_documents.length - 5} more...
+                                +{advert.required_documents.length - 5} {t("adverts.more")}
                               </li>
                             )}
                           </ul>
@@ -225,7 +227,7 @@ export function BursaryAdverts() {
                       {/* Apply Button */}
                       <Button asChild className="w-full mt-4">
                         <Link to="/apply/secondary">
-                          Apply Now
+                          {t("adverts.apply_now")}
                         </Link>
                       </Button>
                     </CardContent>
@@ -241,7 +243,7 @@ export function BursaryAdverts() {
         {/* All Counties Notice */}
         <div className="mt-8 text-center">
           <p className="text-sm text-muted-foreground">
-            Showing {adverts.length} active bursary programs. More counties coming soon.
+            {adverts.length} {t("adverts.showing_count")}
           </p>
         </div>
       </div>
