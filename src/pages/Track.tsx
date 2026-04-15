@@ -76,12 +76,22 @@ export default function Track() {
       }
 
       if (funcData?.found) {
+        const stageKeyMap: Record<string, string> = {
+          "Application Received": "received",
+          "Under Review": "review",
+          "Verification & Screening": "verification",
+          "Approval Decision": "approved",
+          "Application Not Successful": "rejected",
+          "Funds Disbursed": "disbursed",
+        };
         setResult({
           trackingNumber: funcData.trackingNumber,
           studentType: funcData.studentType,
           currentStage: funcData.stages.findIndex((s: { status: string }) => s.status === "current") + 1 || 1,
           stages: funcData.stages.map((s: { name: string; status: string; date: string | null; message: string }) => ({
             ...s,
+            name: s.name, // Keep original for key lookup
+            _key: stageKeyMap[s.name] || s.name,
             date: s.date ? new Date(s.date) : null,
           })),
         });
