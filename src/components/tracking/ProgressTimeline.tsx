@@ -1,6 +1,7 @@
 import { CheckCircle2, Clock, Circle, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/formatters";
+import { useI18n } from "@/lib/i18n";
 import type { TrackingStage } from "@/lib/mockData";
 
 interface ProgressTimelineProps {
@@ -9,6 +10,26 @@ interface ProgressTimelineProps {
 }
 
 export function ProgressTimeline({ stages, currentStage }: ProgressTimelineProps) {
+  const { t } = useI18n();
+
+  const stageNameMap: Record<string, string> = {
+    "Application Received": "stage.received",
+    "Under Review": "stage.review",
+    "Verification & Screening": "stage.verification",
+    "Approval Decision": "stage.approved",
+    "Application Not Successful": "stage.rejected",
+    "Funds Disbursed": "stage.disbursed",
+  };
+
+  const stageMsgMap: Record<string, string> = {
+    "Application Received": "stage.msg.received",
+    "Under Review": "stage.msg.review",
+    "Verification & Screening": "stage.msg.verification",
+    "Approval Decision": "stage.msg.approved",
+    "Application Not Successful": "stage.msg.rejected",
+    "Funds Disbursed": "stage.msg.disbursed",
+  };
+
   const getStageIcon = (status: TrackingStage["status"], index: number) => {
     if (status === "completed") {
       return <CheckCircle2 className="h-6 w-6 text-primary" />;
@@ -21,11 +42,30 @@ export function ProgressTimeline({ stages, currentStage }: ProgressTimelineProps
         </div>
       );
     }
-    // Check if it's a rejection stage
-    if (stages[index]?.name.toLowerCase().includes("reject")) {
+    if (stages[index]?.name.toLowerCase().includes("reject") || stages[index]?.name.toLowerCase().includes("not successful")) {
       return <XCircle className="h-6 w-6 text-destructive" />;
     }
     return <Circle className="h-6 w-6 text-muted-foreground/40" />;
+  };
+
+  const translateName = (name: string) => {
+    const key = stageNameMap[name];
+    return key ? t(key) : name;
+  };
+
+  const translateMessage = (stage: TrackingStage) => {
+    // For messages with dynamic content (amounts, institution names), check patterns
+    const msg = stage.message;
+    if (msg.startsWith("Funds have been sent to ") && msg !== "Funds have been sent to your institution.") {
+      const institution = msg.replace("Funds have been sent to ", "").replace(".", "");
+      return `${t("stage.msg.disbursed_to")} ${institution}.`;
+    }
+    if (msg.startsWith("Your application has been approved! Amount:")) {
+      const amount = msg.replace("Your application has been approved! Amount: ", "");
+      return `${t("stage.msg.approved_amount")} ${amount}`;
+    }
+    const key = stageMsgMap[stage.name];
+    return key ? t(key) : msg;
   };
 
   return (
@@ -58,7 +98,7 @@ export function ProgressTimeline({ stages, currentStage }: ProgressTimelineProps
                   stage.status === "pending" && "text-muted-foreground"
                 )}
               >
-                {stage.name}
+                {translateName(stage.name)}
               </h3>
               {stage.date && (
                 <span className="text-sm text-muted-foreground">
@@ -74,7 +114,7 @@ export function ProgressTimeline({ stages, currentStage }: ProgressTimelineProps
                   : "text-muted-foreground"
               )}
             >
-              {stage.message}
+              {translateMessage(stage)}
             </p>
           </div>
         </div>
