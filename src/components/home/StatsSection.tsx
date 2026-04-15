@@ -119,7 +119,7 @@ export function StatsSection() {
             icon={<TrendingUp className="h-6 w-6 text-white" />}
             label={t("stats.total_distributed")}
             value={platformStats.totalDistributed}
-            formatter={(val) => `KES ${(val / 1000000).toFixed(1)}M`}
+            formatter={(val) => `${t("currency.kes")} ${(val / 1000000).toFixed(1)}M`}
             subtext={t("stats.since_inception")}
             delay={0}
             color="bg-primary"

@@ -175,13 +175,9 @@ export default function Bursaries() {
     return <Badge variant="secondary">{daysRemaining} {t("bursaries.days_left")}</Badge>;
   };
 
-  const formatBudget = (amount: number | null) => {
+   const formatBudget = (amount: number | null) => {
     if (!amount) return t("bursaries.not_specified");
-    return new Intl.NumberFormat("en-KE", {
-      style: "currency",
-      currency: "KES",
-      maximumFractionDigits: 0,
-    }).format(amount);
+    return `${t("currency.kes")} ${amount.toLocaleString()}`;
   };
 
   return (

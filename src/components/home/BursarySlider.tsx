@@ -325,7 +325,7 @@ export function BursarySlider() {
                           <div className="inline-flex items-center gap-2 bg-secondary/50 px-4 py-2 rounded-full">
                             <Building2 className="h-4 w-4 text-primary" />
                             <span className="font-semibold text-foreground">
-                              {t("bursary.budget")}: KES {advert.budget_amount.toLocaleString()}
+                              {t("bursary.budget")}: {t("currency.kes")} {advert.budget_amount.toLocaleString()}
                             </span>
                           </div>
                         )}

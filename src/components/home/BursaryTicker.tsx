@@ -51,7 +51,7 @@ function TickerItem({ advert }: { advert: TickerAdvert }) {
           </span>
           {advert.budget_amount && (
             <span className="text-xs text-muted-foreground">
-              • KES {(advert.budget_amount / 1000000).toFixed(0)}M
+              • {t("currency.kes")} {(advert.budget_amount / 1000000).toFixed(0)}M
             </span>
           )}
         </div>

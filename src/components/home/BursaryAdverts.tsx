@@ -175,7 +175,7 @@ export function BursaryAdverts() {
                       {advert.budget_amount && (
                         <div className="flex items-center gap-2 text-sm">
                           <Building2 className="h-4 w-4 text-muted-foreground" />
-                          <span>{t("adverts.budget_label")} KES {advert.budget_amount.toLocaleString()}</span>
+                          <span>{t("adverts.budget_label")} {t("currency.kes")} {advert.budget_amount.toLocaleString()}</span>
                         </div>
                       )}
 

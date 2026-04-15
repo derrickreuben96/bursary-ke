@@ -52,7 +52,7 @@ function TickerItem({ advert }: { advert: TickerAdvert }) {
             {days}d {hours}h {t("hero.days_hours_left")}
           </span>
           {advert.budget_amount && (
-            <span className="text-xs text-white/60">• KES {(advert.budget_amount / 1000000).toFixed(0)}M</span>
+            <span className="text-xs text-white/60">• {t("currency.kes")} {(advert.budget_amount / 1000000).toFixed(0)}M</span>
           )}
         </div>
       </div>
