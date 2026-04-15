@@ -236,6 +236,7 @@ const translations: Record<string, Record<Language, string>> = {
   "adverts.deadline": { en: "Application Deadline", sw: "Mwisho wa Maombi" },
   "adverts.days_left": { en: "days left!", sw: "siku zimebaki!" },
   "adverts.budget_label": { en: "Budget:", sw: "Bajeti:" },
+  "currency.kes": { en: "KES", sw: "Shilingi" },
   "adverts.physical_centers": { en: "Physical Assistance Centers:", sw: "Vituo vya Msaada wa Ana kwa Ana:" },
   "adverts.docs_required": { en: "Documents Required (In-Person):", sw: "Nyaraka Zinazohitajika (Ana kwa Ana):" },
   "adverts.more": { en: "more...", sw: "zaidi..." },
