@@ -272,14 +272,23 @@ const translations: Record<string, Record<Language, string>> = {
   "bursaries.required_docs": { en: "required documents", sw: "nyaraka zinazohitajika" },
   "bursaries.apply_now": { en: "Apply Now", sw: "Omba Sasa" },
 
-  // Tracking stages
+  // Tracking stages - names
   "stage.received": { en: "Application Received", sw: "Maombi Yamepokelewa" },
   "stage.review": { en: "Under Review", sw: "Inakaguliwa" },
-  "stage.verification": { en: "Verification", sw: "Uthibitishaji" },
-  "stage.approved": { en: "Approved", sw: "Imeidhinishwa" },
-  "stage.approval_decision": { en: "Approval Decision", sw: "Uamuzi wa Idhini" },
-  "stage.rejected": { en: "Application Rejected", sw: "Maombi Yamekataliwa" },
+  "stage.verification": { en: "Verification & Screening", sw: "Uthibitishaji na Uchunguzi" },
+  "stage.approved": { en: "Approval Decision", sw: "Uamuzi wa Idhini" },
+  "stage.rejected": { en: "Application Not Successful", sw: "Maombi Hayakufaulu" },
   "stage.disbursed": { en: "Funds Disbursed", sw: "Fedha Zimetolewa" },
+
+  // Tracking stages - messages
+  "stage.msg.received": { en: "Your application has been received and is in our system.", sw: "Maombi yako yamepokelewa na yako katika mfumo wetu." },
+  "stage.msg.review": { en: "Your application is being reviewed by our team.", sw: "Maombi yako yanakaguliwa na timu yetu." },
+  "stage.msg.verification": { en: "Your application is being verified and screened by the Commissioner.", sw: "Maombi yako yanathibitishwa na kuchunguzwa na Kamishna." },
+  "stage.msg.approved": { en: "Your application has been approved for funding.", sw: "Maombi yako yameidhinishwa kwa ufadhili." },
+  "stage.msg.approved_amount": { en: "Your application has been approved! Amount:", sw: "Maombi yako yameidhinishwa! Kiasi:" },
+  "stage.msg.rejected": { en: "Your application was not successful in this funding cycle. You may apply again in the next cycle.", sw: "Maombi yako hayakufaulu katika mzunguko huu wa ufadhili. Unaweza kuomba tena katika mzunguko ujao." },
+  "stage.msg.disbursed": { en: "Funds have been sent to your institution.", sw: "Fedha zimetumwa kwa taasisi yako." },
+  "stage.msg.disbursed_to": { en: "Funds have been sent to", sw: "Fedha zimetumwa kwa" },
 };
 
 interface I18nContextType {
