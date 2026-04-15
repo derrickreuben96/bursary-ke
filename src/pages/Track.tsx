@@ -76,12 +76,22 @@ export default function Track() {
       }
 
       if (funcData?.found) {
+        const stageKeyMap: Record<string, string> = {
+          "Application Received": "received",
+          "Under Review": "review",
+          "Verification & Screening": "verification",
+          "Approval Decision": "approved",
+          "Application Not Successful": "rejected",
+          "Funds Disbursed": "disbursed",
+        };
         setResult({
           trackingNumber: funcData.trackingNumber,
           studentType: funcData.studentType,
           currentStage: funcData.stages.findIndex((s: { status: string }) => s.status === "current") + 1 || 1,
           stages: funcData.stages.map((s: { name: string; status: string; date: string | null; message: string }) => ({
             ...s,
+            name: s.name, // Keep original for key lookup
+            _key: stageKeyMap[s.name] || s.name,
             date: s.date ? new Date(s.date) : null,
           })),
         });
@@ -263,7 +273,20 @@ export default function Track() {
                   <div>
                     <p className="text-sm text-muted-foreground">{t("track.current_stage")}</p>
                     <p className="font-medium text-primary">
-                      {result.stages[result.currentStage - 1]?.name}
+                      {(() => {
+                        const stageNameMap: Record<string, string> = {
+                          "Application Received": "stage.received",
+                          "Under Review": "stage.review",
+                          "Verification & Screening": "stage.verification",
+                          "Verification": "stage.verification",
+                          "Approval Decision": "stage.approved",
+                          "Application Not Successful": "stage.rejected",
+                          "Funds Disbursed": "stage.disbursed",
+                        };
+                        const name = result.stages[result.currentStage - 1]?.name || "";
+                        const key = stageNameMap[name];
+                        return key ? t(key) : name;
+                      })()}
                     </p>
                   </div>
                 </div>
