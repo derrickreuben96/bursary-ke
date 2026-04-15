@@ -273,7 +273,20 @@ export default function Track() {
                   <div>
                     <p className="text-sm text-muted-foreground">{t("track.current_stage")}</p>
                     <p className="font-medium text-primary">
-                      {result.stages[result.currentStage - 1]?.name}
+                      {(() => {
+                        const stageNameMap: Record<string, string> = {
+                          "Application Received": "stage.received",
+                          "Under Review": "stage.review",
+                          "Verification & Screening": "stage.verification",
+                          "Verification": "stage.verification",
+                          "Approval Decision": "stage.approved",
+                          "Application Not Successful": "stage.rejected",
+                          "Funds Disbursed": "stage.disbursed",
+                        };
+                        const name = result.stages[result.currentStage - 1]?.name || "";
+                        const key = stageNameMap[name];
+                        return key ? t(key) : name;
+                      })()}
                     </p>
                   </div>
                 </div>
