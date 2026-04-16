@@ -14,7 +14,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { format, differenceInDays } from "date-fns";
 import { Link } from "react-router-dom";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translateDocument } from "@/lib/i18n";
 import {
   MapPin,
   Calendar,
@@ -62,7 +62,7 @@ const DEADLINE_FILTERS = [
 ];
 
 export default function Bursaries() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const [adverts, setAdverts] = useState<BursaryAdvert[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [countyFilter, setCountyFilter] = useState("All Counties");

@@ -325,6 +325,47 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// Common document name translations (database content → Swahili)
+const documentTranslations: Record<string, string> = {
+  "National ID": "Kitambulisho cha Taifa",
+  "National ID (Parent/Guardian)": "Kitambulisho cha Taifa (Mzazi/Mlezi)",
+  "Birth Certificate": "Cheti cha Kuzaliwa",
+  "School Admission Letter": "Barua ya Kukubaliwa Shuleni",
+  "Admission Letter": "Barua ya Kukubaliwa",
+  "Fee Structure": "Muundo wa Ada",
+  "KCPE Results": "Matokeo ya KCPE",
+  "KCSE Results": "Matokeo ya KCSE",
+  "KCPE/KCSE Results": "Matokeo ya KCPE/KCSE",
+  "Chief's Letter": "Barua ya Chifu",
+  "Death Certificate": "Cheti cha Kifo",
+  "Medical Report": "Ripoti ya Matibabu",
+  "Disability Certificate": "Cheti cha Ulemavu",
+  "School ID": "Kitambulisho cha Shule",
+  "Student ID": "Kitambulisho cha Mwanafunzi",
+  "Transcript": "Nakala ya Matokeo",
+  "Report Card": "Kadi ya Ripoti",
+  "Passport Photo": "Picha ya Pasipoti",
+  "Community Leader Letter": "Barua ya Kiongozi wa Jamii",
+  "Proof of Income": "Uthibitisho wa Mapato",
+  "Bank Statement": "Taarifa ya Benki",
+  "University Admission Letter": "Barua ya Kukubaliwa Chuoni",
+  "College Admission Letter": "Barua ya Kukubaliwa Chuoni",
+  "HELB Statement": "Taarifa ya HELB",
+  "KRA PIN Certificate": "Cheti cha KRA PIN",
+  "Orphan Certificate": "Cheti cha Yatima",
+};
+
+export function translateDocument(doc: string, language: Language): string {
+  if (language === "en") return doc;
+  // Try exact match first, then case-insensitive
+  if (documentTranslations[doc]) return documentTranslations[doc];
+  const lower = doc.toLowerCase();
+  for (const [key, val] of Object.entries(documentTranslations)) {
+    if (key.toLowerCase() === lower) return val;
+  }
+  return doc;
+}
+
 export function useI18n() {
   const context = useContext(I18nContext);
   if (!context) {
