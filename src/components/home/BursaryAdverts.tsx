@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translateDocument } from "@/lib/i18n";
 import {
   Carousel,
   CarouselContent,
@@ -37,7 +37,7 @@ interface BursaryAdvert {
 }
 
 export function BursaryAdverts() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const [adverts, setAdverts] = useState<BursaryAdvert[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -212,7 +212,7 @@ export function BursaryAdverts() {
                             {advert.required_documents.slice(0, 5).map((doc, idx) => (
                               <li key={idx} className="flex items-center gap-1">
                                 <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                                {doc}
+                                {translateDocument(doc, language)}
                               </li>
                             ))}
                             {advert.required_documents.length > 5 && (

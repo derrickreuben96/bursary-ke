@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translateDocument } from "@/lib/i18n";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { wardsByCounty } from "@/lib/kenyanWards";
 import { CountdownTimer } from "./CountdownTimer";
@@ -52,7 +52,7 @@ export function BursarySlider() {
   const [current, setCurrent] = useState(0);
   const [filterCounty, setFilterCounty] = useState<string>("");
   const [filterWard, setFilterWard] = useState<string>("");
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   
   const autoplayPlugin = useRef(
     Autoplay({
@@ -362,7 +362,7 @@ export function BursarySlider() {
                               {advert.required_documents.slice(0, 6).map((doc, idx) => (
                                 <li key={idx} className="flex items-start gap-2 text-sm text-muted-foreground">
                                   <span className="w-1.5 h-1.5 rounded-full bg-primary mt-2 shrink-0" />
-                                  {doc}
+                                  {translateDocument(doc, language)}
                                 </li>
                               ))}
                               {advert.required_documents.length > 6 && (
