@@ -88,6 +88,16 @@ export function SuccessModal({ isOpen, trackingNumber, onClose, studentType = "s
             </p>
           </div>
 
+          {/* Download Receipt */}
+          <Button
+            variant="secondary"
+            className="w-full"
+            onClick={handleDownloadReceipt}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Download Receipt (PDF)
+          </Button>
+
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-3 pt-2">
             <Button asChild variant="outline" className="flex-1">
