@@ -144,7 +144,7 @@ describe("Bursaries page — Swahili mode (375px mobile)", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText("Jaribu kurekebisha vichujio vyako")
+        screen.getByText("Jaribu kubadilisha vichujio vyako kuona matokeo zaidi.")
       ).toBeInTheDocument();
     });
 
