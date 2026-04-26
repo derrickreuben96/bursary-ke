@@ -21,6 +21,22 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
+      // Prevent importing `screen`, `waitFor`, `fireEvent`, `within` from
+      // @testing-library/react — they are not exported from that package and
+      // must come from @testing-library/dom instead.
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "@testing-library/react",
+              importNames: ["screen", "waitFor", "fireEvent", "within"],
+              message:
+                "Import `screen`, `waitFor`, `fireEvent`, and `within` from '@testing-library/dom' instead of '@testing-library/react'.",
+            },
+          ],
+        },
+      ],
     },
   },
 );
