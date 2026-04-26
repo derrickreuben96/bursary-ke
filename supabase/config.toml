@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.fairness-engine]
 verify_jwt = false
+
+[functions.admin-summary]
+verify_jwt = false

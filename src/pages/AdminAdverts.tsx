@@ -9,11 +9,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Pencil, ArrowLeft, Loader2 } from "lucide-react";
+import { wardsByCounty } from "@/lib/kenyanWards";
+import { Plus, Pencil, ArrowLeft, Loader2, Filter, X } from "lucide-react";
 
 const DEFAULT_REQUIRED_DOCUMENTS = [
   "National ID (Parent/Guardian)",
@@ -61,6 +63,24 @@ const emptyForm: FormData = {
   required_documents: DEFAULT_REQUIRED_DOCUMENTS,
 };
 
+interface FilterState {
+  search: string;
+  status: "all" | "active" | "inactive" | "expired";
+  county: string;
+  ward: string;
+  deadlineFrom: string;
+  deadlineTo: string;
+}
+
+const emptyFilters: FilterState = {
+  search: "",
+  status: "all",
+  county: "all",
+  ward: "all",
+  deadlineFrom: "",
+  deadlineTo: "",
+};
+
 export default function AdminAdverts() {
   const [adverts, setAdverts] = useState<Advert[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -68,6 +88,9 @@ export default function AdminAdverts() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormData>(emptyForm);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [filters, setFilters] = useState<FilterState>(emptyFilters);
+  const [draftFilters, setDraftFilters] = useState<FilterState>(emptyFilters);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -150,16 +173,76 @@ export default function AdminAdverts() {
     setIsSubmitting(false);
   };
 
+  const filteredAdverts = adverts.filter((a) => {
+    if (filters.search.trim()) {
+      const q = filters.search.trim().toLowerCase();
+      const haystack = `${a.title} ${a.description ?? ""}`.toLowerCase();
+      if (!haystack.includes(q)) return false;
+    }
+    if (filters.county !== "all" && a.county !== filters.county) return false;
+    if (filters.ward !== "all" && (a.ward ?? "") !== filters.ward) return false;
+    const deadlineMs = new Date(a.deadline).getTime();
+    const isExpired = deadlineMs <= Date.now();
+    if (filters.status === "active" && !(a.is_active && !isExpired)) return false;
+    if (filters.status === "inactive" && a.is_active) return false;
+    if (filters.status === "expired" && !isExpired) return false;
+    if (filters.deadlineFrom) {
+      if (deadlineMs < new Date(filters.deadlineFrom).getTime()) return false;
+    }
+    if (filters.deadlineTo) {
+      if (deadlineMs > new Date(filters.deadlineTo).getTime() + 86_400_000) return false;
+    }
+    return true;
+  });
+
+  const activeFilterCount = [
+    filters.search.trim(),
+    filters.status !== "all",
+    filters.county !== "all",
+    filters.ward !== "all",
+    filters.deadlineFrom,
+    filters.deadlineTo,
+  ].filter(Boolean).length;
+
+  const openFilters = () => {
+    setDraftFilters(filters);
+    setFilterOpen(true);
+  };
+
+  const applyFilters = () => {
+    setFilters(draftFilters);
+    setFilterOpen(false);
+  };
+
+  const clearFilters = () => {
+    setFilters(emptyFilters);
+    setDraftFilters(emptyFilters);
+  };
+
+  const wardOptions = draftFilters.county !== "all" ? wardsByCounty[draftFilters.county] ?? [] : [];
+
   return (
     <div className="min-h-screen flex flex-col bg-secondary/30">
       <Header />
       <main className="flex-1 container py-8">
-        <div className="flex items-center gap-4 mb-6">
+        <div className="flex items-center gap-4 mb-6 flex-wrap">
           <Button variant="ghost" size="icon" onClick={() => navigate("/admin")}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-2xl font-bold text-foreground">Manage Bursary Adverts</h1>
-          <div className="ml-auto">
+          <div className="ml-auto flex gap-2 flex-wrap">
+            <Button variant="outline" onClick={openFilters}>
+              <Filter className="h-4 w-4 mr-2" />
+              Filter
+              {activeFilterCount > 0 && (
+                <Badge variant="secondary" className="ml-2">{activeFilterCount}</Badge>
+              )}
+            </Button>
+            {activeFilterCount > 0 && (
+              <Button variant="ghost" size="icon" onClick={clearFilters} aria-label="Clear filters">
+                <X className="h-4 w-4" />
+              </Button>
+            )}
             <Button onClick={openCreate}>
               <Plus className="h-4 w-4 mr-2" />
               New Advert
@@ -175,6 +258,11 @@ export default function AdminAdverts() {
               </div>
             ) : adverts.length === 0 ? (
               <p className="text-center py-12 text-muted-foreground">No adverts yet. Create one to get started.</p>
+            ) : filteredAdverts.length === 0 ? (
+              <p className="text-center py-12 text-muted-foreground">
+                No adverts match the selected filters.{" "}
+                <button onClick={clearFilters} className="text-primary underline">Clear filters</button>
+              </p>
             ) : (
               <Table>
                 <TableHeader>
@@ -189,15 +277,17 @@ export default function AdminAdverts() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {adverts.map((a) => (
+                  {filteredAdverts.map((a) => {
+                    const isExpired = new Date(a.deadline).getTime() <= Date.now();
+                    return (
                     <TableRow key={a.id}>
                       <TableCell className="font-medium">{a.title}</TableCell>
                       <TableCell>{a.county}{a.ward ? ` / ${a.ward}` : ""}</TableCell>
                       <TableCell>{new Date(a.deadline).toLocaleDateString("en-KE")}</TableCell>
                       <TableCell>{a.budget_amount ? `KES ${a.budget_amount.toLocaleString()}` : "—"}</TableCell>
                       <TableCell>
-                        <Badge variant={a.is_active ? "default" : "secondary"}>
-                          {a.is_active ? "Active" : "Inactive"}
+                        <Badge variant={isExpired ? "destructive" : a.is_active ? "default" : "secondary"}>
+                          {isExpired ? "Expired" : a.is_active ? "Active" : "Inactive"}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
@@ -209,7 +299,8 @@ export default function AdminAdverts() {
                         </Button>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
             )}
@@ -274,6 +365,109 @@ export default function AdminAdverts() {
                 {editingId ? "Update Advert" : "Create Advert"}
               </Button>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={filterOpen} onOpenChange={setFilterOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Filter Adverts</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Search by title or description</Label>
+                <Input
+                  value={draftFilters.search}
+                  onChange={(e) => setDraftFilters({ ...draftFilters, search: e.target.value })}
+                  placeholder="e.g. Nairobi 2026"
+                />
+              </div>
+              <div>
+                <Label>Status</Label>
+                <Select
+                  value={draftFilters.status}
+                  onValueChange={(v) =>
+                    setDraftFilters({ ...draftFilters, status: v as FilterState["status"] })
+                  }
+                >
+                  <SelectTrigger aria-label="Status">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="expired">Expired</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>County</Label>
+                  <Select
+                    value={draftFilters.county}
+                    onValueChange={(v) => setDraftFilters({ ...draftFilters, county: v, ward: "all" })}
+                  >
+                    <SelectTrigger aria-label="County">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-72">
+                      <SelectItem value="all">All counties</SelectItem>
+                      {Object.keys(wardsByCounty).sort().map((c) => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Ward</Label>
+                  <Select
+                    value={draftFilters.ward}
+                    onValueChange={(v) => setDraftFilters({ ...draftFilters, ward: v })}
+                    disabled={draftFilters.county === "all"}
+                  >
+                    <SelectTrigger aria-label="Ward">
+                      <SelectValue placeholder={draftFilters.county === "all" ? "Select county first" : "All"} />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-72">
+                      <SelectItem value="all">All wards</SelectItem>
+                      {wardOptions.map((w) => (
+                        <SelectItem key={w} value={w}>{w}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Deadline from</Label>
+                  <Input
+                    type="date"
+                    value={draftFilters.deadlineFrom}
+                    onChange={(e) => setDraftFilters({ ...draftFilters, deadlineFrom: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Deadline to</Label>
+                  <Input
+                    type="date"
+                    value={draftFilters.deadlineTo}
+                    onChange={(e) => setDraftFilters({ ...draftFilters, deadlineTo: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+            <DialogFooter className="gap-2 sm:gap-2">
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setDraftFilters(emptyFilters);
+                }}
+              >
+                Reset
+              </Button>
+              <Button onClick={applyFilters}>Apply filters</Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </main>

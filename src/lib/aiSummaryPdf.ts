@@ -1,0 +1,155 @@
+import jsPDF from "jspdf";
+
+export interface AiSummaryPayload {
+  title: string;
+  scope: "system" | "advert";
+  context: Record<string, unknown>;
+  summary: string;
+  generated_at: string;
+}
+
+/**
+ * Renders an AI-generated executive summary into a downloadable PDF.
+ * The PDF contains aggregate-only data (no PII) plus a natural-language
+ * analysis produced by the admin-summary edge function.
+ */
+export function generateAiSummaryPdf(payload: AiSummaryPayload): jsPDF {
+  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const marginX = 48;
+  const pageWidth = 595; // A4 in pt
+  const maxWidth = pageWidth - marginX * 2;
+  let y = 56;
+
+  // Header
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(18);
+  doc.setTextColor(20);
+  doc.text("Bursary-KE — AI Executive Summary", marginX, y);
+  y += 22;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(11);
+  doc.setTextColor(90);
+  const subtitle = `${payload.scope === "advert" ? "Advert report" : "System-wide overview"} · Generated ${new Date(
+    payload.generated_at,
+  ).toLocaleString()}`;
+  doc.text(subtitle, marginX, y);
+
+  y += 24;
+  doc.setDrawColor(0, 102, 0);
+  doc.setLineWidth(1.2);
+  doc.line(marginX, y, marginX + maxWidth, y);
+
+  // Title block
+  y += 22;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(13);
+  doc.setTextColor(20);
+  doc.text(payload.title, marginX, y, { maxWidth });
+
+  // Key metrics table from context.totals
+  const totals = (payload.context?.totals ?? {}) as Record<string, unknown>;
+  const totalEntries = Object.entries(totals);
+  if (totalEntries.length) {
+    y += 22;
+    doc.setFontSize(12);
+    doc.text("Key Metrics", marginX, y);
+    y += 12;
+    doc.setDrawColor(220);
+    doc.line(marginX, y, marginX + maxWidth, y);
+    y += 16;
+
+    doc.setFontSize(10);
+    for (const [k, v] of totalEntries) {
+      if (y > 760) {
+        doc.addPage();
+        y = 56;
+      }
+      const label = k
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, (c) => c.toUpperCase());
+      const value =
+        typeof v === "number" && /amount|kes|allocated|budget/i.test(k)
+          ? `KES ${Number(v).toLocaleString()}`
+          : String(v);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(80);
+      doc.text(label, marginX, y);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(20);
+      doc.text(value, marginX + 240, y, { maxWidth: maxWidth - 240 });
+      y += 16;
+    }
+  }
+
+  // AI summary body
+  y += 14;
+  if (y > 720) {
+    doc.addPage();
+    y = 56;
+  }
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.setTextColor(20);
+  doc.text("AI Analysis", marginX, y);
+  y += 12;
+  doc.setDrawColor(220);
+  doc.line(marginX, y, marginX + maxWidth, y);
+  y += 16;
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(11);
+  doc.setTextColor(30);
+
+  // Simple markdown stripping for PDF readability
+  const cleanText = payload.summary
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/^#{1,6}\s*/gm, "");
+
+  const paragraphs = cleanText.split(/\n\s*\n/);
+  for (const para of paragraphs) {
+    const lines = doc.splitTextToSize(para.trim(), maxWidth);
+    for (const line of lines) {
+      if (y > 780) {
+        doc.addPage();
+        y = 56;
+      }
+      const isBullet = /^[-*•]\s+/.test(line);
+      if (isBullet) {
+        const text = line.replace(/^[-*•]\s+/, "");
+        doc.text("•", marginX, y);
+        doc.text(text, marginX + 14, y, { maxWidth: maxWidth - 14 });
+      } else {
+        doc.text(line, marginX, y);
+      }
+      y += 15;
+    }
+    y += 6;
+  }
+
+  // Footer disclaimer
+  if (y > 760) {
+    doc.addPage();
+    y = 56;
+  }
+  y = Math.max(y + 12, 790);
+  doc.setFontSize(8);
+  doc.setTextColor(140);
+  doc.text(
+    "AI-generated summary based on aggregated, anonymised data. No PII included.",
+    marginX,
+    y,
+  );
+
+  return doc;
+}
+
+export function downloadAiSummaryPdf(payload: AiSummaryPayload, filenameHint?: string): void {
+  const doc = generateAiSummaryPdf(payload);
+  const safeName = (filenameHint ?? payload.title)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+  doc.save(`bursary-ke-summary-${safeName || "report"}.pdf`);
+}
