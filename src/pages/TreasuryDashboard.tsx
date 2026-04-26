@@ -13,9 +13,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Landmark, LogOut, Search, Download, 
-  Loader2, RefreshCw, Copy, FileText, CheckCircle2
+  Loader2, RefreshCw, Copy, FileText, CheckCircle2, Sparkles
 } from "lucide-react";
 import { TreasurySummaryCards } from "@/components/treasury/TreasurySummaryCards";
+import { downloadAiSummaryPdf } from "@/lib/aiSummaryPdf";
 
 interface ApprovedApplication {
   id: string;
@@ -35,6 +36,7 @@ export default function TreasuryDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [assignedCounty, setAssignedCounty] = useState<string | null>(null);
+  const [generatingSummary, setGeneratingSummary] = useState(false);
   const { signOut, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -88,6 +90,25 @@ export default function TreasuryDashboard() {
   const handleLogout = async () => {
     await signOut();
     navigate("/");
+  };
+
+  const handleGenerateAiSummary = async () => {
+    setGeneratingSummary(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-summary", {
+        body: { scope: "treasury" },
+      });
+      if (error) throw error;
+      if (!data?.summary) throw new Error("No summary returned");
+      downloadAiSummaryPdf(data, `treasury-${assignedCounty ?? "report"}`);
+      toast({ title: "AI Summary Ready", description: "Your PDF report has been downloaded." });
+    } catch (e) {
+      console.error(e);
+      const message = e instanceof Error ? e.message : "Failed to generate summary";
+      toast({ title: "Could not generate summary", description: message, variant: "destructive" });
+    } finally {
+      setGeneratingSummary(false);
+    }
   };
 
   const copyEcitizenRef = (ref: string) => {
@@ -242,6 +263,13 @@ export default function TreasuryDashboard() {
             </div>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" onClick={handleGenerateAiSummary} disabled={generatingSummary}>
+              {generatingSummary ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Generating...</>
+              ) : (
+                <><Sparkles className="h-4 w-4 mr-2" />AI PDF Summary</>
+              )}
+            </Button>
             <Button variant="outline" onClick={exportToCSV}><Download className="h-4 w-4 mr-2" />Export CSV</Button>
             <Button variant="outline" onClick={handleLogout}><LogOut className="h-4 w-4 mr-2" />Logout</Button>
           </div>

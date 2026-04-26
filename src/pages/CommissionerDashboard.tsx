@@ -13,8 +13,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { 
   GraduationCap, LogOut, CheckCircle2, XCircle, Clock, 
   Loader2, RefreshCw, AlertTriangle, BarChart3, Users, Banknote,
-  ShieldAlert, Star, History, Send, Play, Inbox, Archive, FileDown
+  ShieldAlert, Star, History, Send, Play, Inbox, Archive, FileDown, Sparkles
 } from "lucide-react";
+import { downloadAiSummaryPdf } from "@/lib/aiSummaryPdf";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 
 interface Application {
@@ -120,6 +121,7 @@ export default function CommissionerDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isReleasing, setIsReleasing] = useState(false);
+  const [generatingSummary, setGeneratingSummary] = useState(false);
   const [activeTab, setActiveTab] = useState("incoming");
   const [assignedWard, setAssignedWard] = useState<string | null>(null);
   const [assignedCounty, setAssignedCounty] = useState<string | null>(null);
@@ -376,6 +378,25 @@ export default function CommissionerDashboard() {
     navigate("/");
   };
 
+  const handleGenerateAiSummary = async () => {
+    setGeneratingSummary(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-summary", {
+        body: { scope: "commissioner" },
+      });
+      if (error) throw error;
+      if (!data?.summary) throw new Error("No summary returned");
+      downloadAiSummaryPdf(data, `commissioner-${assignedWard ?? assignedCounty ?? "report"}`);
+      toast({ title: "AI Summary Ready", description: "Your PDF report has been downloaded." });
+    } catch (e) {
+      console.error(e);
+      const message = e instanceof Error ? e.message : "Failed to generate summary";
+      toast({ title: "Could not generate summary", description: message, variant: "destructive" });
+    } finally {
+      setGeneratingSummary(false);
+    }
+  };
+
   const handleExportPDF = (filter: "all" | "approved" | "rejected") => {
     const appsToExport = filter === "approved" ? approvedApps 
       : filter === "rejected" ? rejectedApps 
@@ -561,6 +582,13 @@ export default function CommissionerDashboard() {
             </div>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" onClick={handleGenerateAiSummary} disabled={generatingSummary}>
+              {generatingSummary ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Generating...</>
+              ) : (
+                <><Sparkles className="h-4 w-4 mr-2" />AI PDF Summary</>
+              )}
+            </Button>
             <Button variant="outline" size="icon" onClick={fetchApplications}>
               <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
             </Button>
