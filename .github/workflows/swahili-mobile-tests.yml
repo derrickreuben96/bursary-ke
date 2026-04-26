@@ -28,3 +28,6 @@ jobs:
 
       - name: Run Swahili mobile test files explicitly
         run: bunx vitest run src/test/bursariesSwahili.test.tsx --reporter=verbose
+
+      - name: Scan Bursaries i18n keys for missing Swahili translations
+        run: bun run scripts/check-bursaries-i18n.ts

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { fetchDashboardStats } from "@/lib/applicationService";
 import { adminDashboardData } from "@/lib/mockData";
 import { formatKES, formatNumber, formatPercentage } from "@/lib/formatters";
+import { maskEmail } from "@/lib/maskData";
 import { useAuth } from "@/hooks/useAuth";
 import {
   Users,
@@ -138,7 +139,7 @@ export default function AdminDashboard() {
           <div>
             <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
             <p className="text-muted-foreground mt-2">
-              Welcome, {user?.email} | Overview of bursary applications (aggregated data only)
+              Welcome, {user?.email ? maskEmail(user.email) : "Admin"} | Overview of bursary applications (aggregated data only)
             </p>
           </div>
           <div className="flex gap-2 flex-wrap">

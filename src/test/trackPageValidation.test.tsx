@@ -86,9 +86,8 @@ describe("Track page — tracking number validation & stage rendering", () => {
 
   it("renders the disbursed-stage timeline for a fully completed application", async () => {
     renderTrack("/track?number=BKE-XYZ789");
-    expect(
-      await screen.findByText(/Funds Disbursed/i)
-    ).toBeInTheDocument();
+    const matches = await screen.findAllByText(/Funds Disbursed/i);
+    expect(matches.length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Verification/i).length).toBeGreaterThan(0);
   });
 
