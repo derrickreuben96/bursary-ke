@@ -145,6 +145,7 @@ function ApplicationFormContent() {
           isOpen={showSuccess}
           trackingNumber={trackingNumber}
           onClose={() => setShowSuccess(false)}
+          studentType="secondary"
         />
       </main>
       <Footer />

@@ -126,6 +126,7 @@ function ApplicationFormContent() {
         isOpen={showSuccess}
         trackingNumber={trackingNumber}
         onClose={handleCloseSuccess}
+        studentType="university"
       />
     </div>
   );

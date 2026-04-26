@@ -8,16 +8,24 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Copy, Check, Home, FileSearch } from "lucide-react";
+import { CheckCircle2, Copy, Check, Home, FileSearch, Download } from "lucide-react";
+import { useApplication } from "@/context/ApplicationContext";
+import { downloadApplicationReceipt } from "@/lib/applicationReceipt";
 
 interface SuccessModalProps {
   isOpen: boolean;
   trackingNumber: string;
   onClose: () => void;
+  studentType?: "secondary" | "university";
 }
 
-export function SuccessModal({ isOpen, trackingNumber, onClose }: SuccessModalProps) {
+export function SuccessModal({ isOpen, trackingNumber, onClose, studentType = "secondary" }: SuccessModalProps) {
   const [copied, setCopied] = useState(false);
+  const { data } = useApplication();
+
+  const handleDownloadReceipt = () => {
+    downloadApplicationReceipt({ trackingNumber, studentType, data });
+  };
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(trackingNumber);
@@ -79,6 +87,16 @@ export function SuccessModal({ isOpen, trackingNumber, onClose }: SuccessModalPr
               We've also sent it to your phone via SMS.
             </p>
           </div>
+
+          {/* Download Receipt */}
+          <Button
+            variant="secondary"
+            className="w-full"
+            onClick={handleDownloadReceipt}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Download Receipt (PDF)
+          </Button>
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-3 pt-2">
