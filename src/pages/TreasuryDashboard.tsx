@@ -36,6 +36,7 @@ export default function TreasuryDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [assignedCounty, setAssignedCounty] = useState<string | null>(null);
+  const [generatingSummary, setGeneratingSummary] = useState(false);
   const { signOut, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
