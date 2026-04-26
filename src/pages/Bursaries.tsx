@@ -311,7 +311,7 @@ export default function Bursaries() {
                     <AlertCircle className="h-8 w-8 text-muted-foreground" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold">{t("bursaries.no_found")}</h3>
+                    <h2 className="text-lg font-semibold">{t("bursaries.no_found")}</h2>
                     <p className="text-muted-foreground mt-1">
                       {hasActiveFilters
                         ? t("bursaries.adjust_filters")
