@@ -13,9 +13,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Landmark, LogOut, Search, Download, 
-  Loader2, RefreshCw, Copy, FileText, CheckCircle2
+  Loader2, RefreshCw, Copy, FileText, CheckCircle2, Sparkles
 } from "lucide-react";
 import { TreasurySummaryCards } from "@/components/treasury/TreasurySummaryCards";
+import { downloadAiSummaryPdf } from "@/lib/aiSummaryPdf";
 
 interface ApprovedApplication {
   id: string;
