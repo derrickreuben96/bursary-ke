@@ -208,6 +208,14 @@ export default function AdminDashboard() {
               Manage Users
             </Button>
             <Button
+              onClick={openSummaryDialog}
+              variant="secondary"
+              className="hover:scale-105 transition-transform"
+            >
+              <Sparkles className="mr-2 h-4 w-4" />
+              AI PDF Summary
+            </Button>
+            <Button
               variant="outline"
               onClick={handleLogout}
               className="hover:scale-105 transition-transform"
