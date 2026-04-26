@@ -343,9 +343,17 @@ const documentTranslations: Record<string, string> = {
   "School ID": "Kitambulisho cha Shule",
   "Student ID": "Kitambulisho cha Mwanafunzi",
   "Transcript": "Nakala ya Matokeo",
+  "Transcripts": "Nakala za Matokeo",
+  "Academic Transcripts": "Nakala za Kielimu",
+  "Academic Transcript": "Nakala ya Kielimu",
   "Report Card": "Kadi ya Ripoti",
   "Passport Photo": "Picha ya Pasipoti",
+  "Passport Photos": "Picha za Pasipoti",
   "Community Leader Letter": "Barua ya Kiongozi wa Jamii",
+  "Church/Mosque Letter": "Barua ya Kanisa/Msikiti",
+  "Church Letter": "Barua ya Kanisa",
+  "Mosque Letter": "Barua ya Msikiti",
+  "Religious Leader Letter": "Barua ya Kiongozi wa Kidini",
   "Proof of Income": "Uthibitisho wa Mapato",
   "Bank Statement": "Taarifa ya Benki",
   "University Admission Letter": "Barua ya Kukubaliwa Chuoni",
@@ -353,6 +361,10 @@ const documentTranslations: Record<string, string> = {
   "HELB Statement": "Taarifa ya HELB",
   "KRA PIN Certificate": "Cheti cha KRA PIN",
   "Orphan Certificate": "Cheti cha Yatima",
+  "Guardian Affidavit": "Kiapo cha Mlezi",
+  "Affidavit": "Kiapo",
+  "Recommendation Letter": "Barua ya Mapendekezo",
+  "Utility Bill": "Bili ya Huduma",
 };
 
 export function translateDocument(doc: string, language: Language): string {
