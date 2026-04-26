@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { fetchDashboardStats } from "@/lib/applicationService";
 import { adminDashboardData } from "@/lib/mockData";
 import { formatKES, formatNumber, formatPercentage } from "@/lib/formatters";
+import { maskEmail } from "@/lib/maskData";
 import { useAuth } from "@/hooks/useAuth";
 import {
   Users,
