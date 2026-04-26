@@ -113,10 +113,16 @@ describe("Bursaries page — Swahili mode (375px mobile)", () => {
     expect(utils.getAllByText("Tarehe Zote za Mwisho").length).toBeGreaterThan(0);
     // 90-day option uses the months label
     expect(utils.getByText("Ndani ya miezi 3")).toBeInTheDocument();
-    // 7/14/30-day options follow the "Ndani ya N siku" pattern
-    expect(utils.getByText(/Ndani ya\s+7\s+siku/i)).toBeInTheDocument();
-    expect(utils.getByText(/Ndani ya\s+14\s+siku/i)).toBeInTheDocument();
-    expect(utils.getByText(/Ndani ya\s+30\s+siku/i)).toBeInTheDocument();
+    // 7/14/30-day options follow the "Ndani ya N siku" pattern. Radix nests
+    // SelectItemText across multiple spans, so use a normalized text matcher.
+    const containsText = (needle: RegExp) => (_: string, el: Element | null) => {
+      if (!el) return false;
+      const text = (el.textContent || "").replace(/\s+/g, " ").trim();
+      return needle.test(text);
+    };
+    expect(utils.getAllByText(containsText(/Ndani ya\s+7\s+siku/i)).length).toBeGreaterThan(0);
+    expect(utils.getAllByText(containsText(/Ndani ya\s+14\s+siku/i)).length).toBeGreaterThan(0);
+    expect(utils.getAllByText(containsText(/Ndani ya\s+30\s+siku/i)).length).toBeGreaterThan(0);
   });
 
   it("shows the Swahili 'no bursaries found' empty state when the dataset is empty", async () => {
