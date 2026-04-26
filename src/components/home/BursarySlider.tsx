@@ -360,13 +360,13 @@ export function BursarySlider() {
                             </h4>
                             <ul className="space-y-2">
                               {advert.required_documents.slice(0, 6).map((doc, idx) => (
-                                <li key={idx} className="flex items-start gap-2 text-sm text-muted-foreground">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-primary mt-2 shrink-0" />
-                                  {translateDocument(doc, language)}
+                                <li key={idx} className="flex items-start gap-2 text-xs sm:text-sm text-muted-foreground leading-snug break-words">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
+                                  <span className="min-w-0 flex-1 break-words hyphens-auto">{translateDocument(doc, language)}</span>
                                 </li>
                               ))}
                               {advert.required_documents.length > 6 && (
-                                <li className="text-sm text-primary font-medium">
+                                <li className="text-xs sm:text-sm text-primary font-medium">
                                   +{advert.required_documents.length - 6} {t("bursary.more_docs")}
                                 </li>
                               )}

@@ -208,11 +208,11 @@ export function BursaryAdverts() {
                             <FileText className="h-4 w-4" />
                             {t("adverts.docs_required")}
                           </p>
-                          <ul className="text-xs text-muted-foreground space-y-1 pl-6">
+                          <ul className="text-xs text-muted-foreground space-y-1.5 pl-6">
                             {advert.required_documents.slice(0, 5).map((doc, idx) => (
-                              <li key={idx} className="flex items-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                                {translateDocument(doc, language)}
+                              <li key={idx} className="flex items-start gap-1.5 leading-snug break-words">
+                                <span className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
+                                <span className="min-w-0 flex-1 break-words hyphens-auto">{translateDocument(doc, language)}</span>
                               </li>
                             ))}
                             {advert.required_documents.length > 5 && (

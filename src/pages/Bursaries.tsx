@@ -53,13 +53,7 @@ interface BursaryAdvert {
 
 const KENYA_COUNTIES = ["All Counties", ...Object.keys(wardsByCounty).sort()];
 
-const DEADLINE_FILTERS = [
-  { value: "all", label: "All Deadlines" },
-  { value: "7", label: "Within 7 days" },
-  { value: "14", label: "Within 14 days" },
-  { value: "30", label: "Within 30 days" },
-  { value: "90", label: "Within 3 months" },
-];
+const DEADLINE_FILTER_VALUES = ["all", "7", "14", "30", "90"] as const;
 
 export default function Bursaries() {
   const { t, language } = useI18n();
@@ -225,12 +219,12 @@ export default function Bursaries() {
                 <Select value={countyFilter} onValueChange={handleCountyChange}>
                   <SelectTrigger className="w-[180px] bg-background">
                     <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <SelectValue placeholder="Select County" />
+                    <SelectValue placeholder={t("bursaries.all_counties")} />
                   </SelectTrigger>
                   <SelectContent className="bg-background border border-border z-50 max-h-[300px]">
                     {KENYA_COUNTIES.map((county) => (
                       <SelectItem key={county} value={county}>
-                        {county}
+                        {county === "All Counties" ? t("bursaries.all_counties") : county}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -240,10 +234,10 @@ export default function Bursaries() {
                   <Select value={wardFilter} onValueChange={setWardFilter}>
                     <SelectTrigger className="w-[200px] bg-background">
                       <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                      <SelectValue placeholder="Select Ward" />
+                      <SelectValue placeholder={t("bursaries.all_wards")} />
                     </SelectTrigger>
                     <SelectContent className="bg-background border border-border z-50 max-h-[300px]">
-                      <SelectItem value="All Wards">All Wards</SelectItem>
+                      <SelectItem value="All Wards">{t("bursaries.all_wards")}</SelectItem>
                       {availableWards.map((ward) => (
                         <SelectItem key={ward} value={ward}>
                           {ward}
@@ -256,12 +250,16 @@ export default function Bursaries() {
                 <Select value={deadlineFilter} onValueChange={setDeadlineFilter}>
                   <SelectTrigger className="w-[180px] bg-background">
                     <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <SelectValue placeholder="Deadline" />
+                    <SelectValue placeholder={t("bursaries.all_deadlines")} />
                   </SelectTrigger>
                   <SelectContent className="bg-background border border-border z-50">
-                    {DEADLINE_FILTERS.map((filter) => (
-                      <SelectItem key={filter.value} value={filter.value}>
-                        {filter.label}
+                    {DEADLINE_FILTER_VALUES.map((value) => (
+                      <SelectItem key={value} value={value}>
+                        {value === "all"
+                          ? t("bursaries.all_deadlines")
+                          : value === "90"
+                          ? t("bursaries.within_months")
+                          : `${t("bursaries.within_days")} ${value} ${t("bursaries.days")}`}
                       </SelectItem>
                     ))}
                   </SelectContent>
