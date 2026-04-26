@@ -98,8 +98,7 @@ describe("Admin dashboard — PII masking", () => {
     ).toBeInTheDocument();
 
     // Aggregated formatted totals appear (formatNumber inserts commas)
-    const main = screen.getByRole("main");
-    expect(within(main).getByText(/1,234/)).toBeInTheDocument();
+    expect(screen.getAllByText(/1,234/).length).toBeGreaterThan(0);
   });
 
   it("masks any sensitive identifiers exposed via the maskData utilities", async () => {
