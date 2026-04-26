@@ -4,11 +4,17 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { fetchDashboardStats } from "@/lib/applicationService";
 import { adminDashboardData } from "@/lib/mockData";
 import { formatKES, formatNumber, formatPercentage } from "@/lib/formatters";
 import { maskEmail } from "@/lib/maskData";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { downloadAiSummaryPdf } from "@/lib/aiSummaryPdf";
 import {
   Users,
   CheckCircle,
@@ -20,6 +26,8 @@ import {
   PieChart,
   LogOut,
   Loader2,
+  FileText,
+  Sparkles,
 } from "lucide-react";
 import {
   PieChart as RechartsPie,
