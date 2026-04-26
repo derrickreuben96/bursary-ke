@@ -19,8 +19,13 @@ interface SuccessModalProps {
   studentType?: "secondary" | "university";
 }
 
-export function SuccessModal({ isOpen, trackingNumber, onClose }: SuccessModalProps) {
+export function SuccessModal({ isOpen, trackingNumber, onClose, studentType = "secondary" }: SuccessModalProps) {
   const [copied, setCopied] = useState(false);
+  const { data } = useApplication();
+
+  const handleDownloadReceipt = () => {
+    downloadApplicationReceipt({ trackingNumber, studentType, data });
+  };
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(trackingNumber);
