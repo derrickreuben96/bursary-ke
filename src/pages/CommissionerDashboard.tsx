@@ -13,8 +13,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { 
   GraduationCap, LogOut, CheckCircle2, XCircle, Clock, 
   Loader2, RefreshCw, AlertTriangle, BarChart3, Users, Banknote,
-  ShieldAlert, Star, History, Send, Play, Inbox, Archive, FileDown
+  ShieldAlert, Star, History, Send, Play, Inbox, Archive, FileDown, Sparkles
 } from "lucide-react";
+import { downloadAiSummaryPdf } from "@/lib/aiSummaryPdf";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 
 interface Application {
