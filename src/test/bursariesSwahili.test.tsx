@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/dom";
 import { MemoryRouter } from "react-router-dom";
 
 // Mock Supabase client BEFORE importing the page so the page picks up the stub.
