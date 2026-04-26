@@ -115,8 +115,8 @@ describe("Bursaries page — Swahili mode (375px mobile)", () => {
     expect(utils.getByText("Ndani ya miezi 3")).toBeInTheDocument();
     // 7/14/30-day options follow the "Ndani ya N siku" pattern
     expect(utils.getByText(/Ndani ya\s+7\s+siku/i)).toBeInTheDocument();
-    expect(utils.getByText(/Ndani ya Siku\s+14\s+siku/i)).toBeInTheDocument();
-    expect(utils.getByText(/Ndani ya Siku\s+30\s+siku/i)).toBeInTheDocument();
+    expect(utils.getByText(/Ndani ya\s+14\s+siku/i)).toBeInTheDocument();
+    expect(utils.getByText(/Ndani ya\s+30\s+siku/i)).toBeInTheDocument();
   });
 
   it("shows the Swahili 'no bursaries found' empty state when the dataset is empty", async () => {
