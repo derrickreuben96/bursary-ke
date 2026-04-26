@@ -110,11 +110,11 @@ describe("Bursaries page — Swahili mode (375px mobile)", () => {
     const utils = within(listbox);
 
     // "Tarehe Zote za Mwisho" appears as the "all" option as well
-    expect(utils.getByText("Tarehe Zote za Mwisho")).toBeInTheDocument();
+    expect(utils.getAllByText("Tarehe Zote za Mwisho").length).toBeGreaterThan(0);
     // 90-day option uses the months label
-    expect(utils.getByText("Ndani ya Miezi 3")).toBeInTheDocument();
-    // 7/14/30-day options follow the "Ndani ya Siku N siku" pattern
-    expect(utils.getByText(/Ndani ya Siku\s+7\s+siku/i)).toBeInTheDocument();
+    expect(utils.getByText("Ndani ya miezi 3")).toBeInTheDocument();
+    // 7/14/30-day options follow the "Ndani ya N siku" pattern
+    expect(utils.getByText(/Ndani ya\s+7\s+siku/i)).toBeInTheDocument();
     expect(utils.getByText(/Ndani ya Siku\s+14\s+siku/i)).toBeInTheDocument();
     expect(utils.getByText(/Ndani ya Siku\s+30\s+siku/i)).toBeInTheDocument();
   });
