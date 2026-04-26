@@ -369,6 +369,61 @@ export default function AdminDashboard() {
             No personally identifiable information (PII) such as names, ID numbers, or contact details is visible or accessible.
           </p>
         </div>
+
+        <Dialog open={summaryOpen} onOpenChange={setSummaryOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                Generate AI PDF Summary
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                AI analyses aggregated, anonymised data and produces an executive PDF report.
+              </p>
+              <div>
+                <Label>Scope</Label>
+                <Select value={summaryScope} onValueChange={(v) => setSummaryScope(v as "system" | "advert")}>
+                  <SelectTrigger aria-label="Summary scope">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="system">Full system overview</SelectItem>
+                    <SelectItem value="advert">Per-advert summary</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {summaryScope === "advert" && (
+                <div>
+                  <Label>Bursary advert</Label>
+                  <Select value={selectedAdvertId} onValueChange={setSelectedAdvertId}>
+                    <SelectTrigger aria-label="Bursary advert">
+                      <SelectValue placeholder={adverts.length === 0 ? "Loading..." : "Choose advert"} />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-72">
+                      {adverts.map((a) => (
+                        <SelectItem key={a.id} value={a.id}>{a.title}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setSummaryOpen(false)} disabled={generatingSummary}>
+                Cancel
+              </Button>
+              <Button onClick={handleGenerateSummary} disabled={generatingSummary}>
+                {generatingSummary ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Generating...</>
+                ) : (
+                  <><FileText className="h-4 w-4 mr-2" />Generate PDF</>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
       <Footer />
     </div>
