@@ -217,7 +217,7 @@ export default function Bursaries() {
                   />
                 </div>
                 <Select value={countyFilter} onValueChange={handleCountyChange}>
-                  <SelectTrigger className="w-[180px] bg-background">
+                  <SelectTrigger className="w-[180px] bg-background" aria-label={t("bursaries.all_counties")}>
                     <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
                     <SelectValue placeholder={t("bursaries.all_counties")} />
                   </SelectTrigger>
@@ -232,7 +232,7 @@ export default function Bursaries() {
 
                 {countyFilter !== "All Counties" && availableWards.length > 0 && (
                   <Select value={wardFilter} onValueChange={setWardFilter}>
-                    <SelectTrigger className="w-[200px] bg-background">
+                    <SelectTrigger className="w-[200px] bg-background" aria-label={t("bursaries.all_wards")}>
                       <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
                       <SelectValue placeholder={t("bursaries.all_wards")} />
                     </SelectTrigger>
@@ -248,7 +248,7 @@ export default function Bursaries() {
                 )}
 
                 <Select value={deadlineFilter} onValueChange={setDeadlineFilter}>
-                  <SelectTrigger className="w-[180px] bg-background">
+                  <SelectTrigger className="w-[180px] bg-background" aria-label={t("bursaries.all_deadlines")}>
                     <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
                     <SelectValue placeholder={t("bursaries.all_deadlines")} />
                   </SelectTrigger>
