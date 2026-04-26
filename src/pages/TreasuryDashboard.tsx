@@ -92,6 +92,25 @@ export default function TreasuryDashboard() {
     navigate("/");
   };
 
+  const handleGenerateAiSummary = async () => {
+    setGeneratingSummary(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-summary", {
+        body: { scope: "treasury" },
+      });
+      if (error) throw error;
+      if (!data?.summary) throw new Error("No summary returned");
+      downloadAiSummaryPdf(data, `treasury-${assignedCounty ?? "report"}`);
+      toast({ title: "AI Summary Ready", description: "Your PDF report has been downloaded." });
+    } catch (e) {
+      console.error(e);
+      const message = e instanceof Error ? e.message : "Failed to generate summary";
+      toast({ title: "Could not generate summary", description: message, variant: "destructive" });
+    } finally {
+      setGeneratingSummary(false);
+    }
+  };
+
   const copyEcitizenRef = (ref: string) => {
     navigator.clipboard.writeText(ref);
     toast({ title: "Copied", description: "eCitizen reference copied to clipboard" });
