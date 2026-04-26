@@ -582,6 +582,13 @@ export default function CommissionerDashboard() {
             </div>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" onClick={handleGenerateAiSummary} disabled={generatingSummary}>
+              {generatingSummary ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Generating...</>
+              ) : (
+                <><Sparkles className="h-4 w-4 mr-2" />AI PDF Summary</>
+              )}
+            </Button>
             <Button variant="outline" size="icon" onClick={fetchApplications}>
               <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
             </Button>
