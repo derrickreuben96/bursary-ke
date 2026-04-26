@@ -367,6 +367,109 @@ export default function AdminAdverts() {
             </div>
           </DialogContent>
         </Dialog>
+
+        <Dialog open={filterOpen} onOpenChange={setFilterOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Filter Adverts</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Search by title or description</Label>
+                <Input
+                  value={draftFilters.search}
+                  onChange={(e) => setDraftFilters({ ...draftFilters, search: e.target.value })}
+                  placeholder="e.g. Nairobi 2026"
+                />
+              </div>
+              <div>
+                <Label>Status</Label>
+                <Select
+                  value={draftFilters.status}
+                  onValueChange={(v) =>
+                    setDraftFilters({ ...draftFilters, status: v as FilterState["status"] })
+                  }
+                >
+                  <SelectTrigger aria-label="Status">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="expired">Expired</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>County</Label>
+                  <Select
+                    value={draftFilters.county}
+                    onValueChange={(v) => setDraftFilters({ ...draftFilters, county: v, ward: "all" })}
+                  >
+                    <SelectTrigger aria-label="County">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-72">
+                      <SelectItem value="all">All counties</SelectItem>
+                      {Object.keys(wardsByCounty).sort().map((c) => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Ward</Label>
+                  <Select
+                    value={draftFilters.ward}
+                    onValueChange={(v) => setDraftFilters({ ...draftFilters, ward: v })}
+                    disabled={draftFilters.county === "all"}
+                  >
+                    <SelectTrigger aria-label="Ward">
+                      <SelectValue placeholder={draftFilters.county === "all" ? "Select county first" : "All"} />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-72">
+                      <SelectItem value="all">All wards</SelectItem>
+                      {wardOptions.map((w) => (
+                        <SelectItem key={w} value={w}>{w}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Deadline from</Label>
+                  <Input
+                    type="date"
+                    value={draftFilters.deadlineFrom}
+                    onChange={(e) => setDraftFilters({ ...draftFilters, deadlineFrom: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Deadline to</Label>
+                  <Input
+                    type="date"
+                    value={draftFilters.deadlineTo}
+                    onChange={(e) => setDraftFilters({ ...draftFilters, deadlineTo: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+            <DialogFooter className="gap-2 sm:gap-2">
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setDraftFilters(emptyFilters);
+                }}
+              >
+                Reset
+              </Button>
+              <Button onClick={applyFilters}>Apply filters</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
       <Footer />
     </div>
