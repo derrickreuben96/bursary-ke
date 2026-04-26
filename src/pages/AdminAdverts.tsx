@@ -63,6 +63,24 @@ const emptyForm: FormData = {
   required_documents: DEFAULT_REQUIRED_DOCUMENTS,
 };
 
+interface FilterState {
+  search: string;
+  status: "all" | "active" | "inactive" | "expired";
+  county: string;
+  ward: string;
+  deadlineFrom: string;
+  deadlineTo: string;
+}
+
+const emptyFilters: FilterState = {
+  search: "",
+  status: "all",
+  county: "all",
+  ward: "all",
+  deadlineFrom: "",
+  deadlineTo: "",
+};
+
 export default function AdminAdverts() {
   const [adverts, setAdverts] = useState<Advert[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -70,6 +88,9 @@ export default function AdminAdverts() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormData>(emptyForm);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [filters, setFilters] = useState<FilterState>(emptyFilters);
+  const [draftFilters, setDraftFilters] = useState<FilterState>(emptyFilters);
   const { toast } = useToast();
   const navigate = useNavigate();
 
