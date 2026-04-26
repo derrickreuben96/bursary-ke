@@ -3,6 +3,20 @@ import React, { createContext, useContext, useState, useCallback, ReactNode } fr
 type Language = "en" | "sw";
 
 const translations: Record<string, Record<Language, string>> = {
+  // Phone / SMS notifications consent modal
+  "consent.title": { en: "Communication Consent Required", sw: "Idhini ya Mawasiliano Inahitajika" },
+  "consent.intro_prefix": { en: "We would like to use your phone number", sw: "Tungependa kutumia nambari yako ya simu" },
+  "consent.intro_suffix": { en: "to send you important updates about:", sw: "kukutumia masasisho muhimu kuhusu:" },
+  "consent.feature_status_title": { en: "Application Status Updates", sw: "Masasisho ya Hali ya Maombi" },
+  "consent.feature_status_desc": { en: "SMS notifications when your application status changes", sw: "Arifa za SMS hali ya maombi yako inapobadilika" },
+  "consent.feature_allocations_title": { en: "Bursary Allocations", sw: "Mgawanyiko wa Bursari" },
+  "consent.feature_allocations_desc": { en: "Notifications about fund disbursement and allocations", sw: "Arifa kuhusu utoaji wa fedha na mgawanyiko" },
+  "consent.feature_privacy_title": { en: "Your Privacy is Protected", sw: "Faragha Yako Imelindwa" },
+  "consent.feature_privacy_desc": { en: "Your number is encrypted and never shared with third parties", sw: "Nambari yako imesimbwa na haitashirikishwa na watu wa tatu" },
+  "consent.decline": { en: "No, Don't Send Messages", sw: "Hapana, Usitume Ujumbe" },
+  "consent.accept": { en: "Yes, I Consent", sw: "Ndiyo, Nakubali" },
+  "consent.opt_out": { en: "You can opt-out anytime by replying STOP to any message", sw: "Unaweza kujiondoa wakati wowote kwa kujibu STOP kwa ujumbe wowote" },
+
   // Header / Nav
   "nav.home": { en: "Home", sw: "Nyumbani" },
   "nav.browse": { en: "Browse Bursaries", sw: "Tazama Bursari" },
