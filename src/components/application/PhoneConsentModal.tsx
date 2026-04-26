@@ -9,6 +9,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Phone, MessageSquare, Bell, Shield } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 interface PhoneConsentModalProps {
   open: boolean;
@@ -25,6 +26,8 @@ export function PhoneConsentModal({
   onDecline,
   phoneNumber,
 }: PhoneConsentModalProps) {
+  const { t } = useI18n();
+
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent className="max-w-md">
@@ -35,12 +38,12 @@ export function PhoneConsentModal({
             </div>
           </div>
           <AlertDialogTitle className="text-center text-xl">
-            Communication Consent Required
+            {t("consent.title")}
           </AlertDialogTitle>
           <AlertDialogDescription className="text-center">
-            <p className="mb-4">
-              We would like to use your phone number <strong className="text-foreground">({phoneNumber})</strong> to send you important updates about:
-            </p>
+            {t("consent.intro_prefix")}{" "}
+            <strong className="text-foreground">({phoneNumber})</strong>{" "}
+            {t("consent.intro_suffix")}
           </AlertDialogDescription>
         </AlertDialogHeader>
 
@@ -48,43 +51,55 @@ export function PhoneConsentModal({
           <div className="flex items-start gap-3 p-3 bg-secondary/50 rounded-lg">
             <MessageSquare className="h-5 w-5 text-primary mt-0.5" />
             <div>
-              <p className="font-medium text-sm text-foreground">Application Status Updates</p>
-              <p className="text-xs text-muted-foreground">SMS notifications when your application status changes</p>
+              <p className="font-medium text-sm text-foreground">
+                {t("consent.feature_status_title")}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {t("consent.feature_status_desc")}
+              </p>
             </div>
           </div>
           <div className="flex items-start gap-3 p-3 bg-secondary/50 rounded-lg">
             <Bell className="h-5 w-5 text-primary mt-0.5" />
             <div>
-              <p className="font-medium text-sm text-foreground">Bursary Allocations</p>
-              <p className="text-xs text-muted-foreground">Notifications about fund disbursement and allocations</p>
+              <p className="font-medium text-sm text-foreground">
+                {t("consent.feature_allocations_title")}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {t("consent.feature_allocations_desc")}
+              </p>
             </div>
           </div>
           <div className="flex items-start gap-3 p-3 bg-secondary/50 rounded-lg">
             <Shield className="h-5 w-5 text-primary mt-0.5" />
             <div>
-              <p className="font-medium text-sm text-foreground">Your Privacy is Protected</p>
-              <p className="text-xs text-muted-foreground">Your number is encrypted and never shared with third parties</p>
+              <p className="font-medium text-sm text-foreground">
+                {t("consent.feature_privacy_title")}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {t("consent.feature_privacy_desc")}
+              </p>
             </div>
           </div>
         </div>
 
         <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-          <AlertDialogCancel 
+          <AlertDialogCancel
             onClick={onDecline}
             className="w-full sm:w-auto"
           >
-            No, Don't Send Messages
+            {t("consent.decline")}
           </AlertDialogCancel>
-          <AlertDialogAction 
+          <AlertDialogAction
             onClick={onConsent}
             className="w-full sm:w-auto bg-primary hover:bg-primary/90"
           >
-            Yes, I Consent
+            {t("consent.accept")}
           </AlertDialogAction>
         </AlertDialogFooter>
 
         <p className="text-xs text-muted-foreground text-center mt-2">
-          You can opt-out anytime by replying STOP to any message
+          {t("consent.opt_out")}
         </p>
       </AlertDialogContent>
     </AlertDialog>
