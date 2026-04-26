@@ -121,6 +121,7 @@ export default function CommissionerDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isReleasing, setIsReleasing] = useState(false);
+  const [generatingSummary, setGeneratingSummary] = useState(false);
   const [activeTab, setActiveTab] = useState("incoming");
   const [assignedWard, setAssignedWard] = useState<string | null>(null);
   const [assignedCounty, setAssignedCounty] = useState<string | null>(null);
