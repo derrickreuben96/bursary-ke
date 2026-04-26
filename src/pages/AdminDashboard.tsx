@@ -83,8 +83,14 @@ type DashboardData = typeof adminDashboardData;
 export default function AdminDashboard() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState<DashboardData>(adminDashboardData);
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const [summaryScope, setSummaryScope] = useState<"system" | "advert">("system");
+  const [adverts, setAdverts] = useState<Array<{ id: string; title: string }>>([]);
+  const [selectedAdvertId, setSelectedAdvertId] = useState<string>("");
+  const [generatingSummary, setGeneratingSummary] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -103,6 +109,42 @@ export default function AdminDashboard() {
     }
     loadData();
   }, []);
+
+  const openSummaryDialog = async () => {
+    setSummaryOpen(true);
+    if (adverts.length === 0) {
+      const { data } = await supabase
+        .from("bursary_adverts")
+        .select("id,title")
+        .order("created_at", { ascending: false });
+      setAdverts(data ?? []);
+    }
+  };
+
+  const handleGenerateSummary = async () => {
+    if (summaryScope === "advert" && !selectedAdvertId) {
+      toast({ title: "Select an advert", description: "Choose an advert to summarise.", variant: "destructive" });
+      return;
+    }
+    setGeneratingSummary(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-summary", {
+        body: { scope: summaryScope, advert_id: summaryScope === "advert" ? selectedAdvertId : undefined },
+      });
+      if (error) throw error;
+      if (!data?.summary) throw new Error("No summary returned");
+      const { downloadAiSummaryPdf: download } = await import("@/lib/aiSummaryPdf");
+      download(data, summaryScope === "advert" ? data.title : "system-overview");
+      toast({ title: "Summary ready", description: "Your PDF has been downloaded." });
+      setSummaryOpen(false);
+    } catch (e) {
+      console.error(e);
+      const message = e instanceof Error ? e.message : "Failed to generate summary";
+      toast({ title: "Could not generate summary", description: message, variant: "destructive" });
+    } finally {
+      setGeneratingSummary(false);
+    }
+  };
 
   const handleLogout = async () => {
     await signOut();
