@@ -263,6 +263,13 @@ export default function TreasuryDashboard() {
             </div>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" onClick={handleGenerateAiSummary} disabled={generatingSummary}>
+              {generatingSummary ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Generating...</>
+              ) : (
+                <><Sparkles className="h-4 w-4 mr-2" />AI PDF Summary</>
+              )}
+            </Button>
             <Button variant="outline" onClick={exportToCSV}><Download className="h-4 w-4 mr-2" />Export CSV</Button>
             <Button variant="outline" onClick={handleLogout}><LogOut className="h-4 w-4 mr-2" />Logout</Button>
           </div>
