@@ -8,12 +8,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Copy, Check, Home, FileSearch } from "lucide-react";
+import { CheckCircle2, Copy, Check, Home, FileSearch, Download } from "lucide-react";
+import { useApplication } from "@/context/ApplicationContext";
+import { downloadApplicationReceipt } from "@/lib/applicationReceipt";
 
 interface SuccessModalProps {
   isOpen: boolean;
   trackingNumber: string;
   onClose: () => void;
+  studentType?: "secondary" | "university";
 }
 
 export function SuccessModal({ isOpen, trackingNumber, onClose }: SuccessModalProps) {
