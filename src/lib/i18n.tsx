@@ -365,6 +365,7 @@ const documentTranslations: Record<string, string> = {
   "Affidavit": "Kiapo",
   "Recommendation Letter": "Barua ya Mapendekezo",
   "Utility Bill": "Bili ya Huduma",
+};
 
 export function translateDocument(doc: string, language: Language): string {
   if (language === "en") return doc;
