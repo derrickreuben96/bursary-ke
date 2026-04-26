@@ -1,0 +1,30 @@
+name: Swahili Mobile Tests
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  vitest:
+    name: Run Vitest (Swahili mobile)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run full Vitest suite
+        run: bunx vitest run --reporter=verbose
+
+      - name: Run Swahili mobile test files explicitly
+        run: bunx vitest run src/test/bursariesSwahili.test.tsx --reporter=verbose
