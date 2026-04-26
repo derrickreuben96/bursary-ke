@@ -72,23 +72,31 @@ describe("Track page — tracking number validation & stage rendering", () => {
       await screen.findByText(/Application Details/i)
     ).toBeInTheDocument();
 
-    const expectedStages = [
+    // Stage names render as <h3> headings in the timeline — query by role
+    // so we never match the same text inside summary badges or messages.
+    const expectedStageHeadings = [
       /Application Received/i,
       /Under Review/i,
       /Verification/i,
       /Approval Decision/i,
       /Funds Disbursed/i,
     ];
-    for (const re of expectedStages) {
-      expect(screen.getAllByText(re).length).toBeGreaterThan(0);
+    for (const re of expectedStageHeadings) {
+      expect(
+        screen.getAllByRole("heading", { level: 3, name: re }).length
+      ).toBeGreaterThan(0);
     }
   });
 
   it("renders the disbursed-stage timeline for a fully completed application", async () => {
     renderTrack("/track?number=BKE-XYZ789");
-    const matches = await screen.findAllByText(/Funds Disbursed/i);
-    expect(matches.length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Verification/i).length).toBeGreaterThan(0);
+    await screen.findByText(/Application Details/i);
+    expect(
+      screen.getAllByRole("heading", { level: 3, name: /Funds Disbursed/i }).length
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getAllByRole("heading", { level: 3, name: /Verification/i }).length
+    ).toBeGreaterThan(0);
   });
 
   it("invokes the track-application edge function for a well-formed unknown tracking number", async () => {
