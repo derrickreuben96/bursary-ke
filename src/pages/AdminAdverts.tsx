@@ -173,16 +173,76 @@ export default function AdminAdverts() {
     setIsSubmitting(false);
   };
 
+  const filteredAdverts = adverts.filter((a) => {
+    if (filters.search.trim()) {
+      const q = filters.search.trim().toLowerCase();
+      const haystack = `${a.title} ${a.description ?? ""}`.toLowerCase();
+      if (!haystack.includes(q)) return false;
+    }
+    if (filters.county !== "all" && a.county !== filters.county) return false;
+    if (filters.ward !== "all" && (a.ward ?? "") !== filters.ward) return false;
+    const deadlineMs = new Date(a.deadline).getTime();
+    const isExpired = deadlineMs <= Date.now();
+    if (filters.status === "active" && !(a.is_active && !isExpired)) return false;
+    if (filters.status === "inactive" && a.is_active) return false;
+    if (filters.status === "expired" && !isExpired) return false;
+    if (filters.deadlineFrom) {
+      if (deadlineMs < new Date(filters.deadlineFrom).getTime()) return false;
+    }
+    if (filters.deadlineTo) {
+      if (deadlineMs > new Date(filters.deadlineTo).getTime() + 86_400_000) return false;
+    }
+    return true;
+  });
+
+  const activeFilterCount = [
+    filters.search.trim(),
+    filters.status !== "all",
+    filters.county !== "all",
+    filters.ward !== "all",
+    filters.deadlineFrom,
+    filters.deadlineTo,
+  ].filter(Boolean).length;
+
+  const openFilters = () => {
+    setDraftFilters(filters);
+    setFilterOpen(true);
+  };
+
+  const applyFilters = () => {
+    setFilters(draftFilters);
+    setFilterOpen(false);
+  };
+
+  const clearFilters = () => {
+    setFilters(emptyFilters);
+    setDraftFilters(emptyFilters);
+  };
+
+  const wardOptions = draftFilters.county !== "all" ? wardsByCounty[draftFilters.county] ?? [] : [];
+
   return (
     <div className="min-h-screen flex flex-col bg-secondary/30">
       <Header />
       <main className="flex-1 container py-8">
-        <div className="flex items-center gap-4 mb-6">
+        <div className="flex items-center gap-4 mb-6 flex-wrap">
           <Button variant="ghost" size="icon" onClick={() => navigate("/admin")}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-2xl font-bold text-foreground">Manage Bursary Adverts</h1>
-          <div className="ml-auto">
+          <div className="ml-auto flex gap-2 flex-wrap">
+            <Button variant="outline" onClick={openFilters}>
+              <Filter className="h-4 w-4 mr-2" />
+              Filter
+              {activeFilterCount > 0 && (
+                <Badge variant="secondary" className="ml-2">{activeFilterCount}</Badge>
+              )}
+            </Button>
+            {activeFilterCount > 0 && (
+              <Button variant="ghost" size="icon" onClick={clearFilters} aria-label="Clear filters">
+                <X className="h-4 w-4" />
+              </Button>
+            )}
             <Button onClick={openCreate}>
               <Plus className="h-4 w-4 mr-2" />
               New Advert
@@ -198,6 +258,11 @@ export default function AdminAdverts() {
               </div>
             ) : adverts.length === 0 ? (
               <p className="text-center py-12 text-muted-foreground">No adverts yet. Create one to get started.</p>
+            ) : filteredAdverts.length === 0 ? (
+              <p className="text-center py-12 text-muted-foreground">
+                No adverts match the selected filters.{" "}
+                <button onClick={clearFilters} className="text-primary underline">Clear filters</button>
+              </p>
             ) : (
               <Table>
                 <TableHeader>
@@ -212,15 +277,17 @@ export default function AdminAdverts() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {adverts.map((a) => (
+                  {filteredAdverts.map((a) => {
+                    const isExpired = new Date(a.deadline).getTime() <= Date.now();
+                    return (
                     <TableRow key={a.id}>
                       <TableCell className="font-medium">{a.title}</TableCell>
                       <TableCell>{a.county}{a.ward ? ` / ${a.ward}` : ""}</TableCell>
                       <TableCell>{new Date(a.deadline).toLocaleDateString("en-KE")}</TableCell>
                       <TableCell>{a.budget_amount ? `KES ${a.budget_amount.toLocaleString()}` : "—"}</TableCell>
                       <TableCell>
-                        <Badge variant={a.is_active ? "default" : "secondary"}>
-                          {a.is_active ? "Active" : "Inactive"}
+                        <Badge variant={isExpired ? "destructive" : a.is_active ? "default" : "secondary"}>
+                          {isExpired ? "Expired" : a.is_active ? "Active" : "Inactive"}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
