@@ -350,20 +350,59 @@ export default function TreasuryDashboard() {
               </p>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handleGenerateAiSummary} disabled={generatingSummary}>
-              {generatingSummary ? (
-                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Generating...</>
-              ) : (
-                <><Sparkles className="h-4 w-4 mr-2" />AI PDF Summary</>
-              )}
-            </Button>
-            <Button variant="outline" onClick={exportToCSV}><Download className="h-4 w-4 mr-2" />Export CSV</Button>
-            <Button variant="outline" onClick={handleLogout}><LogOut className="h-4 w-4 mr-2" />Logout</Button>
+          <div className="flex flex-col items-end gap-2">
+            <div className="flex gap-2 flex-wrap justify-end">
+              <Select value={pdfLanguage} onValueChange={(v) => setPdfLanguage(v as "en" | "sw")}>
+                <SelectTrigger className="w-[140px] h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="en">PDF: English</SelectItem>
+                  <SelectItem value="sw">PDF: Kiswahili</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" onClick={handleGenerateAiSummary} disabled={generatingSummary}>
+                {generatingSummary ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Generating...</>
+                ) : (
+                  <><Sparkles className="h-4 w-4 mr-2" />AI PDF Summary</>
+                )}
+              </Button>
+              <Button variant="outline" onClick={exportToCSV}><Download className="h-4 w-4 mr-2" />Export CSV</Button>
+              <Button variant="outline" onClick={handleLogout}><LogOut className="h-4 w-4 mr-2" />Logout</Button>
+            </div>
+            {dataLastFetched && (
+              <p className="text-xs text-muted-foreground">
+                Live snapshot as of{" "}
+                <span className="font-medium text-foreground">
+                  {dataLastFetched.toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" })}
+                </span>{" "}
+                (EAT)
+              </p>
+            )}
           </div>
         </div>
 
+        <AiPdfConsentDialog
+          open={consentOpen}
+          onOpenChange={setConsentOpen}
+          onConfirm={() => {
+            setConsentOpen(false);
+            runGenerateAiSummary();
+          }}
+          reportLabel="treasury county AI summary"
+        />
+
+        <div className="flex justify-between items-center mb-2">
+          <p className="text-sm font-medium text-muted-foreground">Disbursement Overview</p>
+          <Button variant="outline" size="sm" onClick={handleDownloadDisbursementChartPdf}>
+            <FileDown className="h-4 w-4 mr-2" />
+            Download Filtered Summary PDF
+          </Button>
+        </div>
+
         <TreasurySummaryCards totalApproved={applications.length} totalAmount={totalAmount} disbursedCount={applications.filter(a => a.status === "disbursed").length} />
+
 
         <Card>
           <CardHeader>
