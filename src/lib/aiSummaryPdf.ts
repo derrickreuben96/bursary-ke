@@ -140,19 +140,69 @@ export function generateAiSummaryPdf(payload: AiSummaryPayload): jsPDF {
     y += 6;
   }
 
-  // Footer disclaimer
-  if (y > 760) {
-    doc.addPage();
-    y = 56;
+  // Branded footer rendered on every page
+  const scopeLabelMap: Record<AiSummaryPayload["scope"], string> = {
+    system: "System-wide Overview",
+    advert: "Advert Report",
+    commissioner: "Commissioner Ward Report",
+    treasury: "Treasury County Report",
+  };
+  const generatedDate = new Date(payload.generated_at);
+  const generatedStr = generatedDate.toLocaleString("en-KE", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+  const meta = payload.footer ?? {};
+  const scopeLabel = meta.scopeLabel ?? scopeLabelMap[payload.scope];
+  const jurisdiction = meta.jurisdiction ?? "All jurisdictions";
+  const dataFreshness = meta.dataFreshness ?? `Snapshot captured ${generatedStr}`;
+  const portalName = meta.portalName ?? "Bursary-KE";
+
+  const pageCount = doc.getNumberOfPages();
+  const footerTopY = 792;
+  const footerBottomY = 830;
+
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+
+    // Brand strip — Kenyan green accent
+    doc.setDrawColor(0, 102, 0);
+    doc.setLineWidth(2);
+    doc.line(marginX, footerTopY, marginX + maxWidth, footerTopY);
+
+    // Left block: portal + scope
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(0, 102, 0);
+    doc.text(portalName, marginX, footerTopY + 14);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(60);
+    doc.text(scopeLabel, marginX, footerTopY + 26);
+
+    // Center block: jurisdiction + freshness
+    doc.setFontSize(8);
+    doc.setTextColor(80);
+    const centerX = marginX + maxWidth / 2;
+    doc.text(`Jurisdiction: ${jurisdiction}`, centerX, footerTopY + 14, { align: "center" });
+    doc.text(dataFreshness, centerX, footerTopY + 26, { align: "center" });
+
+    // Right block: timestamp + page number
+    const rightX = marginX + maxWidth;
+    doc.setFontSize(8);
+    doc.setTextColor(80);
+    doc.text(`Generated ${generatedStr}`, rightX, footerTopY + 14, { align: "right" });
+    doc.text(`Page ${i} of ${pageCount}`, rightX, footerTopY + 26, { align: "right" });
+
+    // Bottom disclaimer line
+    doc.setFontSize(7);
+    doc.setTextColor(140);
+    doc.text(
+      "AI-generated summary based on aggregated, anonymised data. No PII included. Confidential — for authorised use only.",
+      centerX,
+      footerBottomY,
+      { align: "center" },
+    );
   }
-  y = Math.max(y + 12, 790);
-  doc.setFontSize(8);
-  doc.setTextColor(140);
-  doc.text(
-    "AI-generated summary based on aggregated, anonymised data. No PII included.",
-    marginX,
-    y,
-  );
 
   return doc;
 }
