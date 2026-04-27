@@ -13,10 +13,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Landmark, LogOut, Search, Download, 
-  Loader2, RefreshCw, Copy, FileText, CheckCircle2, Sparkles
+  Loader2, RefreshCw, Copy, FileText, CheckCircle2, Sparkles, FileDown
 } from "lucide-react";
 import { TreasurySummaryCards } from "@/components/treasury/TreasurySummaryCards";
 import { downloadAiSummaryPdf } from "@/lib/aiSummaryPdf";
+import { downloadChartSummaryPdf } from "@/lib/chartSummaryPdf";
+import { AiPdfConsentDialog } from "@/components/ai/AiPdfConsentDialog";
+import { useI18n } from "@/lib/i18n";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface ApprovedApplication {
   id: string;
@@ -37,9 +41,15 @@ export default function TreasuryDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [assignedCounty, setAssignedCounty] = useState<string | null>(null);
   const [generatingSummary, setGeneratingSummary] = useState(false);
+  const [dataLastFetched, setDataLastFetched] = useState<Date | null>(null);
+  const [pdfLanguage, setPdfLanguage] = useState<"en" | "sw">("en");
+  const [consentOpen, setConsentOpen] = useState(false);
   const { signOut, user } = useAuth();
   const { toast } = useToast();
+  const { language: uiLanguage } = useI18n();
   const navigate = useNavigate();
+
+  useEffect(() => { setPdfLanguage(uiLanguage); }, [uiLanguage]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -65,6 +75,7 @@ export default function TreasuryDashboard() {
     } else {
       setApplications((data as ApprovedApplication[]) || []);
     }
+    setDataLastFetched(new Date());
     setIsLoading(false);
   };
 
@@ -92,7 +103,7 @@ export default function TreasuryDashboard() {
     navigate("/");
   };
 
-  const handleGenerateAiSummary = async () => {
+  const runGenerateAiSummary = async () => {
     setGeneratingSummary(true);
     try {
       const { data, error } = await supabase.functions.invoke("admin-summary", {
@@ -100,16 +111,25 @@ export default function TreasuryDashboard() {
       });
       if (error) throw error;
       if (!data?.summary) throw new Error("No summary returned");
-      const jurisdiction = assignedCounty ? `${assignedCounty} County` : "Unassigned county";
-      const freshnessTime = new Date().toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" });
+      const jurisdiction = assignedCounty
+        ? (pdfLanguage === "sw" ? `Kaunti ya ${assignedCounty}` : `${assignedCounty} County`)
+        : (pdfLanguage === "sw" ? "Kaunti haijachaguliwa" : "Unassigned county");
+      const freshnessTime = (dataLastFetched ?? new Date()).toLocaleString(
+        pdfLanguage === "sw" ? "sw-KE" : "en-KE",
+        { dateStyle: "medium", timeStyle: "short" },
+      );
+      const freshnessLabel = pdfLanguage === "sw"
+        ? `Picha ya data · ${freshnessTime} (EAT)`
+        : `Live data snapshot · ${freshnessTime} (EAT)`;
       downloadAiSummaryPdf(
         {
           ...data,
           footer: {
-            scopeLabel: "Treasury County Disbursement Report",
+            scopeLabel: pdfLanguage === "sw" ? "Ripoti ya Hazina ya Kaunti" : "Treasury County Disbursement Report",
             jurisdiction,
-            dataFreshness: `Live data snapshot · ${freshnessTime} (EAT)`,
+            dataFreshness: freshnessLabel,
             portalName: "Bursary-KE · Treasury Portal",
+            language: pdfLanguage,
           },
         },
         `treasury-${assignedCounty ?? "report"}`,
@@ -122,6 +142,61 @@ export default function TreasuryDashboard() {
     } finally {
       setGeneratingSummary(false);
     }
+  };
+
+  const handleGenerateAiSummary = () => setConsentOpen(true);
+
+  const handleDownloadDisbursementChartPdf = () => {
+    const totalAmt = filteredApplications.reduce((s, a) => s + (a.allocated_amount || 0), 0);
+    const disbursedCount = filteredApplications.filter(a => a.status === "disbursed").length;
+    const pendingCount = filteredApplications.filter(a => a.status === "approved").length;
+    const disbursedAmt = filteredApplications.filter(a => a.status === "disbursed").reduce((s, a) => s + (a.allocated_amount || 0), 0);
+    const pendingAmt = totalAmt - disbursedAmt;
+
+    const topInstitutionsMap = new Map<string, number>();
+    for (const app of filteredApplications) {
+      if (!app.institution_name) continue;
+      topInstitutionsMap.set(app.institution_name, (topInstitutionsMap.get(app.institution_name) || 0) + (app.allocated_amount || 0));
+    }
+    const topInstitutions = Array.from(topInstitutionsMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
+
+    downloadChartSummaryPdf(
+      {
+        title: pdfLanguage === "sw" ? "Muhtasari wa Mgawanyo wa Hazina" : "Treasury Disbursement Summary",
+        subtitle: assignedCounty
+          ? (pdfLanguage === "sw" ? `Kaunti ya ${assignedCounty}` : `${assignedCounty} County`)
+          : "—",
+        portalName: "Bursary-KE · Treasury Portal",
+        scopeLabel: pdfLanguage === "sw" ? "Ripoti ya Hazina ya Kaunti" : "Treasury County Report",
+        language: pdfLanguage,
+        sections: [
+          {
+            heading: pdfLanguage === "sw" ? "Muhtasari wa Maombi" : "Application Summary",
+            rows: [
+              { label: pdfLanguage === "sw" ? "Maombi Yaliyochujwa" : "Filtered Applications", value: filteredApplications.length },
+              { label: pdfLanguage === "sw" ? "Yameidhinishwa (Yanasubiri)" : "Approved (Pending Disbursement)", value: pendingCount },
+              { label: pdfLanguage === "sw" ? "Yamegawanywa" : "Disbursed", value: disbursedCount },
+            ],
+          },
+          {
+            heading: pdfLanguage === "sw" ? "Muhtasari wa Fedha (KES)" : "Financial Summary (KES)",
+            rows: [
+              { label: pdfLanguage === "sw" ? "Jumla Iliyotengwa" : "Total Allocated", value: totalAmt.toLocaleString() },
+              { label: pdfLanguage === "sw" ? "Imegawanywa" : "Disbursed", value: disbursedAmt.toLocaleString() },
+              { label: pdfLanguage === "sw" ? "Inasubiri" : "Pending", value: pendingAmt.toLocaleString() },
+            ],
+          },
+          ...(topInstitutions.length ? [{
+            heading: pdfLanguage === "sw" ? "Taasisi 5 za Juu kwa Kiasi" : "Top 5 Institutions by Amount",
+            rows: topInstitutions.map(([name, amt]) => ({ label: name, value: `KES ${amt.toLocaleString()}` })),
+          }] : []),
+        ],
+      },
+      `treasury-summary-${assignedCounty ?? "report"}`,
+    );
+    toast({ title: "PDF Ready", description: "Filtered disbursement summary downloaded." });
   };
 
   const copyEcitizenRef = (ref: string) => {
@@ -275,20 +350,59 @@ export default function TreasuryDashboard() {
               </p>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handleGenerateAiSummary} disabled={generatingSummary}>
-              {generatingSummary ? (
-                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Generating...</>
-              ) : (
-                <><Sparkles className="h-4 w-4 mr-2" />AI PDF Summary</>
-              )}
-            </Button>
-            <Button variant="outline" onClick={exportToCSV}><Download className="h-4 w-4 mr-2" />Export CSV</Button>
-            <Button variant="outline" onClick={handleLogout}><LogOut className="h-4 w-4 mr-2" />Logout</Button>
+          <div className="flex flex-col items-end gap-2">
+            <div className="flex gap-2 flex-wrap justify-end">
+              <Select value={pdfLanguage} onValueChange={(v) => setPdfLanguage(v as "en" | "sw")}>
+                <SelectTrigger className="w-[140px] h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="en">PDF: English</SelectItem>
+                  <SelectItem value="sw">PDF: Kiswahili</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" onClick={handleGenerateAiSummary} disabled={generatingSummary}>
+                {generatingSummary ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Generating...</>
+                ) : (
+                  <><Sparkles className="h-4 w-4 mr-2" />AI PDF Summary</>
+                )}
+              </Button>
+              <Button variant="outline" onClick={exportToCSV}><Download className="h-4 w-4 mr-2" />Export CSV</Button>
+              <Button variant="outline" onClick={handleLogout}><LogOut className="h-4 w-4 mr-2" />Logout</Button>
+            </div>
+            {dataLastFetched && (
+              <p className="text-xs text-muted-foreground">
+                Live snapshot as of{" "}
+                <span className="font-medium text-foreground">
+                  {dataLastFetched.toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" })}
+                </span>{" "}
+                (EAT)
+              </p>
+            )}
           </div>
         </div>
 
+        <AiPdfConsentDialog
+          open={consentOpen}
+          onOpenChange={setConsentOpen}
+          onConfirm={() => {
+            setConsentOpen(false);
+            runGenerateAiSummary();
+          }}
+          reportLabel="treasury county AI summary"
+        />
+
+        <div className="flex justify-between items-center mb-2">
+          <p className="text-sm font-medium text-muted-foreground">Disbursement Overview</p>
+          <Button variant="outline" size="sm" onClick={handleDownloadDisbursementChartPdf}>
+            <FileDown className="h-4 w-4 mr-2" />
+            Download Filtered Summary PDF
+          </Button>
+        </div>
+
         <TreasurySummaryCards totalApproved={applications.length} totalAmount={totalAmount} disbursedCount={applications.filter(a => a.status === "disbursed").length} />
+
 
         <Card>
           <CardHeader>

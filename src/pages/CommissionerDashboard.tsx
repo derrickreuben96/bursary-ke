@@ -16,6 +16,10 @@ import {
   ShieldAlert, Star, History, Send, Play, Inbox, Archive, FileDown, Sparkles
 } from "lucide-react";
 import { downloadAiSummaryPdf } from "@/lib/aiSummaryPdf";
+import { downloadChartSummaryPdf } from "@/lib/chartSummaryPdf";
+import { AiPdfConsentDialog } from "@/components/ai/AiPdfConsentDialog";
+import { useI18n } from "@/lib/i18n";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 
 interface Application {
@@ -126,9 +130,16 @@ export default function CommissionerDashboard() {
   const [assignedWard, setAssignedWard] = useState<string | null>(null);
   const [assignedCounty, setAssignedCounty] = useState<string | null>(null);
   const [wardAdverts, setWardAdverts] = useState<BursaryAdvert[]>([]);
+  const [dataLastFetched, setDataLastFetched] = useState<Date | null>(null);
+  const [pdfLanguage, setPdfLanguage] = useState<"en" | "sw">("en");
+  const [consentOpen, setConsentOpen] = useState(false);
   const { signOut, user } = useAuth();
   const { toast } = useToast();
+  const { language: uiLanguage } = useI18n();
   const navigate = useNavigate();
+
+  // Sync default PDF language with the UI language on first load / language switch
+  useEffect(() => { setPdfLanguage(uiLanguage); }, [uiLanguage]);
 
   // Fetch assigned ward from profile
   useEffect(() => {
@@ -249,6 +260,7 @@ export default function CommissionerDashboard() {
         setStats({ total: 0, approved: 0, rejected: 0, pending: 0, duplicates: 0, totalAllocated: 0, fairnessPriorityCandidates: 0, redFlagged: 0 });
       }
     }
+    setDataLastFetched(new Date());
     setIsLoading(false);
   };
 
@@ -378,7 +390,7 @@ export default function CommissionerDashboard() {
     navigate("/");
   };
 
-  const handleGenerateAiSummary = async () => {
+  const runGenerateAiSummary = async () => {
     setGeneratingSummary(true);
     try {
       const { data, error } = await supabase.functions.invoke("admin-summary", {
@@ -390,15 +402,22 @@ export default function CommissionerDashboard() {
       const jurisdiction = jurisdictionParts.length
         ? jurisdictionParts.join(" Ward, ") + (assignedCounty ? " County" : "")
         : "Unassigned jurisdiction";
-      const freshnessTime = new Date().toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" });
+      const freshnessTime = (dataLastFetched ?? new Date()).toLocaleString(
+        pdfLanguage === "sw" ? "sw-KE" : "en-KE",
+        { dateStyle: "medium", timeStyle: "short" },
+      );
+      const freshnessLabel = pdfLanguage === "sw"
+        ? `Picha ya data · ${freshnessTime} (EAT)`
+        : `Live data snapshot · ${freshnessTime} (EAT)`;
       downloadAiSummaryPdf(
         {
           ...data,
           footer: {
-            scopeLabel: "Commissioner Ward Report",
+            scopeLabel: pdfLanguage === "sw" ? "Ripoti ya Kata ya Kamishna" : "Commissioner Ward Report",
             jurisdiction,
-            dataFreshness: `Live data snapshot · ${freshnessTime} (EAT)`,
+            dataFreshness: freshnessLabel,
             portalName: "Bursary-KE · Commissioner Portal",
+            language: pdfLanguage,
           },
         },
         `commissioner-${assignedWard ?? assignedCounty ?? "report"}`,
@@ -412,6 +431,48 @@ export default function CommissionerDashboard() {
       setGeneratingSummary(false);
     }
   };
+
+  const handleGenerateAiSummary = () => setConsentOpen(true);
+
+  const handleDownloadSummaryChartPdf = () => {
+    const jurisdictionParts = [assignedWard, assignedCounty].filter(Boolean);
+    const jurisdiction = jurisdictionParts.length
+      ? jurisdictionParts.join(" Ward, ") + (assignedCounty ? " County" : "")
+      : "Unassigned jurisdiction";
+
+    downloadChartSummaryPdf(
+      {
+        title: pdfLanguage === "sw" ? "Muhtasari wa Mgawanyo wa Maombi" : "Application Distribution Summary",
+        subtitle: jurisdiction,
+        portalName: "Bursary-KE · Commissioner Portal",
+        scopeLabel: pdfLanguage === "sw" ? "Ripoti ya Kata ya Kamishna" : "Commissioner Ward Report",
+        language: pdfLanguage,
+        sections: [
+          {
+            heading: pdfLanguage === "sw" ? "Mgawanyo wa Hali" : "Status Distribution",
+            rows: [
+              { label: pdfLanguage === "sw" ? "Jumla ya Maombi" : "Total Applications", value: stats.total },
+              { label: pdfLanguage === "sw" ? "Yameidhinishwa" : "Approved", value: stats.approved },
+              { label: pdfLanguage === "sw" ? "Yamekataliwa" : "Rejected", value: stats.rejected },
+              { label: pdfLanguage === "sw" ? "Yanayosubiri" : "Pending", value: stats.pending },
+              { label: pdfLanguage === "sw" ? "Marudio" : "Duplicates", value: stats.duplicates },
+            ],
+          },
+          {
+            heading: pdfLanguage === "sw" ? "Muhtasari wa AI" : "AI Allocation Summary",
+            rows: [
+              { label: pdfLanguage === "sw" ? "Jumla Iliyogawanywa (KES)" : "Total Allocated (KES)", value: stats.totalAllocated.toLocaleString() },
+              { label: pdfLanguage === "sw" ? "Vipaumbele vya Haki" : "Fairness Priority Candidates", value: stats.fairnessPriorityCandidates },
+              { label: pdfLanguage === "sw" ? "Vimewekewa Alama Nyekundu" : "Red Flagged", value: stats.redFlagged },
+            ],
+          },
+        ],
+      },
+      `commissioner-summary-${assignedWard ?? assignedCounty ?? "report"}`,
+    );
+    toast({ title: "PDF Ready", description: "Filtered summary downloaded." });
+  };
+
 
   const handleExportPDF = (filter: "all" | "approved" | "rejected") => {
     const appsToExport = filter === "approved" ? approvedApps 
@@ -597,22 +658,52 @@ export default function CommissionerDashboard() {
               </p>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handleGenerateAiSummary} disabled={generatingSummary}>
-              {generatingSummary ? (
-                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Generating...</>
-              ) : (
-                <><Sparkles className="h-4 w-4 mr-2" />AI PDF Summary</>
-              )}
-            </Button>
-            <Button variant="outline" size="icon" onClick={fetchApplications}>
-              <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
-            </Button>
-            <Button variant="outline" onClick={handleLogout}>
-              <LogOut className="h-4 w-4 mr-2" />Logout
-            </Button>
+          <div className="flex flex-col items-end gap-2">
+            <div className="flex gap-2 flex-wrap justify-end">
+              <Select value={pdfLanguage} onValueChange={(v) => setPdfLanguage(v as "en" | "sw")}>
+                <SelectTrigger className="w-[140px] h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="en">PDF: English</SelectItem>
+                  <SelectItem value="sw">PDF: Kiswahili</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" onClick={handleGenerateAiSummary} disabled={generatingSummary}>
+                {generatingSummary ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Generating...</>
+                ) : (
+                  <><Sparkles className="h-4 w-4 mr-2" />AI PDF Summary</>
+                )}
+              </Button>
+              <Button variant="outline" size="icon" onClick={fetchApplications}>
+                <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+              </Button>
+              <Button variant="outline" onClick={handleLogout}>
+                <LogOut className="h-4 w-4 mr-2" />Logout
+              </Button>
+            </div>
+            {dataLastFetched && (
+              <p className="text-xs text-muted-foreground">
+                Live snapshot as of{" "}
+                <span className="font-medium text-foreground">
+                  {dataLastFetched.toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" })}
+                </span>{" "}
+                (EAT)
+              </p>
+            )}
           </div>
         </div>
+
+        <AiPdfConsentDialog
+          open={consentOpen}
+          onOpenChange={setConsentOpen}
+          onConfirm={() => {
+            setConsentOpen(false);
+            runGenerateAiSummary();
+          }}
+          reportLabel="commissioner ward AI summary"
+        />
 
         {/* Deadline & Action Banner */}
         {activeAdvert && (
@@ -737,6 +828,12 @@ export default function CommissionerDashboard() {
 
           {/* Summary Tab */}
           <TabsContent value="summary">
+            <div className="flex justify-end mb-4">
+              <Button variant="outline" size="sm" onClick={handleDownloadSummaryChartPdf}>
+                <FileDown className="h-4 w-4 mr-2" />
+                Download Summary PDF
+              </Button>
+            </div>
             <div className="grid md:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
