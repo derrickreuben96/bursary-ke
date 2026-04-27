@@ -75,6 +75,7 @@ export default function TreasuryDashboard() {
     } else {
       setApplications((data as ApprovedApplication[]) || []);
     }
+    setDataLastFetched(new Date());
     setIsLoading(false);
   };
 
