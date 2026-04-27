@@ -828,6 +828,12 @@ export default function CommissionerDashboard() {
 
           {/* Summary Tab */}
           <TabsContent value="summary">
+            <div className="flex justify-end mb-4">
+              <Button variant="outline" size="sm" onClick={handleDownloadSummaryChartPdf}>
+                <FileDown className="h-4 w-4 mr-2" />
+                Download Summary PDF
+              </Button>
+            </div>
             <div className="grid md:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
