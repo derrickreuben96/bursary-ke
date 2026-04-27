@@ -123,7 +123,7 @@ export function generateAiSummaryPdf(payload: AiSummaryPayload): jsPDF {
   for (const para of paragraphs) {
     const lines = doc.splitTextToSize(para.trim(), maxWidth);
     for (const line of lines) {
-      if (y > 780) {
+      if (y > 760) {
         doc.addPage();
         y = 56;
       }
