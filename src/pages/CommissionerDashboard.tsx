@@ -386,7 +386,23 @@ export default function CommissionerDashboard() {
       });
       if (error) throw error;
       if (!data?.summary) throw new Error("No summary returned");
-      downloadAiSummaryPdf(data, `commissioner-${assignedWard ?? assignedCounty ?? "report"}`);
+      const jurisdictionParts = [assignedWard, assignedCounty].filter(Boolean);
+      const jurisdiction = jurisdictionParts.length
+        ? jurisdictionParts.join(" Ward, ") + (assignedCounty ? " County" : "")
+        : "Unassigned jurisdiction";
+      const freshnessTime = new Date().toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" });
+      downloadAiSummaryPdf(
+        {
+          ...data,
+          footer: {
+            scopeLabel: "Commissioner Ward Report",
+            jurisdiction,
+            dataFreshness: `Live data snapshot · ${freshnessTime} (EAT)`,
+            portalName: "Bursary-KE · Commissioner Portal",
+          },
+        },
+        `commissioner-${assignedWard ?? assignedCounty ?? "report"}`,
+      );
       toast({ title: "AI Summary Ready", description: "Your PDF report has been downloaded." });
     } catch (e) {
       console.error(e);
