@@ -130,9 +130,16 @@ export default function CommissionerDashboard() {
   const [assignedWard, setAssignedWard] = useState<string | null>(null);
   const [assignedCounty, setAssignedCounty] = useState<string | null>(null);
   const [wardAdverts, setWardAdverts] = useState<BursaryAdvert[]>([]);
+  const [dataLastFetched, setDataLastFetched] = useState<Date | null>(null);
+  const [pdfLanguage, setPdfLanguage] = useState<"en" | "sw">("en");
+  const [consentOpen, setConsentOpen] = useState(false);
   const { signOut, user } = useAuth();
   const { toast } = useToast();
+  const { language: uiLanguage } = useI18n();
   const navigate = useNavigate();
+
+  // Sync default PDF language with the UI language on first load / language switch
+  useEffect(() => { setPdfLanguage(uiLanguage); }, [uiLanguage]);
 
   // Fetch assigned ward from profile
   useEffect(() => {
