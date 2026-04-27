@@ -1,11 +1,24 @@
 import jsPDF from "jspdf";
 
+export interface AiSummaryFooterMeta {
+  /** Display label for the report scope (e.g. "Commissioner Ward Report"). */
+  scopeLabel?: string;
+  /** Jurisdiction string (e.g. "Westlands Ward, Nairobi County"). */
+  jurisdiction?: string;
+  /** Human-readable data freshness note (e.g. "Live data as of 14:32 EAT"). */
+  dataFreshness?: string;
+  /** Optional org/portal name shown on the brand strip. */
+  portalName?: string;
+}
+
 export interface AiSummaryPayload {
   title: string;
-  scope: "system" | "advert";
+  scope: "system" | "advert" | "commissioner" | "treasury";
   context: Record<string, unknown>;
   summary: string;
   generated_at: string;
+  /** Optional footer metadata. When omitted, a generic footer is rendered. */
+  footer?: AiSummaryFooterMeta;
 }
 
 /**
