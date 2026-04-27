@@ -41,9 +41,15 @@ export default function TreasuryDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [assignedCounty, setAssignedCounty] = useState<string | null>(null);
   const [generatingSummary, setGeneratingSummary] = useState(false);
+  const [dataLastFetched, setDataLastFetched] = useState<Date | null>(null);
+  const [pdfLanguage, setPdfLanguage] = useState<"en" | "sw">("en");
+  const [consentOpen, setConsentOpen] = useState(false);
   const { signOut, user } = useAuth();
   const { toast } = useToast();
+  const { language: uiLanguage } = useI18n();
   const navigate = useNavigate();
+
+  useEffect(() => { setPdfLanguage(uiLanguage); }, [uiLanguage]);
 
   useEffect(() => {
     const fetchProfile = async () => {
