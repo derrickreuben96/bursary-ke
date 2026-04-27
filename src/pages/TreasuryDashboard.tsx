@@ -13,10 +13,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Landmark, LogOut, Search, Download, 
-  Loader2, RefreshCw, Copy, FileText, CheckCircle2, Sparkles
+  Loader2, RefreshCw, Copy, FileText, CheckCircle2, Sparkles, FileDown
 } from "lucide-react";
 import { TreasurySummaryCards } from "@/components/treasury/TreasurySummaryCards";
 import { downloadAiSummaryPdf } from "@/lib/aiSummaryPdf";
+import { downloadChartSummaryPdf } from "@/lib/chartSummaryPdf";
+import { AiPdfConsentDialog } from "@/components/ai/AiPdfConsentDialog";
+import { useI18n } from "@/lib/i18n";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface ApprovedApplication {
   id: string;
