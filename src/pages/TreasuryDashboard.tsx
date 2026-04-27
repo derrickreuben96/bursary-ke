@@ -103,7 +103,7 @@ export default function TreasuryDashboard() {
     navigate("/");
   };
 
-  const handleGenerateAiSummary = async () => {
+  const runGenerateAiSummary = async () => {
     setGeneratingSummary(true);
     try {
       const { data, error } = await supabase.functions.invoke("admin-summary", {
@@ -111,16 +111,25 @@ export default function TreasuryDashboard() {
       });
       if (error) throw error;
       if (!data?.summary) throw new Error("No summary returned");
-      const jurisdiction = assignedCounty ? `${assignedCounty} County` : "Unassigned county";
-      const freshnessTime = new Date().toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" });
+      const jurisdiction = assignedCounty
+        ? (pdfLanguage === "sw" ? `Kaunti ya ${assignedCounty}` : `${assignedCounty} County`)
+        : (pdfLanguage === "sw" ? "Kaunti haijachaguliwa" : "Unassigned county");
+      const freshnessTime = (dataLastFetched ?? new Date()).toLocaleString(
+        pdfLanguage === "sw" ? "sw-KE" : "en-KE",
+        { dateStyle: "medium", timeStyle: "short" },
+      );
+      const freshnessLabel = pdfLanguage === "sw"
+        ? `Picha ya data · ${freshnessTime} (EAT)`
+        : `Live data snapshot · ${freshnessTime} (EAT)`;
       downloadAiSummaryPdf(
         {
           ...data,
           footer: {
-            scopeLabel: "Treasury County Disbursement Report",
+            scopeLabel: pdfLanguage === "sw" ? "Ripoti ya Hazina ya Kaunti" : "Treasury County Disbursement Report",
             jurisdiction,
-            dataFreshness: `Live data snapshot · ${freshnessTime} (EAT)`,
+            dataFreshness: freshnessLabel,
             portalName: "Bursary-KE · Treasury Portal",
+            language: pdfLanguage,
           },
         },
         `treasury-${assignedCounty ?? "report"}`,
@@ -133,6 +142,61 @@ export default function TreasuryDashboard() {
     } finally {
       setGeneratingSummary(false);
     }
+  };
+
+  const handleGenerateAiSummary = () => setConsentOpen(true);
+
+  const handleDownloadDisbursementChartPdf = () => {
+    const totalAmt = filteredApplications.reduce((s, a) => s + (a.allocated_amount || 0), 0);
+    const disbursedCount = filteredApplications.filter(a => a.status === "disbursed").length;
+    const pendingCount = filteredApplications.filter(a => a.status === "approved").length;
+    const disbursedAmt = filteredApplications.filter(a => a.status === "disbursed").reduce((s, a) => s + (a.allocated_amount || 0), 0);
+    const pendingAmt = totalAmt - disbursedAmt;
+
+    const topInstitutionsMap = new Map<string, number>();
+    for (const app of filteredApplications) {
+      if (!app.institution_name) continue;
+      topInstitutionsMap.set(app.institution_name, (topInstitutionsMap.get(app.institution_name) || 0) + (app.allocated_amount || 0));
+    }
+    const topInstitutions = Array.from(topInstitutionsMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
+
+    downloadChartSummaryPdf(
+      {
+        title: pdfLanguage === "sw" ? "Muhtasari wa Mgawanyo wa Hazina" : "Treasury Disbursement Summary",
+        subtitle: assignedCounty
+          ? (pdfLanguage === "sw" ? `Kaunti ya ${assignedCounty}` : `${assignedCounty} County`)
+          : "—",
+        portalName: "Bursary-KE · Treasury Portal",
+        scopeLabel: pdfLanguage === "sw" ? "Ripoti ya Hazina ya Kaunti" : "Treasury County Report",
+        language: pdfLanguage,
+        sections: [
+          {
+            heading: pdfLanguage === "sw" ? "Muhtasari wa Maombi" : "Application Summary",
+            rows: [
+              { label: pdfLanguage === "sw" ? "Maombi Yaliyochujwa" : "Filtered Applications", value: filteredApplications.length },
+              { label: pdfLanguage === "sw" ? "Yameidhinishwa (Yanasubiri)" : "Approved (Pending Disbursement)", value: pendingCount },
+              { label: pdfLanguage === "sw" ? "Yamegawanywa" : "Disbursed", value: disbursedCount },
+            ],
+          },
+          {
+            heading: pdfLanguage === "sw" ? "Muhtasari wa Fedha (KES)" : "Financial Summary (KES)",
+            rows: [
+              { label: pdfLanguage === "sw" ? "Jumla Iliyotengwa" : "Total Allocated", value: totalAmt.toLocaleString() },
+              { label: pdfLanguage === "sw" ? "Imegawanywa" : "Disbursed", value: disbursedAmt.toLocaleString() },
+              { label: pdfLanguage === "sw" ? "Inasubiri" : "Pending", value: pendingAmt.toLocaleString() },
+            ],
+          },
+          ...(topInstitutions.length ? [{
+            heading: pdfLanguage === "sw" ? "Taasisi 5 za Juu kwa Kiasi" : "Top 5 Institutions by Amount",
+            rows: topInstitutions.map(([name, amt]) => ({ label: name, value: `KES ${amt.toLocaleString()}` })),
+          }] : []),
+        ],
+      },
+      `treasury-summary-${assignedCounty ?? "report"}`,
+    );
+    toast({ title: "PDF Ready", description: "Filtered disbursement summary downloaded." });
   };
 
   const copyEcitizenRef = (ref: string) => {
