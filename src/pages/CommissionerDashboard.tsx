@@ -260,6 +260,7 @@ export default function CommissionerDashboard() {
         setStats({ total: 0, approved: 0, rejected: 0, pending: 0, duplicates: 0, totalAllocated: 0, fairnessPriorityCandidates: 0, redFlagged: 0 });
       }
     }
+    setDataLastFetched(new Date());
     setIsLoading(false);
   };
 
