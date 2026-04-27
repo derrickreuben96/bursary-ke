@@ -390,7 +390,7 @@ export default function CommissionerDashboard() {
     navigate("/");
   };
 
-  const handleGenerateAiSummary = async () => {
+  const runGenerateAiSummary = async () => {
     setGeneratingSummary(true);
     try {
       const { data, error } = await supabase.functions.invoke("admin-summary", {
@@ -402,15 +402,22 @@ export default function CommissionerDashboard() {
       const jurisdiction = jurisdictionParts.length
         ? jurisdictionParts.join(" Ward, ") + (assignedCounty ? " County" : "")
         : "Unassigned jurisdiction";
-      const freshnessTime = new Date().toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" });
+      const freshnessTime = (dataLastFetched ?? new Date()).toLocaleString(
+        pdfLanguage === "sw" ? "sw-KE" : "en-KE",
+        { dateStyle: "medium", timeStyle: "short" },
+      );
+      const freshnessLabel = pdfLanguage === "sw"
+        ? `Picha ya data · ${freshnessTime} (EAT)`
+        : `Live data snapshot · ${freshnessTime} (EAT)`;
       downloadAiSummaryPdf(
         {
           ...data,
           footer: {
-            scopeLabel: "Commissioner Ward Report",
+            scopeLabel: pdfLanguage === "sw" ? "Ripoti ya Kata ya Kamishna" : "Commissioner Ward Report",
             jurisdiction,
-            dataFreshness: `Live data snapshot · ${freshnessTime} (EAT)`,
+            dataFreshness: freshnessLabel,
             portalName: "Bursary-KE · Commissioner Portal",
+            language: pdfLanguage,
           },
         },
         `commissioner-${assignedWard ?? assignedCounty ?? "report"}`,
@@ -424,6 +431,48 @@ export default function CommissionerDashboard() {
       setGeneratingSummary(false);
     }
   };
+
+  const handleGenerateAiSummary = () => setConsentOpen(true);
+
+  const handleDownloadSummaryChartPdf = () => {
+    const jurisdictionParts = [assignedWard, assignedCounty].filter(Boolean);
+    const jurisdiction = jurisdictionParts.length
+      ? jurisdictionParts.join(" Ward, ") + (assignedCounty ? " County" : "")
+      : "Unassigned jurisdiction";
+
+    downloadChartSummaryPdf(
+      {
+        title: pdfLanguage === "sw" ? "Muhtasari wa Mgawanyo wa Maombi" : "Application Distribution Summary",
+        subtitle: jurisdiction,
+        portalName: "Bursary-KE · Commissioner Portal",
+        scopeLabel: pdfLanguage === "sw" ? "Ripoti ya Kata ya Kamishna" : "Commissioner Ward Report",
+        language: pdfLanguage,
+        sections: [
+          {
+            heading: pdfLanguage === "sw" ? "Mgawanyo wa Hali" : "Status Distribution",
+            rows: [
+              { label: pdfLanguage === "sw" ? "Jumla ya Maombi" : "Total Applications", value: stats.total },
+              { label: pdfLanguage === "sw" ? "Yameidhinishwa" : "Approved", value: stats.approved },
+              { label: pdfLanguage === "sw" ? "Yamekataliwa" : "Rejected", value: stats.rejected },
+              { label: pdfLanguage === "sw" ? "Yanayosubiri" : "Pending", value: stats.pending },
+              { label: pdfLanguage === "sw" ? "Marudio" : "Duplicates", value: stats.duplicates },
+            ],
+          },
+          {
+            heading: pdfLanguage === "sw" ? "Muhtasari wa AI" : "AI Allocation Summary",
+            rows: [
+              { label: pdfLanguage === "sw" ? "Jumla Iliyogawanywa (KES)" : "Total Allocated (KES)", value: stats.totalAllocated.toLocaleString() },
+              { label: pdfLanguage === "sw" ? "Vipaumbele vya Haki" : "Fairness Priority Candidates", value: stats.fairnessPriorityCandidates },
+              { label: pdfLanguage === "sw" ? "Vimewekewa Alama Nyekundu" : "Red Flagged", value: stats.redFlagged },
+            ],
+          },
+        ],
+      },
+      `commissioner-summary-${assignedWard ?? assignedCounty ?? "report"}`,
+    );
+    toast({ title: "PDF Ready", description: "Filtered summary downloaded." });
+  };
+
 
   const handleExportPDF = (filter: "all" | "approved" | "rejected") => {
     const appsToExport = filter === "approved" ? approvedApps 
