@@ -658,22 +658,52 @@ export default function CommissionerDashboard() {
               </p>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handleGenerateAiSummary} disabled={generatingSummary}>
-              {generatingSummary ? (
-                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Generating...</>
-              ) : (
-                <><Sparkles className="h-4 w-4 mr-2" />AI PDF Summary</>
-              )}
-            </Button>
-            <Button variant="outline" size="icon" onClick={fetchApplications}>
-              <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
-            </Button>
-            <Button variant="outline" onClick={handleLogout}>
-              <LogOut className="h-4 w-4 mr-2" />Logout
-            </Button>
+          <div className="flex flex-col items-end gap-2">
+            <div className="flex gap-2 flex-wrap justify-end">
+              <Select value={pdfLanguage} onValueChange={(v) => setPdfLanguage(v as "en" | "sw")}>
+                <SelectTrigger className="w-[140px] h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="en">PDF: English</SelectItem>
+                  <SelectItem value="sw">PDF: Kiswahili</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" onClick={handleGenerateAiSummary} disabled={generatingSummary}>
+                {generatingSummary ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Generating...</>
+                ) : (
+                  <><Sparkles className="h-4 w-4 mr-2" />AI PDF Summary</>
+                )}
+              </Button>
+              <Button variant="outline" size="icon" onClick={fetchApplications}>
+                <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+              </Button>
+              <Button variant="outline" onClick={handleLogout}>
+                <LogOut className="h-4 w-4 mr-2" />Logout
+              </Button>
+            </div>
+            {dataLastFetched && (
+              <p className="text-xs text-muted-foreground">
+                Live snapshot as of{" "}
+                <span className="font-medium text-foreground">
+                  {dataLastFetched.toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" })}
+                </span>{" "}
+                (EAT)
+              </p>
+            )}
           </div>
         </div>
+
+        <AiPdfConsentDialog
+          open={consentOpen}
+          onOpenChange={setConsentOpen}
+          onConfirm={() => {
+            setConsentOpen(false);
+            runGenerateAiSummary();
+          }}
+          reportLabel="commissioner ward AI summary"
+        />
 
         {/* Deadline & Action Banner */}
         {activeAdvert && (
