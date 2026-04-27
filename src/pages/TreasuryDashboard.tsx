@@ -100,7 +100,20 @@ export default function TreasuryDashboard() {
       });
       if (error) throw error;
       if (!data?.summary) throw new Error("No summary returned");
-      downloadAiSummaryPdf(data, `treasury-${assignedCounty ?? "report"}`);
+      const jurisdiction = assignedCounty ? `${assignedCounty} County` : "Unassigned county";
+      const freshnessTime = new Date().toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" });
+      downloadAiSummaryPdf(
+        {
+          ...data,
+          footer: {
+            scopeLabel: "Treasury County Disbursement Report",
+            jurisdiction,
+            dataFreshness: `Live data snapshot · ${freshnessTime} (EAT)`,
+            portalName: "Bursary-KE · Treasury Portal",
+          },
+        },
+        `treasury-${assignedCounty ?? "report"}`,
+      );
       toast({ title: "AI Summary Ready", description: "Your PDF report has been downloaded." });
     } catch (e) {
       console.error(e);
