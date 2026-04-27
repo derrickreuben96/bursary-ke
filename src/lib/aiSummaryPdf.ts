@@ -1,5 +1,7 @@
 import jsPDF from "jspdf";
 
+export type AiSummaryLanguage = "en" | "sw";
+
 export interface AiSummaryFooterMeta {
   /** Display label for the report scope (e.g. "Commissioner Ward Report"). */
   scopeLabel?: string;
@@ -9,6 +11,8 @@ export interface AiSummaryFooterMeta {
   dataFreshness?: string;
   /** Optional org/portal name shown on the brand strip. */
   portalName?: string;
+  /** Footer text language. Defaults to English. */
+  language?: AiSummaryLanguage;
 }
 
 export interface AiSummaryPayload {
@@ -20,6 +24,40 @@ export interface AiSummaryPayload {
   /** Optional footer metadata. When omitted, a generic footer is rendered. */
   footer?: AiSummaryFooterMeta;
 }
+
+/** Bilingual labels used for footer rendering. */
+const FOOTER_I18N = {
+  en: {
+    jurisdiction: "Jurisdiction",
+    generated: "Generated",
+    page: (i: number, total: number) => `Page ${i} of ${total}`,
+    disclaimer:
+      "AI-generated summary based on aggregated, anonymised data. No PII included. Confidential — for authorised use only.",
+    scope: {
+      system: "System-wide Overview",
+      advert: "Advert Report",
+      commissioner: "Commissioner Ward Report",
+      treasury: "Treasury County Report",
+    } as Record<AiSummaryPayload["scope"], string>,
+    allJurisdictions: "All jurisdictions",
+    snapshot: (when: string) => `Snapshot captured ${when}`,
+  },
+  sw: {
+    jurisdiction: "Mamlaka",
+    generated: "Imetolewa",
+    page: (i: number, total: number) => `Ukurasa ${i} kati ya ${total}`,
+    disclaimer:
+      "Muhtasari uliotolewa na AI kwa kutumia data iliyokusanywa bila vitambulisho. Hakuna PII. Siri — kwa matumizi rasmi pekee.",
+    scope: {
+      system: "Muhtasari wa Mfumo Mzima",
+      advert: "Ripoti ya Tangazo",
+      commissioner: "Ripoti ya Kata ya Kamishna",
+      treasury: "Ripoti ya Hazina ya Kaunti",
+    } as Record<AiSummaryPayload["scope"], string>,
+    allJurisdictions: "Mamlaka zote",
+    snapshot: (when: string) => `Picha ya data ilichukuliwa ${when}`,
+  },
+} as const;
 
 /**
  * Renders an AI-generated executive summary into a downloadable PDF.
