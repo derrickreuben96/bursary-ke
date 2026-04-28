@@ -140,6 +140,32 @@ function renderChartSummary(payload: ChartPdfPayload): jsPDF {
   doc.line(marginX, y, marginX + maxWidth, y);
   y += 18;
 
+  // Applied filters audit block
+  if (payload.appliedFilters && payload.appliedFilters.length) {
+    ensureSpace(40);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(20);
+    doc.text(i.appliedFilters, marginX, y);
+    y += 12;
+    doc.setDrawColor(0, 102, 0);
+    doc.setLineWidth(0.5);
+    doc.line(marginX, y, marginX + maxWidth, y);
+    y += 12;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    for (const f of payload.appliedFilters) {
+      ensureSpace(14);
+      doc.setTextColor(80);
+      doc.text(`${f.label}:`, marginX, y);
+      doc.setTextColor(20);
+      const valueText = f.value && f.value.trim().length ? f.value : i.none;
+      doc.text(valueText, marginX + 160, y, { maxWidth: maxWidth - 160 });
+      y += 14;
+    }
+    y += 8;
+  }
+
   // Sections
   for (const section of payload.sections) {
     ensureSpace(60);
