@@ -751,12 +751,34 @@ export default function CommissionerDashboard() {
 
         <AiPdfConsentDialog
           open={consentOpen}
-          onOpenChange={setConsentOpen}
-          onConfirm={() => {
-            setConsentOpen(false);
-            runGenerateAiSummary();
+          onOpenChange={(o) => {
+            setConsentOpen(o);
+            if (!o) setPendingAction(null);
           }}
-          reportLabel="commissioner ward AI summary"
+          onConfirm={handleConsentConfirmed}
+          reportLabel={
+            pendingAction === "chart"
+              ? "filtered chart summary PDF"
+              : "commissioner ward AI summary"
+          }
+        />
+
+        <AiPdfPreviewDialog
+          open={previewOpen}
+          onOpenChange={(o) => {
+            setPreviewOpen(o);
+            if (!o) setAiPayload(null);
+          }}
+          buildDoc={aiPayload ? () => generateAiSummaryPdf(aiPayload) : null}
+          filename={
+            aiPayload
+              ? aiSummaryPdfFilename(
+                  aiPayload,
+                  `commissioner-${assignedWard ?? assignedCounty ?? "report"}`,
+                )
+              : "report.pdf"
+          }
+          title={pdfLanguage === "sw" ? "Hakiki Ripoti ya AI" : "Preview AI Report"}
         />
 
         {/* Deadline & Action Banner */}
