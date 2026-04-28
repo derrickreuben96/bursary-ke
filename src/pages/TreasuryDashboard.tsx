@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { TreasurySummaryCards } from "@/components/treasury/TreasurySummaryCards";
 import { generateAiSummaryPdf, aiSummaryPdfFilename, type AiSummaryPayload } from "@/lib/aiSummaryPdf";
-import { downloadChartSummaryPdf, type ChartPdfPayload } from "@/lib/chartSummaryPdf";
+import { buildChartSummaryDoc, chartSummaryPdfFilename, type ChartPdfPayload } from "@/lib/chartSummaryPdf";
 import { AiPdfConsentDialog } from "@/components/ai/AiPdfConsentDialog";
 import { AiPdfPreviewDialog } from "@/components/ai/AiPdfPreviewDialog";
 import { useI18n } from "@/lib/i18n";
@@ -48,6 +48,8 @@ export default function TreasuryDashboard() {
   const [pendingAction, setPendingAction] = useState<"ai" | "chart" | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [aiPayload, setAiPayload] = useState<AiSummaryPayload | null>(null);
+  const [chartPreviewOpen, setChartPreviewOpen] = useState(false);
+  const [chartPayload, setChartPayload] = useState<ChartPdfPayload | null>(null);
   const { signOut, user } = useAuth();
   const { toast } = useToast();
   const { language: uiLanguage } = useI18n();
@@ -217,8 +219,8 @@ export default function TreasuryDashboard() {
   };
 
   const runDownloadChartPdf = () => {
-    downloadChartSummaryPdf(buildChartPayload(), `treasury-summary-${assignedCounty ?? "report"}`);
-    toast({ title: "PDF Ready", description: "Filtered disbursement summary downloaded." });
+    setChartPayload(buildChartPayload());
+    setChartPreviewOpen(true);
   };
 
   const handleDownloadDisbursementChartPdf = () => {
@@ -446,6 +448,21 @@ export default function TreasuryDashboard() {
               : "report.pdf"
           }
           title={pdfLanguage === "sw" ? "Hakiki Ripoti ya AI" : "Preview AI Report"}
+        />
+
+        <AiPdfPreviewDialog
+          open={chartPreviewOpen}
+          onOpenChange={(o) => {
+            setChartPreviewOpen(o);
+            if (!o) setChartPayload(null);
+          }}
+          buildDoc={chartPayload ? () => buildChartSummaryDoc(chartPayload) : null}
+          filename={
+            chartPayload
+              ? chartSummaryPdfFilename(chartPayload, `treasury-summary-${assignedCounty ?? "report"}`)
+              : "chart.pdf"
+          }
+          title={pdfLanguage === "sw" ? "Hakiki Muhtasari wa Chati" : "Preview Chart Summary"}
         />
 
         <div className="flex justify-between items-center mb-2">

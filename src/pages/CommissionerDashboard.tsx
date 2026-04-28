@@ -16,7 +16,7 @@ import {
   ShieldAlert, Star, History, Send, Play, Inbox, Archive, FileDown, Sparkles
 } from "lucide-react";
 import { generateAiSummaryPdf, aiSummaryPdfFilename, type AiSummaryPayload } from "@/lib/aiSummaryPdf";
-import { downloadChartSummaryPdf, type ChartPdfPayload } from "@/lib/chartSummaryPdf";
+import { buildChartSummaryDoc, chartSummaryPdfFilename, type ChartPdfPayload } from "@/lib/chartSummaryPdf";
 import { AiPdfConsentDialog } from "@/components/ai/AiPdfConsentDialog";
 import { AiPdfPreviewDialog } from "@/components/ai/AiPdfPreviewDialog";
 import { useI18n } from "@/lib/i18n";
@@ -138,6 +138,8 @@ export default function CommissionerDashboard() {
   const [pendingAction, setPendingAction] = useState<"ai" | "chart" | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [aiPayload, setAiPayload] = useState<AiSummaryPayload | null>(null);
+  const [chartPreviewOpen, setChartPreviewOpen] = useState(false);
+  const [chartPayload, setChartPayload] = useState<ChartPdfPayload | null>(null);
   const { signOut, user } = useAuth();
   const { toast } = useToast();
   const { language: uiLanguage } = useI18n();
@@ -507,11 +509,8 @@ export default function CommissionerDashboard() {
   });
 
   const runDownloadChartPdf = () => {
-    downloadChartSummaryPdf(
-      buildChartPayload(),
-      `commissioner-summary-${assignedWard ?? assignedCounty ?? "report"}`,
-    );
-    toast({ title: "PDF Ready", description: "Filtered summary downloaded." });
+    setChartPayload(buildChartPayload());
+    setChartPreviewOpen(true);
   };
 
   const handleDownloadSummaryChartPdf = () => {
@@ -779,6 +778,24 @@ export default function CommissionerDashboard() {
               : "report.pdf"
           }
           title={pdfLanguage === "sw" ? "Hakiki Ripoti ya AI" : "Preview AI Report"}
+        />
+
+        <AiPdfPreviewDialog
+          open={chartPreviewOpen}
+          onOpenChange={(o) => {
+            setChartPreviewOpen(o);
+            if (!o) setChartPayload(null);
+          }}
+          buildDoc={chartPayload ? () => buildChartSummaryDoc(chartPayload) : null}
+          filename={
+            chartPayload
+              ? chartSummaryPdfFilename(
+                  chartPayload,
+                  `commissioner-summary-${assignedWard ?? assignedCounty ?? "report"}`,
+                )
+              : "chart.pdf"
+          }
+          title={pdfLanguage === "sw" ? "Hakiki Muhtasari wa Chati" : "Preview Chart Summary"}
         />
 
         {/* Deadline & Action Banner */}
