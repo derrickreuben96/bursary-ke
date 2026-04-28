@@ -211,10 +211,6 @@ function renderChartSummary(payload: ChartPdfPayload): jsPDF {
     doc.text(`${p} / ${pageCount}`, marginX + maxWidth, 815, { align: "right" });
   }
 
-  const safe = (filenameHint ?? payload.title)
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 60);
-  doc.save(`bursary-ke-chart-${safe || "summary"}.pdf`);
+  return doc;
 }
+
