@@ -40,6 +40,8 @@ const I18N = {
     metric: "Metric",
     value: "Value",
     notes: "Notes",
+    appliedFilters: "Applied Filters",
+    none: "None",
     disclaimer:
       "Snapshot of currently filtered data. Aggregated, anonymised — no PII included.",
   },
@@ -49,15 +51,35 @@ const I18N = {
     metric: "Kipimo",
     value: "Thamani",
     notes: "Maelezo",
+    appliedFilters: "Vichujio Vilivyotumika",
+    none: "Hakuna",
     disclaimer:
       "Picha ya data iliyochujwa kwa sasa. Imekusanywa bila vitambulisho — hakuna PII.",
   },
 } as const;
 
+export function chartSummaryPdfFilename(payload: ChartPdfPayload, filenameHint?: string): string {
+  const safe = (filenameHint ?? payload.title)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+  return `bursary-ke-chart-${safe || "summary"}.pdf`;
+}
+
+export function buildChartSummaryDoc(payload: ChartPdfPayload): jsPDF {
+  return renderChartSummary(payload);
+}
+
 export function downloadChartSummaryPdf(
   payload: ChartPdfPayload,
   filenameHint?: string,
 ): void {
+  const doc = renderChartSummary(payload);
+  doc.save(chartSummaryPdfFilename(payload, filenameHint));
+}
+
+function renderChartSummary(payload: ChartPdfPayload): jsPDF {
   const lang: AiSummaryLanguage = payload.language ?? "en";
   const i = I18N[lang];
   const doc = new jsPDF({ unit: "pt", format: "a4" });
