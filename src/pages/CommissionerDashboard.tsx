@@ -509,11 +509,8 @@ export default function CommissionerDashboard() {
   });
 
   const runDownloadChartPdf = () => {
-    downloadChartSummaryPdf(
-      buildChartPayload(),
-      `commissioner-summary-${assignedWard ?? assignedCounty ?? "report"}`,
-    );
-    toast({ title: "PDF Ready", description: "Filtered summary downloaded." });
+    setChartPayload(buildChartPayload());
+    setChartPreviewOpen(true);
   };
 
   const handleDownloadSummaryChartPdf = () => {
