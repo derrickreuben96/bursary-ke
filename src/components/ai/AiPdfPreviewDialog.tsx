@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Download, FileSearch } from "lucide-react";
+import { Download, FileSearch, Loader2, AlertTriangle, ExternalLink } from "lucide-react";
 import type jsPDF from "jspdf";
 
 interface AiPdfPreviewDialogProps {
@@ -33,26 +33,58 @@ export function AiPdfPreviewDialog({
   title = "Preview report",
 }: AiPdfPreviewDialogProps) {
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [status, setStatus] = useState<"idle" | "building" | "loading" | "ready" | "error">("idle");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open || !buildDoc) {
       return;
     }
-    const doc = buildDoc();
-    const blob = doc.output("blob");
-    const url = URL.createObjectURL(blob);
-    setBlobUrl(url);
+    setStatus("building");
+    setErrorMsg(null);
+    setBlobUrl(null);
+
+    let url: string | null = null;
+    // Defer to next tick so the spinner paints before the (potentially heavy) PDF build.
+    const handle = window.setTimeout(() => {
+      try {
+        const doc = buildDoc();
+        const blob = doc.output("blob");
+        url = URL.createObjectURL(blob);
+        setBlobUrl(url);
+        setStatus("loading");
+      } catch (e) {
+        console.error("PDF preview build failed:", e);
+        setErrorMsg(e instanceof Error ? e.message : "Failed to build preview.");
+        setStatus("error");
+      }
+    }, 30);
+
     return () => {
-      URL.revokeObjectURL(url);
+      window.clearTimeout(handle);
+      if (url) URL.revokeObjectURL(url);
       setBlobUrl(null);
+      setStatus("idle");
     };
   }, [open, buildDoc]);
 
   const handleDownload = () => {
     if (!buildDoc) return;
-    const doc = buildDoc();
-    doc.save(filename);
+    try {
+      const doc = buildDoc();
+      doc.save(filename);
+    } catch (e) {
+      console.error("PDF download failed:", e);
+      setErrorMsg(e instanceof Error ? e.message : "Failed to download PDF.");
+      setStatus("error");
+    }
   };
+
+  const openInNewTab = () => {
+    if (blobUrl) window.open(blobUrl, "_blank", "noopener,noreferrer");
+  };
+
+  const showOverlay = status === "building" || status === "loading";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -68,17 +100,46 @@ export function AiPdfPreviewDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 min-h-0 rounded-md border border-border bg-muted/30 overflow-hidden">
-          {blobUrl ? (
-            <iframe
-              src={blobUrl}
-              title="PDF preview"
-              className="w-full h-full"
-            />
-          ) : (
-            <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
-              Preparing preview…
+        <div className="flex-1 min-h-0 rounded-md border border-border bg-muted/30 overflow-hidden relative">
+          {status === "error" ? (
+            <div className="flex flex-col items-center justify-center h-full gap-3 px-6 text-center">
+              <AlertTriangle className="h-8 w-8 text-destructive" />
+              <p className="text-sm font-medium text-foreground">
+                Couldn't render the preview
+              </p>
+              <p className="text-xs text-muted-foreground max-w-md">
+                {errorMsg ?? "Unknown error while building the PDF."} You can
+                still try downloading the file directly.
+              </p>
             </div>
+          ) : (
+            <>
+              {blobUrl && (
+                <iframe
+                  src={blobUrl}
+                  title="PDF preview"
+                  className="w-full h-full"
+                  onLoad={() => setStatus("ready")}
+                  onError={() => {
+                    setErrorMsg("Browser failed to render the PDF preview.");
+                    setStatus("error");
+                  }}
+                />
+              )}
+              {showOverlay && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-muted/60 backdrop-blur-sm">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <p className="text-sm font-medium text-foreground">
+                    {status === "building"
+                      ? "Building PDF…"
+                      : "Loading preview…"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    This may take a moment for large reports.
+                  </p>
+                </div>
+              )}
+            </>
           )}
         </div>
 
@@ -86,7 +147,13 @@ export function AiPdfPreviewDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Close
           </Button>
-          <Button onClick={handleDownload} disabled={!blobUrl}>
+          {blobUrl && status !== "error" && (
+            <Button variant="outline" onClick={openInNewTab}>
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Open in new tab
+            </Button>
+          )}
+          <Button onClick={handleDownload} disabled={!buildDoc || status === "building"}>
             <Download className="h-4 w-4 mr-2" />
             Download PDF
           </Button>
