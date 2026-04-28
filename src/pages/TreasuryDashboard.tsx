@@ -16,9 +16,10 @@ import {
   Loader2, RefreshCw, Copy, FileText, CheckCircle2, Sparkles, FileDown
 } from "lucide-react";
 import { TreasurySummaryCards } from "@/components/treasury/TreasurySummaryCards";
-import { downloadAiSummaryPdf } from "@/lib/aiSummaryPdf";
-import { downloadChartSummaryPdf } from "@/lib/chartSummaryPdf";
+import { generateAiSummaryPdf, aiSummaryPdfFilename, type AiSummaryPayload } from "@/lib/aiSummaryPdf";
+import { downloadChartSummaryPdf, type ChartPdfPayload } from "@/lib/chartSummaryPdf";
 import { AiPdfConsentDialog } from "@/components/ai/AiPdfConsentDialog";
+import { AiPdfPreviewDialog } from "@/components/ai/AiPdfPreviewDialog";
 import { useI18n } from "@/lib/i18n";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
