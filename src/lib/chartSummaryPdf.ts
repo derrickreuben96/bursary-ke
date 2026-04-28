@@ -11,6 +11,11 @@ export interface ChartPdfSection {
   rows: ChartPdfRow[];
 }
 
+export interface ChartPdfFilter {
+  label: string;
+  value: string;
+}
+
 export interface ChartPdfPayload {
   /** Top-level title (e.g. "Application Distribution"). */
   title: string;
@@ -20,6 +25,8 @@ export interface ChartPdfPayload {
   portalName?: string;
   /** Scope label printed below the title. */
   scopeLabel?: string;
+  /** Currently applied filters — printed in an audit block before the data tables. */
+  appliedFilters?: ChartPdfFilter[];
   sections: ChartPdfSection[];
   /** Optional free-form notes printed under the tables. */
   notes?: string[];
