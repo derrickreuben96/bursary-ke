@@ -134,6 +134,10 @@ export default function CommissionerDashboard() {
   const [dataLastFetched, setDataLastFetched] = useState<Date | null>(null);
   const [pdfLanguage, setPdfLanguage] = useState<"en" | "sw">("en");
   const [consentOpen, setConsentOpen] = useState(false);
+  /** Which action triggered the consent dialog. */
+  const [pendingAction, setPendingAction] = useState<"ai" | "chart" | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [aiPayload, setAiPayload] = useState<AiSummaryPayload | null>(null);
   const { signOut, user } = useAuth();
   const { toast } = useToast();
   const { language: uiLanguage } = useI18n();
