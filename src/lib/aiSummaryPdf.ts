@@ -238,12 +238,16 @@ export function generateAiSummaryPdf(payload: AiSummaryPayload): jsPDF {
   return doc;
 }
 
-export function downloadAiSummaryPdf(payload: AiSummaryPayload, filenameHint?: string): void {
-  const doc = generateAiSummaryPdf(payload);
+export function aiSummaryPdfFilename(payload: AiSummaryPayload, filenameHint?: string): string {
   const safeName = (filenameHint ?? payload.title)
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 60);
-  doc.save(`bursary-ke-summary-${safeName || "report"}.pdf`);
+  return `bursary-ke-summary-${safeName || "report"}.pdf`;
+}
+
+export function downloadAiSummaryPdf(payload: AiSummaryPayload, filenameHint?: string): void {
+  const doc = generateAiSummaryPdf(payload);
+  doc.save(aiSummaryPdfFilename(payload, filenameHint));
 }

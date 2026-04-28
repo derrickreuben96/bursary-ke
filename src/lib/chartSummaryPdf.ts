@@ -11,6 +11,11 @@ export interface ChartPdfSection {
   rows: ChartPdfRow[];
 }
 
+export interface ChartPdfFilter {
+  label: string;
+  value: string;
+}
+
 export interface ChartPdfPayload {
   /** Top-level title (e.g. "Application Distribution"). */
   title: string;
@@ -20,6 +25,8 @@ export interface ChartPdfPayload {
   portalName?: string;
   /** Scope label printed below the title. */
   scopeLabel?: string;
+  /** Currently applied filters — printed in an audit block before the data tables. */
+  appliedFilters?: ChartPdfFilter[];
   sections: ChartPdfSection[];
   /** Optional free-form notes printed under the tables. */
   notes?: string[];
@@ -33,6 +40,8 @@ const I18N = {
     metric: "Metric",
     value: "Value",
     notes: "Notes",
+    appliedFilters: "Applied Filters",
+    none: "None",
     disclaimer:
       "Snapshot of currently filtered data. Aggregated, anonymised — no PII included.",
   },
@@ -42,15 +51,35 @@ const I18N = {
     metric: "Kipimo",
     value: "Thamani",
     notes: "Maelezo",
+    appliedFilters: "Vichujio Vilivyotumika",
+    none: "Hakuna",
     disclaimer:
       "Picha ya data iliyochujwa kwa sasa. Imekusanywa bila vitambulisho — hakuna PII.",
   },
 } as const;
 
+export function chartSummaryPdfFilename(payload: ChartPdfPayload, filenameHint?: string): string {
+  const safe = (filenameHint ?? payload.title)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+  return `bursary-ke-chart-${safe || "summary"}.pdf`;
+}
+
+export function buildChartSummaryDoc(payload: ChartPdfPayload): jsPDF {
+  return renderChartSummary(payload);
+}
+
 export function downloadChartSummaryPdf(
   payload: ChartPdfPayload,
   filenameHint?: string,
 ): void {
+  const doc = renderChartSummary(payload);
+  doc.save(chartSummaryPdfFilename(payload, filenameHint));
+}
+
+function renderChartSummary(payload: ChartPdfPayload): jsPDF {
   const lang: AiSummaryLanguage = payload.language ?? "en";
   const i = I18N[lang];
   const doc = new jsPDF({ unit: "pt", format: "a4" });
@@ -110,6 +139,32 @@ export function downloadChartSummaryPdf(
   doc.setLineWidth(1);
   doc.line(marginX, y, marginX + maxWidth, y);
   y += 18;
+
+  // Applied filters audit block
+  if (payload.appliedFilters && payload.appliedFilters.length) {
+    ensureSpace(40);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(20);
+    doc.text(i.appliedFilters, marginX, y);
+    y += 12;
+    doc.setDrawColor(0, 102, 0);
+    doc.setLineWidth(0.5);
+    doc.line(marginX, y, marginX + maxWidth, y);
+    y += 12;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    for (const f of payload.appliedFilters) {
+      ensureSpace(14);
+      doc.setTextColor(80);
+      doc.text(`${f.label}:`, marginX, y);
+      doc.setTextColor(20);
+      const valueText = f.value && f.value.trim().length ? f.value : i.none;
+      doc.text(valueText, marginX + 160, y, { maxWidth: maxWidth - 160 });
+      y += 14;
+    }
+    y += 8;
+  }
 
   // Sections
   for (const section of payload.sections) {
@@ -182,10 +237,6 @@ export function downloadChartSummaryPdf(
     doc.text(`${p} / ${pageCount}`, marginX + maxWidth, 815, { align: "right" });
   }
 
-  const safe = (filenameHint ?? payload.title)
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 60);
-  doc.save(`bursary-ke-chart-${safe || "summary"}.pdf`);
+  return doc;
 }
+

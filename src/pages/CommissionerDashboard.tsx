@@ -15,9 +15,10 @@ import {
   Loader2, RefreshCw, AlertTriangle, BarChart3, Users, Banknote,
   ShieldAlert, Star, History, Send, Play, Inbox, Archive, FileDown, Sparkles
 } from "lucide-react";
-import { downloadAiSummaryPdf } from "@/lib/aiSummaryPdf";
-import { downloadChartSummaryPdf } from "@/lib/chartSummaryPdf";
+import { generateAiSummaryPdf, aiSummaryPdfFilename, type AiSummaryPayload } from "@/lib/aiSummaryPdf";
+import { downloadChartSummaryPdf, type ChartPdfPayload } from "@/lib/chartSummaryPdf";
 import { AiPdfConsentDialog } from "@/components/ai/AiPdfConsentDialog";
+import { AiPdfPreviewDialog } from "@/components/ai/AiPdfPreviewDialog";
 import { useI18n } from "@/lib/i18n";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
@@ -133,6 +134,10 @@ export default function CommissionerDashboard() {
   const [dataLastFetched, setDataLastFetched] = useState<Date | null>(null);
   const [pdfLanguage, setPdfLanguage] = useState<"en" | "sw">("en");
   const [consentOpen, setConsentOpen] = useState(false);
+  /** Which action triggered the consent dialog. */
+  const [pendingAction, setPendingAction] = useState<"ai" | "chart" | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [aiPayload, setAiPayload] = useState<AiSummaryPayload | null>(null);
   const { signOut, user } = useAuth();
   const { toast } = useToast();
   const { language: uiLanguage } = useI18n();
@@ -390,6 +395,46 @@ export default function CommissionerDashboard() {
     navigate("/");
   };
 
+  const buildJurisdiction = () => {
+    const parts = [assignedWard, assignedCounty].filter(Boolean);
+    return parts.length
+      ? parts.join(" Ward, ") + (assignedCounty ? " County" : "")
+      : "Unassigned jurisdiction";
+  };
+
+  const buildAppliedFilters = () => {
+    const tabLabels: Record<string, { en: string; sw: string }> = {
+      incoming: { en: "Incoming", sw: "Yanayoingia" },
+      summary: { en: "Summary", sw: "Muhtasari" },
+      approved: { en: "Approved", sw: "Yameidhinishwa" },
+      rejected: { en: "Rejected", sw: "Yamekataliwa" },
+      archive: { en: "Audit Archive", sw: "Kumbukumbu" },
+    };
+    const tab = tabLabels[activeTab] ?? { en: activeTab, sw: activeTab };
+    return [
+      {
+        label: pdfLanguage === "sw" ? "Kata Iliyokabidhiwa" : "Assigned Ward",
+        value: assignedWard ?? "—",
+      },
+      {
+        label: pdfLanguage === "sw" ? "Kaunti Iliyokabidhiwa" : "Assigned County",
+        value: assignedCounty ?? "—",
+      },
+      {
+        label: pdfLanguage === "sw" ? "Kichupo Kinachoonekana" : "Active Tab",
+        value: pdfLanguage === "sw" ? tab.sw : tab.en,
+      },
+      {
+        label: pdfLanguage === "sw" ? "Tangazo Linalotumika" : "Active Advert",
+        value: activeAdvert?.title ?? "—",
+      },
+      {
+        label: pdfLanguage === "sw" ? "Lugha ya Ripoti" : "Report Language",
+        value: pdfLanguage === "sw" ? "Kiswahili" : "English",
+      },
+    ];
+  };
+
   const runGenerateAiSummary = async () => {
     setGeneratingSummary(true);
     try {
@@ -398,10 +443,7 @@ export default function CommissionerDashboard() {
       });
       if (error) throw error;
       if (!data?.summary) throw new Error("No summary returned");
-      const jurisdictionParts = [assignedWard, assignedCounty].filter(Boolean);
-      const jurisdiction = jurisdictionParts.length
-        ? jurisdictionParts.join(" Ward, ") + (assignedCounty ? " County" : "")
-        : "Unassigned jurisdiction";
+      const jurisdiction = buildJurisdiction();
       const freshnessTime = (dataLastFetched ?? new Date()).toLocaleString(
         pdfLanguage === "sw" ? "sw-KE" : "en-KE",
         { dateStyle: "medium", timeStyle: "short" },
@@ -409,20 +451,18 @@ export default function CommissionerDashboard() {
       const freshnessLabel = pdfLanguage === "sw"
         ? `Picha ya data · ${freshnessTime} (EAT)`
         : `Live data snapshot · ${freshnessTime} (EAT)`;
-      downloadAiSummaryPdf(
-        {
-          ...data,
-          footer: {
-            scopeLabel: pdfLanguage === "sw" ? "Ripoti ya Kata ya Kamishna" : "Commissioner Ward Report",
-            jurisdiction,
-            dataFreshness: freshnessLabel,
-            portalName: "Bursary-KE · Commissioner Portal",
-            language: pdfLanguage,
-          },
+      const payload: AiSummaryPayload = {
+        ...data,
+        footer: {
+          scopeLabel: pdfLanguage === "sw" ? "Ripoti ya Kata ya Kamishna" : "Commissioner Ward Report",
+          jurisdiction,
+          dataFreshness: freshnessLabel,
+          portalName: "Bursary-KE · Commissioner Portal",
+          language: pdfLanguage,
         },
-        `commissioner-${assignedWard ?? assignedCounty ?? "report"}`,
-      );
-      toast({ title: "AI Summary Ready", description: "Your PDF report has been downloaded." });
+      };
+      setAiPayload(payload);
+      setPreviewOpen(true);
     } catch (e) {
       console.error(e);
       const message = e instanceof Error ? e.message : "Failed to generate summary";
@@ -432,45 +472,59 @@ export default function CommissionerDashboard() {
     }
   };
 
-  const handleGenerateAiSummary = () => setConsentOpen(true);
+  const handleGenerateAiSummary = () => {
+    setPendingAction("ai");
+    setConsentOpen(true);
+  };
 
-  const handleDownloadSummaryChartPdf = () => {
-    const jurisdictionParts = [assignedWard, assignedCounty].filter(Boolean);
-    const jurisdiction = jurisdictionParts.length
-      ? jurisdictionParts.join(" Ward, ") + (assignedCounty ? " County" : "")
-      : "Unassigned jurisdiction";
-
-    downloadChartSummaryPdf(
+  const buildChartPayload = (): ChartPdfPayload => ({
+    title: pdfLanguage === "sw" ? "Muhtasari wa Mgawanyo wa Maombi" : "Application Distribution Summary",
+    subtitle: buildJurisdiction(),
+    portalName: "Bursary-KE · Commissioner Portal",
+    scopeLabel: pdfLanguage === "sw" ? "Ripoti ya Kata ya Kamishna" : "Commissioner Ward Report",
+    language: pdfLanguage,
+    appliedFilters: buildAppliedFilters(),
+    sections: [
       {
-        title: pdfLanguage === "sw" ? "Muhtasari wa Mgawanyo wa Maombi" : "Application Distribution Summary",
-        subtitle: jurisdiction,
-        portalName: "Bursary-KE · Commissioner Portal",
-        scopeLabel: pdfLanguage === "sw" ? "Ripoti ya Kata ya Kamishna" : "Commissioner Ward Report",
-        language: pdfLanguage,
-        sections: [
-          {
-            heading: pdfLanguage === "sw" ? "Mgawanyo wa Hali" : "Status Distribution",
-            rows: [
-              { label: pdfLanguage === "sw" ? "Jumla ya Maombi" : "Total Applications", value: stats.total },
-              { label: pdfLanguage === "sw" ? "Yameidhinishwa" : "Approved", value: stats.approved },
-              { label: pdfLanguage === "sw" ? "Yamekataliwa" : "Rejected", value: stats.rejected },
-              { label: pdfLanguage === "sw" ? "Yanayosubiri" : "Pending", value: stats.pending },
-              { label: pdfLanguage === "sw" ? "Marudio" : "Duplicates", value: stats.duplicates },
-            ],
-          },
-          {
-            heading: pdfLanguage === "sw" ? "Muhtasari wa AI" : "AI Allocation Summary",
-            rows: [
-              { label: pdfLanguage === "sw" ? "Jumla Iliyogawanywa (KES)" : "Total Allocated (KES)", value: stats.totalAllocated.toLocaleString() },
-              { label: pdfLanguage === "sw" ? "Vipaumbele vya Haki" : "Fairness Priority Candidates", value: stats.fairnessPriorityCandidates },
-              { label: pdfLanguage === "sw" ? "Vimewekewa Alama Nyekundu" : "Red Flagged", value: stats.redFlagged },
-            ],
-          },
+        heading: pdfLanguage === "sw" ? "Mgawanyo wa Hali" : "Status Distribution",
+        rows: [
+          { label: pdfLanguage === "sw" ? "Jumla ya Maombi" : "Total Applications", value: stats.total },
+          { label: pdfLanguage === "sw" ? "Yameidhinishwa" : "Approved", value: stats.approved },
+          { label: pdfLanguage === "sw" ? "Yamekataliwa" : "Rejected", value: stats.rejected },
+          { label: pdfLanguage === "sw" ? "Yanayosubiri" : "Pending", value: stats.pending },
+          { label: pdfLanguage === "sw" ? "Marudio" : "Duplicates", value: stats.duplicates },
         ],
       },
+      {
+        heading: pdfLanguage === "sw" ? "Muhtasari wa AI" : "AI Allocation Summary",
+        rows: [
+          { label: pdfLanguage === "sw" ? "Jumla Iliyogawanywa (KES)" : "Total Allocated (KES)", value: stats.totalAllocated.toLocaleString() },
+          { label: pdfLanguage === "sw" ? "Vipaumbele vya Haki" : "Fairness Priority Candidates", value: stats.fairnessPriorityCandidates },
+          { label: pdfLanguage === "sw" ? "Vimewekewa Alama Nyekundu" : "Red Flagged", value: stats.redFlagged },
+        ],
+      },
+    ],
+  });
+
+  const runDownloadChartPdf = () => {
+    downloadChartSummaryPdf(
+      buildChartPayload(),
       `commissioner-summary-${assignedWard ?? assignedCounty ?? "report"}`,
     );
     toast({ title: "PDF Ready", description: "Filtered summary downloaded." });
+  };
+
+  const handleDownloadSummaryChartPdf = () => {
+    setPendingAction("chart");
+    setConsentOpen(true);
+  };
+
+  const handleConsentConfirmed = () => {
+    setConsentOpen(false);
+    const action = pendingAction;
+    setPendingAction(null);
+    if (action === "ai") runGenerateAiSummary();
+    else if (action === "chart") runDownloadChartPdf();
   };
 
 
@@ -697,12 +751,34 @@ export default function CommissionerDashboard() {
 
         <AiPdfConsentDialog
           open={consentOpen}
-          onOpenChange={setConsentOpen}
-          onConfirm={() => {
-            setConsentOpen(false);
-            runGenerateAiSummary();
+          onOpenChange={(o) => {
+            setConsentOpen(o);
+            if (!o) setPendingAction(null);
           }}
-          reportLabel="commissioner ward AI summary"
+          onConfirm={handleConsentConfirmed}
+          reportLabel={
+            pendingAction === "chart"
+              ? "filtered chart summary PDF"
+              : "commissioner ward AI summary"
+          }
+        />
+
+        <AiPdfPreviewDialog
+          open={previewOpen}
+          onOpenChange={(o) => {
+            setPreviewOpen(o);
+            if (!o) setAiPayload(null);
+          }}
+          buildDoc={aiPayload ? () => generateAiSummaryPdf(aiPayload) : null}
+          filename={
+            aiPayload
+              ? aiSummaryPdfFilename(
+                  aiPayload,
+                  `commissioner-${assignedWard ?? assignedCounty ?? "report"}`,
+                )
+              : "report.pdf"
+          }
+          title={pdfLanguage === "sw" ? "Hakiki Ripoti ya AI" : "Preview AI Report"}
         />
 
         {/* Deadline & Action Banner */}
