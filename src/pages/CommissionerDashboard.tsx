@@ -780,6 +780,24 @@ export default function CommissionerDashboard() {
           title={pdfLanguage === "sw" ? "Hakiki Ripoti ya AI" : "Preview AI Report"}
         />
 
+        <AiPdfPreviewDialog
+          open={chartPreviewOpen}
+          onOpenChange={(o) => {
+            setChartPreviewOpen(o);
+            if (!o) setChartPayload(null);
+          }}
+          buildDoc={chartPayload ? () => buildChartSummaryDoc(chartPayload) : null}
+          filename={
+            chartPayload
+              ? chartSummaryPdfFilename(
+                  chartPayload,
+                  `commissioner-summary-${assignedWard ?? assignedCounty ?? "report"}`,
+                )
+              : "chart.pdf"
+          }
+          title={pdfLanguage === "sw" ? "Hakiki Muhtasari wa Chati" : "Preview Chart Summary"}
+        />
+
         {/* Deadline & Action Banner */}
         {activeAdvert && (
           <Card className="mb-6 border-blue-200 dark:border-blue-800">
