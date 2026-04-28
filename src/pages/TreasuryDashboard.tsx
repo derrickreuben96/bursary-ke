@@ -48,6 +48,8 @@ export default function TreasuryDashboard() {
   const [pendingAction, setPendingAction] = useState<"ai" | "chart" | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [aiPayload, setAiPayload] = useState<AiSummaryPayload | null>(null);
+  const [chartPreviewOpen, setChartPreviewOpen] = useState(false);
+  const [chartPayload, setChartPayload] = useState<ChartPdfPayload | null>(null);
   const { signOut, user } = useAuth();
   const { toast } = useToast();
   const { language: uiLanguage } = useI18n();
