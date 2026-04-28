@@ -219,8 +219,8 @@ export default function TreasuryDashboard() {
   };
 
   const runDownloadChartPdf = () => {
-    downloadChartSummaryPdf(buildChartPayload(), `treasury-summary-${assignedCounty ?? "report"}`);
-    toast({ title: "PDF Ready", description: "Filtered disbursement summary downloaded." });
+    setChartPayload(buildChartPayload());
+    setChartPreviewOpen(true);
   };
 
   const handleDownloadDisbursementChartPdf = () => {
