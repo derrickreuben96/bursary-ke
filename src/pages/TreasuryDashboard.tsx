@@ -421,12 +421,31 @@ export default function TreasuryDashboard() {
 
         <AiPdfConsentDialog
           open={consentOpen}
-          onOpenChange={setConsentOpen}
-          onConfirm={() => {
-            setConsentOpen(false);
-            runGenerateAiSummary();
+          onOpenChange={(o) => {
+            setConsentOpen(o);
+            if (!o) setPendingAction(null);
           }}
-          reportLabel="treasury county AI summary"
+          onConfirm={handleConsentConfirmed}
+          reportLabel={
+            pendingAction === "chart"
+              ? "filtered disbursement chart PDF"
+              : "treasury county AI summary"
+          }
+        />
+
+        <AiPdfPreviewDialog
+          open={previewOpen}
+          onOpenChange={(o) => {
+            setPreviewOpen(o);
+            if (!o) setAiPayload(null);
+          }}
+          buildDoc={aiPayload ? () => generateAiSummaryPdf(aiPayload) : null}
+          filename={
+            aiPayload
+              ? aiSummaryPdfFilename(aiPayload, `treasury-${assignedCounty ?? "report"}`)
+              : "report.pdf"
+          }
+          title={pdfLanguage === "sw" ? "Hakiki Ripoti ya AI" : "Preview AI Report"}
         />
 
         <div className="flex justify-between items-center mb-2">
