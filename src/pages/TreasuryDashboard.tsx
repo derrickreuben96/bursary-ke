@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { TreasurySummaryCards } from "@/components/treasury/TreasurySummaryCards";
 import { generateAiSummaryPdf, aiSummaryPdfFilename, type AiSummaryPayload } from "@/lib/aiSummaryPdf";
-import { downloadChartSummaryPdf, type ChartPdfPayload } from "@/lib/chartSummaryPdf";
+import { buildChartSummaryDoc, chartSummaryPdfFilename, type ChartPdfPayload } from "@/lib/chartSummaryPdf";
 import { AiPdfConsentDialog } from "@/components/ai/AiPdfConsentDialog";
 import { AiPdfPreviewDialog } from "@/components/ai/AiPdfPreviewDialog";
 import { useI18n } from "@/lib/i18n";
