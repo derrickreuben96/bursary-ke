@@ -2,6 +2,12 @@
 // Generates a detailed natural-language summary of platform/advert/ward/county data
 // using Lovable AI. All data is aggregated and PII-free.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import {
+  checkRateLimit,
+  getClientIp,
+  maybeCleanup,
+  rateLimitExceededResponse,
+} from "../_shared/rateLimiter.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,6 +19,11 @@ interface SummaryRequest {
   scope: "system" | "advert" | "commissioner" | "treasury";
   advert_id?: string;
 }
+
+const ALLOWED_SCOPES = new Set(["system", "advert", "commissioner", "treasury"]);
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// AI calls are expensive — cap to 10 summary requests per IP per 5 minutes.
+const RATE_LIMIT = { windowMs: 5 * 60 * 1000, maxRequests: 10 };
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -63,8 +74,30 @@ Deno.serve(async (req) => {
     const isCommissioner = roles.has("county_commissioner");
     const isTreasury = roles.has("county_treasury");
 
-    const body = (await req.json().catch(() => ({}))) as SummaryRequest;
-    const scope = body.scope ?? "system";
+    // Rate-limit per IP (and fall back to user id if no IP). AI calls are costly.
+    const ip = getClientIp(req);
+    const rlKey = `admin-summary:${ip}:${userData.user.id}`;
+    const rl = checkRateLimit(rlKey, RATE_LIMIT);
+    maybeCleanup(RATE_LIMIT.windowMs);
+    if (!rl.allowed) {
+      return rateLimitExceededResponse(corsHeaders, rl, RATE_LIMIT);
+    }
+
+    const rawBody = (await req.json().catch(() => ({}))) as Partial<SummaryRequest>;
+    const scope = rawBody.scope ?? "system";
+    if (!ALLOWED_SCOPES.has(scope)) {
+      return new Response(JSON.stringify({ error: "Invalid scope" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (rawBody.advert_id !== undefined && !UUID_RE.test(rawBody.advert_id)) {
+      return new Response(JSON.stringify({ error: "Invalid advert_id" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const body: SummaryRequest = { scope, advert_id: rawBody.advert_id };
 
     // Authorization per scope
     if ((scope === "system" || scope === "advert") && !isAdmin) {
