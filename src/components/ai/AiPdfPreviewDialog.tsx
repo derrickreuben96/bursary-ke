@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -36,19 +36,30 @@ export function AiPdfPreviewDialog({
   const [status, setStatus] = useState<"idle" | "building" | "loading" | "ready" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // Keep the latest builder in a ref so changing the parent's arrow-function
+  // identity does NOT retrigger the (heavy) PDF build effect on every render.
+  const buildDocRef = useRef(buildDoc);
   useEffect(() => {
-    if (!open || !buildDoc) {
-      return;
-    }
+    buildDocRef.current = buildDoc;
+  }, [buildDoc]);
+
+  // Only depend on `open` — we want exactly one build per dialog open.
+  useEffect(() => {
+    if (!open) return;
+    const builder = buildDocRef.current;
+    if (!builder) return;
+
     setStatus("building");
     setErrorMsg(null);
     setBlobUrl(null);
 
     let url: string | null = null;
+    let cancelled = false;
     // Defer to next tick so the spinner paints before the (potentially heavy) PDF build.
     const handle = window.setTimeout(() => {
+      if (cancelled) return;
       try {
-        const doc = buildDoc();
+        const doc = builder();
         const blob = doc.output("blob");
         url = URL.createObjectURL(blob);
         setBlobUrl(url);
@@ -61,17 +72,17 @@ export function AiPdfPreviewDialog({
     }, 30);
 
     return () => {
+      cancelled = true;
       window.clearTimeout(handle);
       if (url) URL.revokeObjectURL(url);
-      setBlobUrl(null);
-      setStatus("idle");
     };
-  }, [open, buildDoc]);
+  }, [open]);
 
   const handleDownload = () => {
-    if (!buildDoc) return;
+    const builder = buildDocRef.current;
+    if (!builder) return;
     try {
-      const doc = buildDoc();
+      const doc = builder();
       doc.save(filename);
     } catch (e) {
       console.error("PDF download failed:", e);
