@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import { maskId, maskPhone, maskEmail, maskName, maskStudentId } from "./maskData";
+import { getCachedLogoDataUrl } from "./brandLogo";
 import type { ApplicationData } from "@/context/ApplicationContext";
 
 export interface ReceiptInput {
@@ -71,9 +72,21 @@ export function generateApplicationReceiptPdf(input: ReceiptInput): jsPDF {
   const marginX = 48;
   let y = 64;
 
+  // Brand emblem
+  const logoDataUrl = getCachedLogoDataUrl();
+  let titleX = marginX;
+  if (logoDataUrl) {
+    try {
+      doc.addImage(logoDataUrl, "PNG", marginX, y - 22, 48, 48);
+      titleX = marginX + 60;
+    } catch {
+      /* ignore */
+    }
+  }
+
   doc.setFont("helvetica", "bold");
   doc.setFontSize(20);
-  doc.text("Bursary-KE Application Receipt", marginX, y);
+  doc.text("Bursary-KE Application Receipt", titleX, y);
 
   y += 24;
   doc.setFont("helvetica", "normal");
