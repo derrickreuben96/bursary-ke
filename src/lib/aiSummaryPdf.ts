@@ -218,14 +218,25 @@ export function generateAiSummaryPdf(payload: AiSummaryPayload): jsPDF {
     doc.setLineWidth(2);
     doc.line(marginX, footerTopY, marginX + maxWidth, footerTopY);
 
+    // Brand emblem in the footer (left of portal name)
+    let portalTextX = marginX;
+    if (logoDataUrl) {
+      try {
+        doc.addImage(logoDataUrl, "PNG", marginX, footerTopY + 4, 26, 26);
+        portalTextX = marginX + 32;
+      } catch {
+        /* ignore */
+      }
+    }
+
     // Left block: portal + scope
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
     doc.setTextColor(0, 102, 0);
-    doc.text(portalName, marginX, footerTopY + 14);
+    doc.text(portalName, portalTextX, footerTopY + 14);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(60);
-    doc.text(scopeLabel, marginX, footerTopY + 26);
+    doc.text(scopeLabel, portalTextX, footerTopY + 26);
 
     // Center block: jurisdiction + freshness
     doc.setFontSize(8);
