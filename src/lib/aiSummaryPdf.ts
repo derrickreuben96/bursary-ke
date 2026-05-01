@@ -1,4 +1,5 @@
 import jsPDF from "jspdf";
+import { getCachedLogoDataUrl } from "@/lib/brandLogo";
 
 export type AiSummaryLanguage = "en" | "sw";
 
@@ -71,11 +72,22 @@ export function generateAiSummaryPdf(payload: AiSummaryPayload): jsPDF {
   const maxWidth = pageWidth - marginX * 2;
   let y = 56;
 
+  const logoDataUrl = getCachedLogoDataUrl();
+  const headerTextX = logoDataUrl ? marginX + 56 : marginX;
+
+  if (logoDataUrl) {
+    try {
+      doc.addImage(logoDataUrl, "PNG", marginX, y - 14, 44, 44);
+    } catch {
+      /* ignore image errors — text header still renders */
+    }
+  }
+
   // Header
   doc.setFont("helvetica", "bold");
   doc.setFontSize(18);
   doc.setTextColor(20);
-  doc.text("Bursary-KE — AI Executive Summary", marginX, y);
+  doc.text("Bursary-KE — AI Executive Summary", headerTextX, y);
   y += 22;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(11);
@@ -83,7 +95,7 @@ export function generateAiSummaryPdf(payload: AiSummaryPayload): jsPDF {
   const subtitle = `${payload.scope === "advert" ? "Advert report" : "System-wide overview"} · Generated ${new Date(
     payload.generated_at,
   ).toLocaleString()}`;
-  doc.text(subtitle, marginX, y);
+  doc.text(subtitle, headerTextX, y);
 
   y += 24;
   doc.setDrawColor(0, 102, 0);
