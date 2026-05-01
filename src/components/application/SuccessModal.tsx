@@ -23,7 +23,9 @@ export function SuccessModal({ isOpen, trackingNumber, onClose, studentType = "s
   const [copied, setCopied] = useState(false);
   const { data } = useApplication();
 
-  const handleDownloadReceipt = () => {
+  const handleDownloadReceipt = async () => {
+    const { loadLogoDataUrl } = await import("@/lib/brandLogo");
+    await loadLogoDataUrl().catch(() => {});
     downloadApplicationReceipt({ trackingNumber, studentType, data });
   };
 
