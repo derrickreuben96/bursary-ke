@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
-import { GraduationCap, Mail, Phone, MapPin, Facebook, Twitter } from "lucide-react";
+import { Mail, Phone, MapPin, Facebook, Twitter } from "lucide-react";
+import brandLogo from "@/assets/bursary-ke-logo.png";
 import { useI18n } from "@/lib/i18n";
 
 export function Footer() {
@@ -13,9 +14,13 @@ export function Footer() {
           {/* Brand */}
           <div className="md:col-span-1">
             <Link to="/" className="flex items-center gap-2 mb-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-                <GraduationCap className="h-6 w-6 text-primary-foreground" />
-              </div>
+              <img
+                src={brandLogo}
+                alt="Bursary-KE official emblem"
+                className="h-11 w-11 rounded-lg object-cover ring-1 ring-background/20"
+                loading="lazy"
+                decoding="async"
+              />
               <span className="text-xl font-bold">Bursary-KE</span>
             </Link>
             <p className="text-sm text-background/70">

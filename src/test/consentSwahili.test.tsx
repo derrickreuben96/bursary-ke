@@ -149,11 +149,13 @@ describe("SuccessModal — surfaces the tracking number after consent submission
     render(
       <MemoryRouter>
         <I18nProvider>
-          <SuccessModal
-            isOpen={true}
-            trackingNumber="BKE-ABC123"
-            onClose={() => {}}
-          />
+          <ApplicationProvider>
+            <SuccessModal
+              isOpen={true}
+              trackingNumber="BKE-ABC123"
+              onClose={() => {}}
+            />
+          </ApplicationProvider>
         </I18nProvider>
       </MemoryRouter>
     );

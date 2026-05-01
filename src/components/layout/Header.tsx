@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X, GraduationCap, Shield, Building2, UserCheck } from "lucide-react";
+import { Menu, X, Shield, Building2, UserCheck } from "lucide-react";
+import brandLogo from "@/assets/bursary-ke-logo.png";
 import { cn } from "@/lib/utils";
 import { LanguageToggle, useI18n } from "@/lib/i18n";
 
@@ -30,9 +31,13 @@ export function Header() {
       <div className="container flex h-16 items-center justify-between">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-            <GraduationCap className="h-6 w-6 text-primary-foreground" />
-          </div>
+          <img
+            src={brandLogo}
+            alt="Bursary-KE official emblem"
+            className="h-11 w-11 rounded-lg object-cover ring-1 ring-border shadow-sm"
+            loading="eager"
+            decoding="async"
+          />
           <div className="flex flex-col">
             <span className="text-xl font-bold text-foreground">Bursary-KE</span>
             <span className="text-xs text-muted-foreground">{t("header.tagline")}</span>

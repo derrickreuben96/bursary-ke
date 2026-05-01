@@ -133,7 +133,11 @@ export default function AdminDashboard() {
       });
       if (error) throw error;
       if (!data?.summary) throw new Error("No summary returned");
-      const { downloadAiSummaryPdf: download } = await import("@/lib/aiSummaryPdf");
+      const [{ downloadAiSummaryPdf: download }, { loadLogoDataUrl }] = await Promise.all([
+        import("@/lib/aiSummaryPdf"),
+        import("@/lib/brandLogo"),
+      ]);
+      await loadLogoDataUrl().catch(() => {});
       download(data, summaryScope === "advert" ? data.title : "system-overview");
       toast({ title: "Summary ready", description: "Your PDF has been downloaded." });
       setSummaryOpen(false);

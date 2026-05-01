@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { GraduationCap, LogOut, RefreshCw } from "lucide-react";
+import { LogOut, RefreshCw } from "lucide-react";
+import brandLogo from "@/assets/bursary-ke-logo.png";
 
 interface CommissionerHeaderProps {
   assignedWard: string | null;
@@ -13,9 +14,11 @@ export function CommissionerHeader({ assignedWard, assignedCounty, isLoading, on
   return (
     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
       <div className="flex items-center gap-3">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500/10">
-          <GraduationCap className="h-6 w-6 text-blue-600" />
-        </div>
+        <img
+          src={brandLogo}
+          alt="Bursary-KE official emblem"
+          className="h-12 w-12 rounded-full object-cover ring-1 ring-border shadow-sm"
+        />
         <div>
           <h1 className="text-2xl font-bold text-foreground">County Education Commissioner</h1>
           <p className="text-muted-foreground">

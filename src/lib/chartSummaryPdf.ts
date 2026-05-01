@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import type { AiSummaryLanguage } from "@/lib/aiSummaryPdf";
+import { getCachedLogoDataUrl } from "@/lib/brandLogo";
 
 export interface ChartPdfRow {
   label: string;
@@ -95,11 +96,22 @@ function renderChartSummary(payload: ChartPdfPayload): jsPDF {
     }
   };
 
-  // Header
+  // Header — emblem + portal name on the same row
+  const logoDataUrl = getCachedLogoDataUrl();
+  let headerTextX = marginX;
+  if (logoDataUrl) {
+    try {
+      doc.addImage(logoDataUrl, "PNG", marginX, y - 14, 40, 40);
+      headerTextX = marginX + 50;
+    } catch {
+      /* ignore */
+    }
+  }
+
   doc.setFont("helvetica", "bold");
   doc.setFontSize(16);
   doc.setTextColor(0, 102, 0);
-  doc.text(payload.portalName ?? "Bursary-KE", marginX, y);
+  doc.text(payload.portalName ?? "Bursary-KE", headerTextX, y);
   y += 22;
 
   doc.setFontSize(14);
