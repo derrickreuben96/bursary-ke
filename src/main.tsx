@@ -2,6 +2,10 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import { I18nProvider } from "./lib/i18n";
+import { loadLogoDataUrl } from "./lib/brandLogo";
+
+// Pre-warm the brand logo cache so PDF exports embed it without delay.
+void loadLogoDataUrl().catch(() => {});
 
 const rootElement = document.getElementById("root")!;
 
