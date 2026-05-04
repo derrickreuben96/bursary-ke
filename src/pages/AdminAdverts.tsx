@@ -144,8 +144,8 @@ export default function AdminAdverts() {
   };
 
   const handleSubmit = async () => {
-    if (!form.title || !form.county || !form.deadline) {
-      toast({ title: "Validation Error", description: "Title, county, and deadline are required.", variant: "destructive" });
+    if (!form.title || !form.county || !form.ward || !form.deadline) {
+      toast({ title: "Validation Error", description: "Title, county, ward, and deadline are required.", variant: "destructive" });
       return;
     }
 
