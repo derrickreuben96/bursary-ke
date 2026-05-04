@@ -93,6 +93,7 @@ export default function AdminAdverts() {
   const [draftFilters, setDraftFilters] = useState<FilterState>(emptyFilters);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { wardsByCounty, countyNames, loading: locationsLoading } = useKenyaLocations();
 
   const fetchAdverts = async () => {
     setIsLoading(true);
