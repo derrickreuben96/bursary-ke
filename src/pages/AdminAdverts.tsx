@@ -364,10 +364,10 @@ export default function AdminAdverts() {
                     </button>
                   </Badge>
                 )}
-                {filters.status !== "all" && (
+                {filters.status !== "active" && (
                   <Badge variant="secondary" className="gap-1 pr-1">
                     Status: {filters.status}
-                    <button type="button" onClick={() => setFilters({ ...filters, status: "all" })} aria-label="Remove status filter" className="ml-1 rounded hover:bg-background/50 p-0.5">
+                    <button type="button" onClick={() => setFilters({ ...filters, status: "active" })} aria-label="Remove status filter" className="ml-1 rounded hover:bg-background/50 p-0.5">
                       <X className="h-3 w-3" />
                     </button>
                   </Badge>
