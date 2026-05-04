@@ -332,6 +332,88 @@ export default function AdminAdverts() {
                 </Button>
               )}
             </div>
+
+            {activeFilterCount > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs text-muted-foreground">Active filters:</span>
+                {filters.search.trim() && (
+                  <Badge variant="secondary" className="gap-1 pr-1">
+                    Search: {filters.search}
+                    <button
+                      type="button"
+                      onClick={() => setFilters({ ...filters, search: "" })}
+                      aria-label="Remove search filter"
+                      className="ml-1 rounded hover:bg-background/50 p-0.5"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                )}
+                {filters.status !== "all" && (
+                  <Badge variant="secondary" className="gap-1 pr-1">
+                    Status: {filters.status}
+                    <button type="button" onClick={() => setFilters({ ...filters, status: "all" })} aria-label="Remove status filter" className="ml-1 rounded hover:bg-background/50 p-0.5">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                )}
+                {filters.county !== "all" && (
+                  <Badge variant="secondary" className="gap-1 pr-1">
+                    {filters.county}
+                    <button type="button" onClick={() => setFilters({ ...filters, county: "all", ward: "all" })} aria-label="Remove county filter" className="ml-1 rounded hover:bg-background/50 p-0.5">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                )}
+                {filters.ward !== "all" && (
+                  <Badge variant="secondary" className="gap-1 pr-1">
+                    {filters.ward}
+                    <button type="button" onClick={() => setFilters({ ...filters, ward: "all" })} aria-label="Remove ward filter" className="ml-1 rounded hover:bg-background/50 p-0.5">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                )}
+                {filters.budgetMin && (
+                  <Badge variant="secondary" className="gap-1 pr-1">
+                    Min KES {Number(filters.budgetMin).toLocaleString()}
+                    <button type="button" onClick={() => setFilters({ ...filters, budgetMin: "" })} aria-label="Remove min budget" className="ml-1 rounded hover:bg-background/50 p-0.5">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                )}
+                {filters.budgetMax && (
+                  <Badge variant="secondary" className="gap-1 pr-1">
+                    Max KES {Number(filters.budgetMax).toLocaleString()}
+                    <button type="button" onClick={() => setFilters({ ...filters, budgetMax: "" })} aria-label="Remove max budget" className="ml-1 rounded hover:bg-background/50 p-0.5">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                )}
+                {filters.deadlineFrom && (
+                  <Badge variant="secondary" className="gap-1 pr-1">
+                    From {filters.deadlineFrom}
+                    <button type="button" onClick={() => setFilters({ ...filters, deadlineFrom: "" })} aria-label="Remove deadline from" className="ml-1 rounded hover:bg-background/50 p-0.5">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                )}
+                {filters.deadlineTo && (
+                  <Badge variant="secondary" className="gap-1 pr-1">
+                    To {filters.deadlineTo}
+                    <button type="button" onClick={() => setFilters({ ...filters, deadlineTo: "" })} aria-label="Remove deadline to" className="ml-1 rounded hover:bg-background/50 p-0.5">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                )}
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="text-xs text-primary hover:underline ml-1"
+                >
+                  Clear all
+                </button>
+              </div>
+            )}
             {isLoading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
