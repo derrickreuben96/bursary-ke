@@ -257,28 +257,24 @@ export function ParentGuardianForm({ onNext }: ParentGuardianFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>County *</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select your county" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {countiesWithAdverts.length > 0 ? (
-                        countiesWithAdverts.map((county) => (
+                  {locationsLoading ? (
+                    <Skeleton className="h-10 w-full" />
+                  ) : (
+                    <Select onValueChange={field.onChange} value={field.value} disabled={locationsLoading}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select your county" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {(countiesWithAdverts.length > 0 ? countiesWithAdverts : sortedCountyNames).map((county) => (
                           <SelectItem key={county} value={county}>
                             {county}
                           </SelectItem>
-                        ))
-                      ) : (
-                        Object.keys(wardsByCounty).map((county) => (
-                          <SelectItem key={county} value={county}>
-                            {county}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
@@ -291,23 +287,28 @@ export function ParentGuardianForm({ onNext }: ParentGuardianFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Ward / Sub-County *</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    value={field.value}
-                    disabled={!selectedCounty}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder={selectedCounty ? "Select your ward" : "Select county first"} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {availableWards.map((ward) => (
-                        <SelectItem key={ward} value={ward}>
-                          {ward}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
+                  {locationsLoading ? (
+                    <Skeleton className="h-10 w-full" />
+                  ) : (
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      disabled={!selectedCounty || locationsLoading}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={selectedCounty ? "Select your ward" : "Select county first"} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {availableWards.map((ward) => (
+                          <SelectItem key={ward} value={ward}>
+                            {ward}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                   </Select>
                   <FormMessage />
                 </FormItem>
