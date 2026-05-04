@@ -239,6 +239,7 @@ export default function AdminAdverts() {
     return sortDir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />;
   };
 
+  const activeFilterCount = [
     filters.search.trim(),
     filters.status !== "all",
     filters.county !== "all",
