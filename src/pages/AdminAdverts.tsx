@@ -295,7 +295,47 @@ export default function AdminAdverts() {
         </div>
 
         <Card>
-          <CardContent className="pt-6">
+          <CardContent className="pt-6 space-y-4">
+            <div className="flex flex-wrap gap-3 items-end">
+              <div className="min-w-[200px]">
+                <Label className="text-xs text-muted-foreground">Filter by County</Label>
+                <Select
+                  value={filters.county}
+                  onValueChange={(v) => setFilters({ ...filters, county: v, ward: "all" })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    <SelectItem value="all">All counties</SelectItem>
+                    {sortedCountyNames.map((c) => (
+                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="min-w-[200px]">
+                <Label className="text-xs text-muted-foreground">Filter by Ward</Label>
+                <Select
+                  value={filters.ward}
+                  onValueChange={(v) => setFilters({ ...filters, ward: v })}
+                  disabled={filters.county === "all"}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={filters.county === "all" ? "Select county first" : "All"} />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    <SelectItem value="all">All wards</SelectItem>
+                    {(filters.county !== "all" ? [...(wardsByCounty[filters.county] ?? [])].sort((a, b) => a.localeCompare(b)) : []).map((w) => (
+                      <SelectItem key={w} value={w}>{w}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {(filters.county !== "all" || filters.ward !== "all") && (
+                <Button variant="ghost" size="sm" onClick={() => setFilters({ ...filters, county: "all", ward: "all" })}>
+                  <X className="h-4 w-4 mr-1" /> Clear
+                </Button>
+              )}
+            </div>
             {isLoading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
