@@ -82,7 +82,7 @@ interface FilterState {
 
 const emptyFilters: FilterState = {
   search: "",
-  status: "all",
+  status: "active",
   county: "all",
   ward: "all",
   budgetMin: "",
