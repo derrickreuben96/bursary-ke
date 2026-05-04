@@ -74,6 +74,8 @@ interface FilterState {
   status: "all" | "active" | "inactive" | "expired";
   county: string;
   ward: string;
+  budgetMin: string;
+  budgetMax: string;
   deadlineFrom: string;
   deadlineTo: string;
 }
@@ -83,6 +85,8 @@ const emptyFilters: FilterState = {
   status: "all",
   county: "all",
   ward: "all",
+  budgetMin: "",
+  budgetMax: "",
   deadlineFrom: "",
   deadlineTo: "",
 };
