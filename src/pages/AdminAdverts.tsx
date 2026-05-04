@@ -248,7 +248,7 @@ export default function AdminAdverts() {
 
   const activeFilterCount = [
     filters.search.trim(),
-    filters.status !== "all",
+    filters.status !== "active",
     filters.county !== "all",
     filters.ward !== "all",
     filters.budgetMin,
