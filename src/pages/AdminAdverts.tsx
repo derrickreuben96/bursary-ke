@@ -11,11 +11,14 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useKenyaLocations } from "@/lib/useKenyaLocations";
-import { Plus, Pencil, ArrowLeft, Loader2, Filter, X } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Plus, Pencil, ArrowLeft, Loader2, Filter, X, Check, ChevronsUpDown } from "lucide-react";
 
 const DEFAULT_REQUIRED_DOCUMENTS = [
   "National ID (Parent/Guardian)",
@@ -91,9 +94,15 @@ export default function AdminAdverts() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [filters, setFilters] = useState<FilterState>(emptyFilters);
   const [draftFilters, setDraftFilters] = useState<FilterState>(emptyFilters);
+  const [countyOpen, setCountyOpen] = useState(false);
+  const [wardOpen, setWardOpen] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { wardsByCounty, countyNames, loading: locationsLoading } = useKenyaLocations();
+  const sortedCountyNames = [...countyNames].sort((a, b) => a.localeCompare(b));
+  const sortedWards = (form.county ? [...(wardsByCounty[form.county] ?? [])] : []).sort((a, b) =>
+    a.localeCompare(b)
+  );
 
   const fetchAdverts = async () => {
     setIsLoading(true);
@@ -135,8 +144,8 @@ export default function AdminAdverts() {
   };
 
   const handleSubmit = async () => {
-    if (!form.title || !form.county || !form.deadline) {
-      toast({ title: "Validation Error", description: "Title, county, and deadline are required.", variant: "destructive" });
+    if (!form.title || !form.county || !form.ward || !form.deadline) {
+      toast({ title: "Validation Error", description: "Title, county, ward, and deadline are required.", variant: "destructive" });
       return;
     }
 
@@ -321,36 +330,93 @@ export default function AdminAdverts() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>County *</Label>
-                  <Select
-                    value={form.county || undefined}
-                    onValueChange={(v) => setForm({ ...form, county: v, ward: "" })}
-                  >
-                    <SelectTrigger aria-label="County">
-                      <SelectValue placeholder={locationsLoading ? "Loading…" : "Select county"} />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-72">
-                      {countyNames.map((c) => (
-                        <SelectItem key={c} value={c}>{c}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={countyOpen} onOpenChange={setCountyOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={countyOpen}
+                        aria-label="County"
+                        className={cn(
+                          "w-full justify-between font-normal",
+                          !form.county && "text-muted-foreground"
+                        )}
+                        disabled={locationsLoading}
+                      >
+                        {form.county || (locationsLoading ? "Loading…" : "Select county")}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search county..." />
+                        <CommandList>
+                          <CommandEmpty>No county found.</CommandEmpty>
+                          <CommandGroup>
+                            {sortedCountyNames.map((c) => (
+                              <CommandItem
+                                key={c}
+                                value={c}
+                                onSelect={() => {
+                                  setForm({ ...form, county: c, ward: "" });
+                                  setCountyOpen(false);
+                                }}
+                              >
+                                <Check className={cn("mr-2 h-4 w-4", form.county === c ? "opacity-100" : "opacity-0")} />
+                                {c}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 <div>
-                  <Label>Ward (optional)</Label>
-                  <Select
-                    value={form.ward || undefined}
-                    onValueChange={(v) => setForm({ ...form, ward: v })}
-                    disabled={!form.county}
-                  >
-                    <SelectTrigger aria-label="Ward">
-                      <SelectValue placeholder={form.county ? "Select ward" : "Select county first"} />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-72">
-                      {(wardsByCounty[form.county] ?? []).map((w) => (
-                        <SelectItem key={w} value={w}>{w}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label>Ward *</Label>
+                  <Popover open={wardOpen} onOpenChange={setWardOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={wardOpen}
+                        aria-label="Ward"
+                        disabled={!form.county}
+                        className={cn(
+                          "w-full justify-between font-normal",
+                          !form.ward && "text-muted-foreground"
+                        )}
+                      >
+                        {form.ward || (form.county ? "Select ward" : "Select county first")}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search ward..." />
+                        <CommandList>
+                          <CommandEmpty>No ward found.</CommandEmpty>
+                          <CommandGroup>
+                            {sortedWards.map((w) => (
+                              <CommandItem
+                                key={w}
+                                value={w}
+                                onSelect={() => {
+                                  setForm({ ...form, ward: w });
+                                  setWardOpen(false);
+                                }}
+                              >
+                                <Check className={cn("mr-2 h-4 w-4", form.ward === w ? "opacity-100" : "opacity-0")} />
+                                {w}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
