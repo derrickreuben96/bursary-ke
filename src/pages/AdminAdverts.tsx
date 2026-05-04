@@ -18,7 +18,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useKenyaLocations } from "@/lib/useKenyaLocations";
 import { cn } from "@/lib/utils";
-import { Plus, Pencil, ArrowLeft, Loader2, Filter, X, Check, ChevronsUpDown } from "lucide-react";
+import { Plus, Pencil, ArrowLeft, Loader2, Filter, X, Check, ChevronsUpDown, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+
+type SortKey = "county" | "ward" | "budget" | "deadline";
+type SortDir = "asc" | "desc";
 
 const DEFAULT_REQUIRED_DOCUMENTS = [
   "National ID (Parent/Guardian)",
