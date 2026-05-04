@@ -18,7 +18,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useKenyaLocations } from "@/lib/useKenyaLocations";
 import { cn } from "@/lib/utils";
-import { Plus, Pencil, ArrowLeft, Loader2, Filter, X, Check, ChevronsUpDown } from "lucide-react";
+import { Plus, Pencil, ArrowLeft, Loader2, Filter, X, Check, ChevronsUpDown, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+
+type SortKey = "county" | "ward" | "budget" | "deadline";
+type SortDir = "asc" | "desc";
 
 const DEFAULT_REQUIRED_DOCUMENTS = [
   "National ID (Parent/Guardian)",
@@ -96,6 +99,8 @@ export default function AdminAdverts() {
   const [draftFilters, setDraftFilters] = useState<FilterState>(emptyFilters);
   const [countyOpen, setCountyOpen] = useState(false);
   const [wardOpen, setWardOpen] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey>("deadline");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
   const { toast } = useToast();
   const navigate = useNavigate();
   const { wardsByCounty, countyNames, loading: locationsLoading } = useKenyaLocations();
@@ -205,6 +210,35 @@ export default function AdminAdverts() {
     return true;
   });
 
+  const sortedAdverts = [...filteredAdverts].sort((a, b) => {
+    const dir = sortDir === "asc" ? 1 : -1;
+    switch (sortKey) {
+      case "county":
+        return a.county.localeCompare(b.county) * dir;
+      case "ward":
+        return (a.ward ?? "").localeCompare(b.ward ?? "") * dir;
+      case "budget":
+        return ((a.budget_amount ?? 0) - (b.budget_amount ?? 0)) * dir;
+      case "deadline":
+      default:
+        return (new Date(a.deadline).getTime() - new Date(b.deadline).getTime()) * dir;
+    }
+  });
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir(sortDir === "asc" ? "desc" : "asc");
+    } else {
+      setSortKey(key);
+      setSortDir(key === "budget" ? "desc" : "asc");
+    }
+  };
+
+  const sortIcon = (key: SortKey) => {
+    if (sortKey !== key) return <ArrowUpDown className="h-3 w-3 opacity-40" />;
+    return sortDir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />;
+  };
+
   const activeFilterCount = [
     filters.search.trim(),
     filters.status !== "all",
@@ -261,7 +295,47 @@ export default function AdminAdverts() {
         </div>
 
         <Card>
-          <CardContent className="pt-6">
+          <CardContent className="pt-6 space-y-4">
+            <div className="flex flex-wrap gap-3 items-end">
+              <div className="min-w-[200px]">
+                <Label className="text-xs text-muted-foreground">Filter by County</Label>
+                <Select
+                  value={filters.county}
+                  onValueChange={(v) => setFilters({ ...filters, county: v, ward: "all" })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    <SelectItem value="all">All counties</SelectItem>
+                    {sortedCountyNames.map((c) => (
+                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="min-w-[200px]">
+                <Label className="text-xs text-muted-foreground">Filter by Ward</Label>
+                <Select
+                  value={filters.ward}
+                  onValueChange={(v) => setFilters({ ...filters, ward: v })}
+                  disabled={filters.county === "all"}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={filters.county === "all" ? "Select county first" : "All"} />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    <SelectItem value="all">All wards</SelectItem>
+                    {(filters.county !== "all" ? [...(wardsByCounty[filters.county] ?? [])].sort((a, b) => a.localeCompare(b)) : []).map((w) => (
+                      <SelectItem key={w} value={w}>{w}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {(filters.county !== "all" || filters.ward !== "all") && (
+                <Button variant="ghost" size="sm" onClick={() => setFilters({ ...filters, county: "all", ward: "all" })}>
+                  <X className="h-4 w-4 mr-1" /> Clear
+                </Button>
+              )}
+            </div>
             {isLoading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -278,21 +352,55 @@ export default function AdminAdverts() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Title</TableHead>
-                    <TableHead>County</TableHead>
-                    <TableHead>Deadline</TableHead>
-                    <TableHead>Budget</TableHead>
+                    <TableHead>
+                      <button
+                        type="button"
+                        onClick={() => toggleSort("county")}
+                        className="inline-flex items-center gap-1 hover:text-foreground"
+                      >
+                        County {sortIcon("county")}
+                      </button>
+                    </TableHead>
+                    <TableHead>
+                      <button
+                        type="button"
+                        onClick={() => toggleSort("ward")}
+                        className="inline-flex items-center gap-1 hover:text-foreground"
+                      >
+                        Ward {sortIcon("ward")}
+                      </button>
+                    </TableHead>
+                    <TableHead>
+                      <button
+                        type="button"
+                        onClick={() => toggleSort("deadline")}
+                        className="inline-flex items-center gap-1 hover:text-foreground"
+                      >
+                        Deadline {sortIcon("deadline")}
+                      </button>
+                    </TableHead>
+                    <TableHead>
+                      <button
+                        type="button"
+                        onClick={() => toggleSort("budget")}
+                        className="inline-flex items-center gap-1 hover:text-foreground"
+                      >
+                        Budget {sortIcon("budget")}
+                      </button>
+                    </TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Docs</TableHead>
                     <TableHead></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredAdverts.map((a) => {
+                  {sortedAdverts.map((a) => {
                     const isExpired = new Date(a.deadline).getTime() <= Date.now();
                     return (
                     <TableRow key={a.id}>
                       <TableCell className="font-medium">{a.title}</TableCell>
-                      <TableCell>{a.county}{a.ward ? ` / ${a.ward}` : ""}</TableCell>
+                      <TableCell>{a.county}</TableCell>
+                      <TableCell>{a.ward || <span className="text-muted-foreground">—</span>}</TableCell>
                       <TableCell>{new Date(a.deadline).toLocaleDateString("en-KE")}</TableCell>
                       <TableCell>{a.budget_amount ? `KES ${a.budget_amount.toLocaleString()}` : "—"}</TableCell>
                       <TableCell>
