@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { wardsByCounty } from "@/lib/kenyanWards";
+import { useKenyaLocations } from "@/lib/useKenyaLocations";
 import { Plus, Pencil, ArrowLeft, Loader2, Filter, X } from "lucide-react";
 
 const DEFAULT_REQUIRED_DOCUMENTS = [
