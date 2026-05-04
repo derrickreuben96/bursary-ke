@@ -321,11 +321,36 @@ export default function AdminAdverts() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>County *</Label>
-                  <Input value={form.county} onChange={(e) => setForm({ ...form, county: e.target.value })} placeholder="e.g. Nairobi" />
+                  <Select
+                    value={form.county || undefined}
+                    onValueChange={(v) => setForm({ ...form, county: v, ward: "" })}
+                  >
+                    <SelectTrigger aria-label="County">
+                      <SelectValue placeholder={locationsLoading ? "Loading…" : "Select county"} />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-72">
+                      {countyNames.map((c) => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <Label>Ward (optional)</Label>
-                  <Input value={form.ward} onChange={(e) => setForm({ ...form, ward: e.target.value })} placeholder="e.g. Westlands" />
+                  <Select
+                    value={form.ward || undefined}
+                    onValueChange={(v) => setForm({ ...form, ward: v })}
+                    disabled={!form.county}
+                  >
+                    <SelectTrigger aria-label="Ward">
+                      <SelectValue placeholder={form.county ? "Select ward" : "Select county first"} />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-72">
+                      {(wardsByCounty[form.county] ?? []).map((w) => (
+                        <SelectItem key={w} value={w}>{w}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
