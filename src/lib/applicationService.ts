@@ -7,78 +7,133 @@ export interface SubmitApplicationParams {
   studentType: "secondary" | "university";
 }
 
-export async function submitApplication({ data, studentType }: SubmitApplicationParams): Promise<{ trackingNumber: string; error: Error | null }> {
-  try {
-    // Generate tracking number using database function
-    const { data: trackingData, error: trackingError } = await supabase
-      .rpc("generate_tracking_number");
+// Module-level guard: prevents concurrent submissions from the same tab
+// (e.g. double-clicks, fast retries while the locations dataset is loading).
+// Keyed by `${nationalId}:${advertId}` so a second click returns the
+// in-flight promise instead of starting a duplicate INSERT.
+const inflightSubmissions = new Map<
+  string,
+  Promise<{ trackingNumber: string; error: Error | null }>
+>();
 
-    if (trackingError) {
-      console.error("Error generating tracking number:", trackingError);
-      throw new Error("Failed to generate tracking number");
+export async function submitApplication(
+  params: SubmitApplicationParams
+): Promise<{ trackingNumber: string; error: Error | null }> {
+  const { data } = params;
+  const nationalId = data.parentGuardian?.nationalId || "";
+  const advertId = data.parentGuardian?.selectedAdvertId || data.advertId || "";
+  const dedupeKey = `${nationalId}:${advertId}`;
+
+  const existing = inflightSubmissions.get(dedupeKey);
+  if (existing) return existing;
+
+  const promise = (async () => {
+    try {
+      // 1. Idempotency check — if the applicant already submitted for this
+      //    advert, return the existing tracking number instead of re-inserting.
+      if (nationalId && advertId) {
+        const { data: existingRow } = await supabase
+          .from("bursary_applications")
+          .select("tracking_number, status")
+          .eq("parent_national_id", nationalId)
+          .eq("advert_id", advertId)
+          .neq("status", "rejected")
+          .maybeSingle();
+        if (existingRow?.tracking_number) {
+          return { trackingNumber: existingRow.tracking_number, error: null };
+        }
+      }
+
+      // 2. Generate tracking number via DB function
+      const { data: trackingData, error: trackingError } = await supabase.rpc(
+        "generate_tracking_number"
+      );
+      if (trackingError) {
+        console.error("Error generating tracking number:", trackingError);
+        throw new Error("Failed to generate tracking number");
+      }
+      const trackingNumber = trackingData as string;
+
+      const povertyScore = data.povertyQuestionnaire
+        ? calculatePovertyScore(data.povertyQuestionnaire)
+        : 0;
+      const povertyTier = getPovertyTier(povertyScore);
+      const studentType = params.studentType;
+
+      // 3. Insert application
+      const { error: insertError } = await supabase
+        .from("bursary_applications")
+        .insert({
+          tracking_number: trackingNumber,
+          student_type: studentType,
+          status: "received",
+          advert_id: advertId || null,
+          parent_national_id: nationalId,
+          parent_full_name: data.parentGuardian?.fullName || "Guardian",
+          parent_phone: data.parentGuardian?.phoneNumber || "",
+          parent_email: data.parentGuardian?.email || null,
+          parent_county: data.parentGuardian?.county || "Not Specified",
+          parent_ward: data.parentGuardian?.ward || null,
+          sms_consent: data.parentGuardian?.consentNotifications || false,
+          student_full_name:
+            studentType === "university"
+              ? data.universityStudent?.studentName || "N/A"
+              : data.secondaryStudent?.studentName || "N/A",
+          student_id:
+            studentType === "university"
+              ? data.universityStudent?.studentId
+              : data.secondaryStudent?.nemisId,
+          institution_name:
+            studentType === "university"
+              ? data.universityStudent?.institution || "Unknown"
+              : data.secondaryStudent?.school || "Unknown",
+          year_of_study:
+            studentType === "university"
+              ? data.universityStudent?.yearOfStudy
+              : null,
+          class_form:
+            studentType === "secondary"
+              ? data.secondaryStudent?.classForm
+              : null,
+          household_income: data.povertyQuestionnaire?.householdIncome || 0,
+          household_dependents:
+            data.povertyQuestionnaire?.numberOfDependents || 0,
+          poverty_score: povertyScore,
+          poverty_tier: povertyTier,
+        });
+
+      if (insertError) {
+        // Postgres unique-violation (23505) means a parallel/duplicate submission
+        // already landed first — return that record instead of failing the user.
+        if ((insertError as { code?: string }).code === "23505" && nationalId && advertId) {
+          const { data: dupRow } = await supabase
+            .from("bursary_applications")
+            .select("tracking_number")
+            .eq("parent_national_id", nationalId)
+            .eq("advert_id", advertId)
+            .neq("status", "rejected")
+            .maybeSingle();
+          if (dupRow?.tracking_number) {
+            return { trackingNumber: dupRow.tracking_number, error: null };
+          }
+        }
+        console.error("Error inserting application:", insertError);
+        throw new Error("Failed to submit application");
+      }
+
+      return { trackingNumber, error: null };
+    } catch (error) {
+      console.error("Application submission error:", error);
+      return { trackingNumber: "", error: error as Error };
+    } finally {
+      // Release the in-flight slot so future cycles (e.g. user retries
+      // after rejection) can submit again.
+      setTimeout(() => inflightSubmissions.delete(dedupeKey), 0);
     }
+  })();
 
-    const trackingNumber = trackingData as string;
-
-    // Calculate poverty metrics
-    const povertyScore = data.povertyQuestionnaire
-      ? calculatePovertyScore(data.povertyQuestionnaire)
-      : 0;
-    const povertyTier = getPovertyTier(povertyScore);
-
-    // Prepare student-specific data
-    const studentData = studentType === "university" ? data.universityStudent : data.secondaryStudent;
-    
-    // Insert application into database
-    const { error: insertError } = await supabase
-      .from("bursary_applications")
-      .insert({
-        tracking_number: trackingNumber,
-        student_type: studentType,
-        status: "received",
-        // Link to bursary advert (from county/ward selection)
-        advert_id: data.parentGuardian?.selectedAdvertId || data.advertId || null,
-        // Parent/Guardian info
-        parent_national_id: data.parentGuardian?.nationalId || "",
-        parent_full_name: data.parentGuardian?.fullName || "Guardian",
-        parent_phone: data.parentGuardian?.phoneNumber || "",
-        parent_email: data.parentGuardian?.email || null,
-        parent_county: data.parentGuardian?.county || "Not Specified",
-        parent_ward: data.parentGuardian?.ward || null,
-        sms_consent: data.parentGuardian?.consentNotifications || false,
-        // Student info
-        student_full_name: studentType === "university" 
-          ? (data.universityStudent?.studentName || "N/A")
-          : (data.secondaryStudent?.studentName || "N/A"),
-        student_id: studentType === "university"
-          ? data.universityStudent?.studentId
-          : data.secondaryStudent?.nemisId,
-        institution_name: studentType === "university"
-          ? (data.universityStudent?.institution || "Unknown")
-          : (data.secondaryStudent?.school || "Unknown"),
-        year_of_study: studentType === "university"
-          ? data.universityStudent?.yearOfStudy
-          : null,
-        class_form: studentType === "secondary"
-          ? data.secondaryStudent?.classForm
-          : null,
-        // Poverty assessment
-        household_income: data.povertyQuestionnaire?.householdIncome || 0,
-        household_dependents: data.povertyQuestionnaire?.numberOfDependents || 0,
-        poverty_score: povertyScore,
-        poverty_tier: povertyTier,
-      });
-
-    if (insertError) {
-      console.error("Error inserting application:", insertError);
-      throw new Error("Failed to submit application");
-    }
-
-    return { trackingNumber, error: null };
-  } catch (error) {
-    console.error("Application submission error:", error);
-    return { trackingNumber: "", error: error as Error };
-  }
+  inflightSubmissions.set(dedupeKey, promise);
+  return promise;
 }
 
 export interface TrackingResult {
