@@ -326,8 +326,23 @@ export default function AdminAdverts() {
                   </SelectContent>
                 </Select>
               </div>
-              {(filters.county !== "all" || filters.ward !== "all") && (
-                <Button variant="ghost" size="sm" onClick={() => setFilters({ ...filters, county: "all", ward: "all" })}>
+              <div className="min-w-[180px]">
+                <Label className="text-xs text-muted-foreground">Filter by Status</Label>
+                <Select
+                  value={filters.status}
+                  onValueChange={(v) => setFilters({ ...filters, status: v as FilterState["status"] })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active only</SelectItem>
+                    <SelectItem value="expired">Expired</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="all">All sessions</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {(filters.county !== "all" || filters.ward !== "all" || filters.status !== "active") && (
+                <Button variant="ghost" size="sm" onClick={() => setFilters({ ...filters, county: "all", ward: "all", status: "active" })}>
                   <X className="h-4 w-4 mr-1" /> Clear
                 </Button>
               )}
