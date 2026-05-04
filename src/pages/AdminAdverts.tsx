@@ -439,7 +439,7 @@ export default function AdminAdverts() {
                     </SelectTrigger>
                     <SelectContent className="max-h-72">
                       <SelectItem value="all">All counties</SelectItem>
-                      {Object.keys(wardsByCounty).sort().map((c) => (
+                      {countyNames.map((c) => (
                         <SelectItem key={c} value={c}>{c}</SelectItem>
                       ))}
                     </SelectContent>
