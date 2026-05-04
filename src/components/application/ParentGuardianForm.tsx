@@ -309,7 +309,6 @@ export function ParentGuardianForm({ onNext }: ParentGuardianFormProps) {
                       </SelectContent>
                     </Select>
                   )}
-                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
