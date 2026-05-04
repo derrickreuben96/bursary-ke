@@ -100,7 +100,7 @@ export default function AdminAdverts() {
   const [form, setForm] = useState<FormData>(emptyForm);
   const [filterOpen, setFilterOpen] = useState(false);
   const [filters, setFilters] = useState<FilterState>(emptyFilters);
-  const [draftFilters, setDraftFilters] = useState<FilterState>(emptyFilters);
+  
   const [countyOpen, setCountyOpen] = useState(false);
   const [wardOpen, setWardOpen] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("deadline");
