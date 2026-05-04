@@ -211,6 +211,9 @@ export default function AdminAdverts() {
     if (filters.deadlineTo) {
       if (deadlineMs > new Date(filters.deadlineTo).getTime() + 86_400_000) return false;
     }
+    const budget = a.budget_amount ?? 0;
+    if (filters.budgetMin && budget < parseFloat(filters.budgetMin)) return false;
+    if (filters.budgetMax && budget > parseFloat(filters.budgetMax)) return false;
     return true;
   });
 
