@@ -312,21 +312,55 @@ export default function AdminAdverts() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Title</TableHead>
-                    <TableHead>County</TableHead>
-                    <TableHead>Deadline</TableHead>
-                    <TableHead>Budget</TableHead>
+                    <TableHead>
+                      <button
+                        type="button"
+                        onClick={() => toggleSort("county")}
+                        className="inline-flex items-center gap-1 hover:text-foreground"
+                      >
+                        County {sortIcon("county")}
+                      </button>
+                    </TableHead>
+                    <TableHead>
+                      <button
+                        type="button"
+                        onClick={() => toggleSort("ward")}
+                        className="inline-flex items-center gap-1 hover:text-foreground"
+                      >
+                        Ward {sortIcon("ward")}
+                      </button>
+                    </TableHead>
+                    <TableHead>
+                      <button
+                        type="button"
+                        onClick={() => toggleSort("deadline")}
+                        className="inline-flex items-center gap-1 hover:text-foreground"
+                      >
+                        Deadline {sortIcon("deadline")}
+                      </button>
+                    </TableHead>
+                    <TableHead>
+                      <button
+                        type="button"
+                        onClick={() => toggleSort("budget")}
+                        className="inline-flex items-center gap-1 hover:text-foreground"
+                      >
+                        Budget {sortIcon("budget")}
+                      </button>
+                    </TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Docs</TableHead>
                     <TableHead></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredAdverts.map((a) => {
+                  {sortedAdverts.map((a) => {
                     const isExpired = new Date(a.deadline).getTime() <= Date.now();
                     return (
                     <TableRow key={a.id}>
                       <TableCell className="font-medium">{a.title}</TableCell>
-                      <TableCell>{a.county}{a.ward ? ` / ${a.ward}` : ""}</TableCell>
+                      <TableCell>{a.county}</TableCell>
+                      <TableCell>{a.ward || <span className="text-muted-foreground">—</span>}</TableCell>
                       <TableCell>{new Date(a.deadline).toLocaleDateString("en-KE")}</TableCell>
                       <TableCell>{a.budget_amount ? `KES ${a.budget_amount.toLocaleString()}` : "—"}</TableCell>
                       <TableCell>
