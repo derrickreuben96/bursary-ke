@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { wardsByCounty } from "@/lib/kenyanWards";
+import { useKenyaLocations } from "@/lib/useKenyaLocations";
 import { Plus, Pencil, ArrowLeft, Loader2, Filter, X } from "lucide-react";
 
 const DEFAULT_REQUIRED_DOCUMENTS = [
@@ -93,6 +93,7 @@ export default function AdminAdverts() {
   const [draftFilters, setDraftFilters] = useState<FilterState>(emptyFilters);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { wardsByCounty, countyNames, loading: locationsLoading } = useKenyaLocations();
 
   const fetchAdverts = async () => {
     setIsLoading(true);
@@ -320,11 +321,36 @@ export default function AdminAdverts() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>County *</Label>
-                  <Input value={form.county} onChange={(e) => setForm({ ...form, county: e.target.value })} placeholder="e.g. Nairobi" />
+                  <Select
+                    value={form.county || undefined}
+                    onValueChange={(v) => setForm({ ...form, county: v, ward: "" })}
+                  >
+                    <SelectTrigger aria-label="County">
+                      <SelectValue placeholder={locationsLoading ? "Loading…" : "Select county"} />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-72">
+                      {countyNames.map((c) => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <Label>Ward (optional)</Label>
-                  <Input value={form.ward} onChange={(e) => setForm({ ...form, ward: e.target.value })} placeholder="e.g. Westlands" />
+                  <Select
+                    value={form.ward || undefined}
+                    onValueChange={(v) => setForm({ ...form, ward: v })}
+                    disabled={!form.county}
+                  >
+                    <SelectTrigger aria-label="Ward">
+                      <SelectValue placeholder={form.county ? "Select ward" : "Select county first"} />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-72">
+                      {(wardsByCounty[form.county] ?? []).map((w) => (
+                        <SelectItem key={w} value={w}>{w}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -413,7 +439,7 @@ export default function AdminAdverts() {
                     </SelectTrigger>
                     <SelectContent className="max-h-72">
                       <SelectItem value="all">All counties</SelectItem>
-                      {Object.keys(wardsByCounty).sort().map((c) => (
+                      {countyNames.map((c) => (
                         <SelectItem key={c} value={c}>{c}</SelectItem>
                       ))}
                     </SelectContent>
