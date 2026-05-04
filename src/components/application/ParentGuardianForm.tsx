@@ -25,7 +25,9 @@ import { Shield, ArrowRight, MapPin, FileText } from "lucide-react";
 import { parentGuardianSchema, type ParentGuardianFormData } from "@/lib/validationSchemas";
 import { useApplication } from "@/context/ApplicationContext";
 import { PhoneConsentModal } from "./PhoneConsentModal";
-import { wardsByCounty } from "@/lib/kenyanWards";
+import { useKenyaLocations } from "@/lib/useKenyaLocations";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface BursaryAdvert {
@@ -43,6 +45,7 @@ interface ParentGuardianFormProps {
 
 export function ParentGuardianForm({ onNext }: ParentGuardianFormProps) {
   const { data, updateData } = useApplication();
+  const { wardsByCounty, countyNames, loading: locationsLoading } = useKenyaLocations();
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [pendingFormData, setPendingFormData] = useState<ParentGuardianFormData | null>(null);
   const [openAdverts, setOpenAdverts] = useState<BursaryAdvert[]>([]);
@@ -108,8 +111,14 @@ export function ParentGuardianForm({ onNext }: ParentGuardianFormProps) {
   // Counties that have open adverts
   const countiesWithAdverts = useMemo(() => {
     const counties = new Set(openAdverts.map((a) => a.county));
-    return Object.keys(wardsByCounty).filter((c) => counties.has(c));
-  }, [openAdverts]);
+    const list = countyNames.filter((c) => counties.has(c));
+    return [...list].sort((a, b) => a.localeCompare(b));
+  }, [openAdverts, countyNames]);
+
+  const sortedCountyNames = useMemo(
+    () => [...countyNames].sort((a, b) => a.localeCompare(b)),
+    [countyNames]
+  );
 
   const onSubmit = (formData: ParentGuardianFormData) => {
     setPendingFormData(formData);
@@ -248,28 +257,24 @@ export function ParentGuardianForm({ onNext }: ParentGuardianFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>County *</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select your county" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {countiesWithAdverts.length > 0 ? (
-                        countiesWithAdverts.map((county) => (
+                  {locationsLoading ? (
+                    <Skeleton className="h-10 w-full" />
+                  ) : (
+                    <Select onValueChange={field.onChange} value={field.value} disabled={locationsLoading}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select your county" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {(countiesWithAdverts.length > 0 ? countiesWithAdverts : sortedCountyNames).map((county) => (
                           <SelectItem key={county} value={county}>
                             {county}
                           </SelectItem>
-                        ))
-                      ) : (
-                        Object.keys(wardsByCounty).map((county) => (
-                          <SelectItem key={county} value={county}>
-                            {county}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
@@ -282,24 +287,28 @@ export function ParentGuardianForm({ onNext }: ParentGuardianFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Ward / Sub-County *</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    value={field.value}
-                    disabled={!selectedCounty}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder={selectedCounty ? "Select your ward" : "Select county first"} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {availableWards.map((ward) => (
-                        <SelectItem key={ward} value={ward}>
-                          {ward}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {locationsLoading ? (
+                    <Skeleton className="h-10 w-full" />
+                  ) : (
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      disabled={!selectedCounty || locationsLoading}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={selectedCounty ? "Select your ward" : "Select county first"} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {availableWards.map((ward) => (
+                          <SelectItem key={ward} value={ward}>
+                            {ward}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
@@ -384,9 +393,23 @@ export function ParentGuardianForm({ onNext }: ParentGuardianFormProps) {
           />
 
           <div className="flex justify-end pt-4">
-            <Button type="submit" size="lg" className="hover:scale-105 transition-transform">
-              Next: Student Information
-              <ArrowRight className="ml-2 h-5 w-5" />
+            <Button
+              type="submit"
+              size="lg"
+              className="hover:scale-105 transition-transform"
+              disabled={locationsLoading}
+            >
+              {locationsLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Loading locations...
+                </>
+              ) : (
+                <>
+                  Next: Student Information
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </>
+              )}
             </Button>
           </div>
         </form>
