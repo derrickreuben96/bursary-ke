@@ -210,7 +210,35 @@ export default function AdminAdverts() {
     return true;
   });
 
-  const activeFilterCount = [
+  const sortedAdverts = [...filteredAdverts].sort((a, b) => {
+    const dir = sortDir === "asc" ? 1 : -1;
+    switch (sortKey) {
+      case "county":
+        return a.county.localeCompare(b.county) * dir;
+      case "ward":
+        return (a.ward ?? "").localeCompare(b.ward ?? "") * dir;
+      case "budget":
+        return ((a.budget_amount ?? 0) - (b.budget_amount ?? 0)) * dir;
+      case "deadline":
+      default:
+        return (new Date(a.deadline).getTime() - new Date(b.deadline).getTime()) * dir;
+    }
+  });
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir(sortDir === "asc" ? "desc" : "asc");
+    } else {
+      setSortKey(key);
+      setSortDir(key === "budget" ? "desc" : "asc");
+    }
+  };
+
+  const sortIcon = (key: SortKey) => {
+    if (sortKey !== key) return <ArrowUpDown className="h-3 w-3 opacity-40" />;
+    return sortDir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />;
+  };
+
     filters.search.trim(),
     filters.status !== "all",
     filters.county !== "all",
