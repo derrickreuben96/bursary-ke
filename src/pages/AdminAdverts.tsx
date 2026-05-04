@@ -251,6 +251,8 @@ export default function AdminAdverts() {
     filters.status !== "all",
     filters.county !== "all",
     filters.ward !== "all",
+    filters.budgetMin,
+    filters.budgetMax,
     filters.deadlineFrom,
     filters.deadlineTo,
   ].filter(Boolean).length;
