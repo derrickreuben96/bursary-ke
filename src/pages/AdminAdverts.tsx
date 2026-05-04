@@ -99,6 +99,8 @@ export default function AdminAdverts() {
   const [draftFilters, setDraftFilters] = useState<FilterState>(emptyFilters);
   const [countyOpen, setCountyOpen] = useState(false);
   const [wardOpen, setWardOpen] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey>("deadline");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
   const { toast } = useToast();
   const navigate = useNavigate();
   const { wardsByCounty, countyNames, loading: locationsLoading } = useKenyaLocations();
