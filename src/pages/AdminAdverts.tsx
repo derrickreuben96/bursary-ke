@@ -578,7 +578,7 @@ export default function AdminAdverts() {
         </Dialog>
 
         <Dialog open={filterOpen} onOpenChange={setFilterOpen}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Filter Adverts</DialogTitle>
             </DialogHeader>
@@ -586,17 +586,17 @@ export default function AdminAdverts() {
               <div>
                 <Label>Search by title or description</Label>
                 <Input
-                  value={draftFilters.search}
-                  onChange={(e) => setDraftFilters({ ...draftFilters, search: e.target.value })}
+                  value={filters.search}
+                  onChange={(e) => setFilters({ ...filters, search: e.target.value })}
                   placeholder="e.g. Nairobi 2026"
                 />
               </div>
               <div>
                 <Label>Status</Label>
                 <Select
-                  value={draftFilters.status}
+                  value={filters.status}
                   onValueChange={(v) =>
-                    setDraftFilters({ ...draftFilters, status: v as FilterState["status"] })
+                    setFilters({ ...filters, status: v as FilterState["status"] })
                   }
                 >
                   <SelectTrigger aria-label="Status">
@@ -614,15 +614,15 @@ export default function AdminAdverts() {
                 <div>
                   <Label>County</Label>
                   <Select
-                    value={draftFilters.county}
-                    onValueChange={(v) => setDraftFilters({ ...draftFilters, county: v, ward: "all" })}
+                    value={filters.county}
+                    onValueChange={(v) => setFilters({ ...filters, county: v, ward: "all" })}
                   >
                     <SelectTrigger aria-label="County">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="max-h-72">
                       <SelectItem value="all">All counties</SelectItem>
-                      {countyNames.map((c) => (
+                      {sortedCountyNames.map((c) => (
                         <SelectItem key={c} value={c}>{c}</SelectItem>
                       ))}
                     </SelectContent>
@@ -631,16 +631,16 @@ export default function AdminAdverts() {
                 <div>
                   <Label>Ward</Label>
                   <Select
-                    value={draftFilters.ward}
-                    onValueChange={(v) => setDraftFilters({ ...draftFilters, ward: v })}
-                    disabled={draftFilters.county === "all"}
+                    value={filters.ward}
+                    onValueChange={(v) => setFilters({ ...filters, ward: v })}
+                    disabled={filters.county === "all"}
                   >
                     <SelectTrigger aria-label="Ward">
-                      <SelectValue placeholder={draftFilters.county === "all" ? "Select county first" : "All"} />
+                      <SelectValue placeholder={filters.county === "all" ? "Select county first" : "All"} />
                     </SelectTrigger>
                     <SelectContent className="max-h-72">
                       <SelectItem value="all">All wards</SelectItem>
-                      {wardOptions.map((w) => (
+                      {(filters.county !== "all" ? [...(wardsByCounty[filters.county] ?? [])].sort((a, b) => a.localeCompare(b)) : []).map((w) => (
                         <SelectItem key={w} value={w}>{w}</SelectItem>
                       ))}
                     </SelectContent>
@@ -649,33 +649,53 @@ export default function AdminAdverts() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
+                  <Label>Budget min (KES)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={filters.budgetMin}
+                    onChange={(e) => setFilters({ ...filters, budgetMin: e.target.value })}
+                    placeholder="e.g. 100000"
+                  />
+                </div>
+                <div>
+                  <Label>Budget max (KES)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={filters.budgetMax}
+                    onChange={(e) => setFilters({ ...filters, budgetMax: e.target.value })}
+                    placeholder="e.g. 5000000"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
                   <Label>Deadline from</Label>
                   <Input
                     type="date"
-                    value={draftFilters.deadlineFrom}
-                    onChange={(e) => setDraftFilters({ ...draftFilters, deadlineFrom: e.target.value })}
+                    value={filters.deadlineFrom}
+                    onChange={(e) => setFilters({ ...filters, deadlineFrom: e.target.value })}
                   />
                 </div>
                 <div>
                   <Label>Deadline to</Label>
                   <Input
                     type="date"
-                    value={draftFilters.deadlineTo}
-                    onChange={(e) => setDraftFilters({ ...draftFilters, deadlineTo: e.target.value })}
+                    value={filters.deadlineTo}
+                    onChange={(e) => setFilters({ ...filters, deadlineTo: e.target.value })}
                   />
                 </div>
               </div>
+              <p className="text-xs text-muted-foreground">
+                Filters apply instantly. Use Reset to clear all, or Apply to close this panel.
+              </p>
             </div>
             <DialogFooter className="gap-2 sm:gap-2">
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setDraftFilters(emptyFilters);
-                }}
-              >
+              <Button variant="ghost" onClick={() => setFilters(emptyFilters)}>
                 Reset
               </Button>
-              <Button onClick={applyFilters}>Apply filters</Button>
+              <Button onClick={() => setFilterOpen(false)}>Apply</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
