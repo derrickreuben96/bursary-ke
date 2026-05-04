@@ -576,6 +576,21 @@ export type Database = {
           },
         ]
       }
+      kenya_locations: {
+        Row: {
+          county: string
+          ward: string
+        }
+        Insert: {
+          county: string
+          ward: string
+        }
+        Update: {
+          county?: string
+          ward?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           assigned_county: string | null
