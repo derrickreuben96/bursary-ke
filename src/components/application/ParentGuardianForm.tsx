@@ -111,8 +111,14 @@ export function ParentGuardianForm({ onNext }: ParentGuardianFormProps) {
   // Counties that have open adverts
   const countiesWithAdverts = useMemo(() => {
     const counties = new Set(openAdverts.map((a) => a.county));
-    return Object.keys(wardsByCounty).filter((c) => counties.has(c));
-  }, [openAdverts]);
+    const list = countyNames.filter((c) => counties.has(c));
+    return [...list].sort((a, b) => a.localeCompare(b));
+  }, [openAdverts, countyNames]);
+
+  const sortedCountyNames = useMemo(
+    () => [...countyNames].sort((a, b) => a.localeCompare(b)),
+    [countyNames]
+  );
 
   const onSubmit = (formData: ParentGuardianFormData) => {
     setPendingFormData(formData);
