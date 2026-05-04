@@ -257,22 +257,9 @@ export default function AdminAdverts() {
     filters.deadlineTo,
   ].filter(Boolean).length;
 
-  const openFilters = () => {
-    setDraftFilters(filters);
-    setFilterOpen(true);
-  };
-
-  const applyFilters = () => {
-    setFilters(draftFilters);
-    setFilterOpen(false);
-  };
-
   const clearFilters = () => {
     setFilters(emptyFilters);
-    setDraftFilters(emptyFilters);
   };
-
-  const wardOptions = draftFilters.county !== "all" ? wardsByCounty[draftFilters.county] ?? [] : [];
 
   return (
     <div className="min-h-screen flex flex-col bg-secondary/30">
