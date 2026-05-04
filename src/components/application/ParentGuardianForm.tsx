@@ -45,6 +45,7 @@ interface ParentGuardianFormProps {
 
 export function ParentGuardianForm({ onNext }: ParentGuardianFormProps) {
   const { data, updateData } = useApplication();
+  const { wardsByCounty, countyNames, loading: locationsLoading } = useKenyaLocations();
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [pendingFormData, setPendingFormData] = useState<ParentGuardianFormData | null>(null);
   const [openAdverts, setOpenAdverts] = useState<BursaryAdvert[]>([]);
