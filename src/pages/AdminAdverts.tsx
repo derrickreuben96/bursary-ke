@@ -94,9 +94,15 @@ export default function AdminAdverts() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [filters, setFilters] = useState<FilterState>(emptyFilters);
   const [draftFilters, setDraftFilters] = useState<FilterState>(emptyFilters);
+  const [countyOpen, setCountyOpen] = useState(false);
+  const [wardOpen, setWardOpen] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { wardsByCounty, countyNames, loading: locationsLoading } = useKenyaLocations();
+  const sortedCountyNames = [...countyNames].sort((a, b) => a.localeCompare(b));
+  const sortedWards = (form.county ? [...(wardsByCounty[form.county] ?? [])] : []).sort((a, b) =>
+    a.localeCompare(b)
+  );
 
   const fetchAdverts = async () => {
     setIsLoading(true);
