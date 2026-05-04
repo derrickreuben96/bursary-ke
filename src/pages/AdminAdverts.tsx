@@ -271,7 +271,7 @@ export default function AdminAdverts() {
           </Button>
           <h1 className="text-2xl font-bold text-foreground">Manage Bursary Adverts</h1>
           <div className="ml-auto flex gap-2 flex-wrap">
-            <Button variant="outline" onClick={openFilters}>
+            <Button variant="outline" onClick={() => setFilterOpen(true)}>
               <Filter className="h-4 w-4 mr-2" />
               Filter
               {activeFilterCount > 0 && (
