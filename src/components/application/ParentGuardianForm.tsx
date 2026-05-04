@@ -393,9 +393,23 @@ export function ParentGuardianForm({ onNext }: ParentGuardianFormProps) {
           />
 
           <div className="flex justify-end pt-4">
-            <Button type="submit" size="lg" className="hover:scale-105 transition-transform">
-              Next: Student Information
-              <ArrowRight className="ml-2 h-5 w-5" />
+            <Button
+              type="submit"
+              size="lg"
+              className="hover:scale-105 transition-transform"
+              disabled={locationsLoading}
+            >
+              {locationsLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Loading locations...
+                </>
+              ) : (
+                <>
+                  Next: Student Information
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </>
+              )}
             </Button>
           </div>
         </form>
