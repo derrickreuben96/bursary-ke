@@ -25,7 +25,9 @@ import { Shield, ArrowRight, MapPin, FileText } from "lucide-react";
 import { parentGuardianSchema, type ParentGuardianFormData } from "@/lib/validationSchemas";
 import { useApplication } from "@/context/ApplicationContext";
 import { PhoneConsentModal } from "./PhoneConsentModal";
-import { wardsByCounty } from "@/lib/kenyanWards";
+import { useKenyaLocations } from "@/lib/useKenyaLocations";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface BursaryAdvert {
