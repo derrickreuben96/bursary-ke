@@ -279,8 +279,8 @@ export default function AdminAdverts() {
               )}
             </Button>
             {activeFilterCount > 0 && (
-              <Button variant="ghost" size="icon" onClick={clearFilters} aria-label="Clear filters">
-                <X className="h-4 w-4" />
+              <Button variant="ghost" size="sm" onClick={clearFilters}>
+                <X className="h-4 w-4 mr-1" /> Clear all filters
               </Button>
             )}
             <Button onClick={openCreate}>
