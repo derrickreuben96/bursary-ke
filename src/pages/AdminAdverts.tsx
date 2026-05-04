@@ -82,7 +82,7 @@ interface FilterState {
 
 const emptyFilters: FilterState = {
   search: "",
-  status: "all",
+  status: "active",
   county: "all",
   ward: "all",
   budgetMin: "",
@@ -248,7 +248,7 @@ export default function AdminAdverts() {
 
   const activeFilterCount = [
     filters.search.trim(),
-    filters.status !== "all",
+    filters.status !== "active",
     filters.county !== "all",
     filters.ward !== "all",
     filters.budgetMin,
@@ -326,8 +326,23 @@ export default function AdminAdverts() {
                   </SelectContent>
                 </Select>
               </div>
-              {(filters.county !== "all" || filters.ward !== "all") && (
-                <Button variant="ghost" size="sm" onClick={() => setFilters({ ...filters, county: "all", ward: "all" })}>
+              <div className="min-w-[180px]">
+                <Label className="text-xs text-muted-foreground">Filter by Status</Label>
+                <Select
+                  value={filters.status}
+                  onValueChange={(v) => setFilters({ ...filters, status: v as FilterState["status"] })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active only</SelectItem>
+                    <SelectItem value="expired">Expired</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="all">All sessions</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {(filters.county !== "all" || filters.ward !== "all" || filters.status !== "active") && (
+                <Button variant="ghost" size="sm" onClick={() => setFilters({ ...filters, county: "all", ward: "all", status: "active" })}>
                   <X className="h-4 w-4 mr-1" /> Clear
                 </Button>
               )}
@@ -349,10 +364,10 @@ export default function AdminAdverts() {
                     </button>
                   </Badge>
                 )}
-                {filters.status !== "all" && (
+                {filters.status !== "active" && (
                   <Badge variant="secondary" className="gap-1 pr-1">
                     Status: {filters.status}
-                    <button type="button" onClick={() => setFilters({ ...filters, status: "all" })} aria-label="Remove status filter" className="ml-1 rounded hover:bg-background/50 p-0.5">
+                    <button type="button" onClick={() => setFilters({ ...filters, status: "active" })} aria-label="Remove status filter" className="ml-1 rounded hover:bg-background/50 p-0.5">
                       <X className="h-3 w-3" />
                     </button>
                   </Badge>
