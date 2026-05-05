@@ -91,6 +91,21 @@ Deno.serve(async (req) => {
     }
 
     if (!data) {
+      // Log suspicious failed lookup for monitoring (no PII — only tracking number prefix)
+      try {
+        await supabaseAdmin.rpc("log_security_event", {
+          _event_type: "tracking_lookup_failed",
+          _severity: "warn",
+          _source: "track-application",
+          _ip: clientIp,
+          _user_agent: req.headers.get("user-agent") ?? null,
+          _details: {
+            tracking_prefix: trackingNumber.substring(0, 4),
+            verification_type: verificationType,
+          },
+        });
+      } catch (_e) { /* swallow logging errors */ }
+
       return new Response(
         JSON.stringify({ found: false, message: "Application not found. Please verify your tracking number and verification details." }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
