@@ -887,6 +887,7 @@ export type Database = {
         Returns: string
       }
       sweep_expired_adverts: { Args: never; Returns: number }
+      tracking_number_exists: { Args: { _tn: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "user" | "county_treasury" | "county_commissioner"
