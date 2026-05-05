@@ -140,7 +140,6 @@ describe.skipIf(!hasEnv)("RLS — anon access control", () => {
           apikey: SUPABASE_ANON_KEY,
           Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
           "Content-Type": "text/plain",
-          "x-upsert": "true",
         },
         body: "test-payload",
       },
