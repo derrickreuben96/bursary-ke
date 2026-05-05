@@ -63,6 +63,20 @@ export function DocumentUpload({ requiredDocs, onDocumentsChange, trackingNumber
       toast({ title: "Uploaded", description: `${label} uploaded successfully.` });
     } catch (err) {
       console.error("Upload error:", err);
+      // Log unauthorized / failed upload attempt for security monitoring
+      try {
+        await supabase.rpc("log_security_event", {
+          _event_type: "document_upload_failed",
+          _severity: "warn",
+          _source: "DocumentUpload",
+          _details: {
+            label,
+            file_size: file.size,
+            file_type: file.type,
+            error_message: (err as Error)?.message?.slice(0, 200) ?? null,
+          },
+        });
+      } catch (_e) { /* ignore logging errors */ }
       toast({ title: "Upload failed", description: "Could not upload file. Please try again.", variant: "destructive" });
     } finally {
       setUploading(null);
