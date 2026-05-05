@@ -131,32 +131,35 @@ describe.skipIf(!hasEnv)("RLS — anon access control", () => {
     expect(isDenialError(error!.message, error!.code)).toBe(true);
   }, 15_000);
 
+  const uploadViaRest = async (path: string) => {
+    const res = await fetch(
+      `${SUPABASE_URL}/storage/v1/object/applicant-documents/${path}`,
+      {
+        method: "POST",
+        headers: {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          "Content-Type": "text/plain",
+          "x-upsert": "true",
+        },
+        body: "test-payload",
+      },
+    );
+    return res.status;
+  };
+
   it("storage upload to applicant-documents with junk folder is blocked", async () => {
-    const sb = anonClient();
-    const file = new Blob(["test"], { type: "text/plain" });
-    const { error } = await sb.storage
-      .from("applicant-documents")
-      .upload(`hacker-folder-xyz/test.txt`, file);
-    expect(error).not.toBeNull();
+    const status = await uploadViaRest(`hacker-folder-xyz/test.txt`);
+    expect([400, 401, 403]).toContain(status);
   }, 15_000);
 
-  it("storage upload to applicant-documents with non-existent tracking number is blocked", async () => {
-    const sb = anonClient();
-    const file = new Blob(["test"], { type: "text/plain" });
-    const { error } = await sb.storage
-      .from("applicant-documents")
-      .upload(`BKE-ZZZZZZ/test.txt`, file);
-    // BKE-ZZZZZZ matches tracking format but won't exist as a row → rejected
-    expect(error).not.toBeNull();
+  it("storage upload with valid format but non-existent tracking number is blocked", async () => {
+    const status = await uploadViaRest(`BKE-ZZZZZZ/test.txt`);
+    expect([400, 401, 403]).toContain(status);
   }, 15_000);
 
   it("storage upload under a temp-<timestamp> folder is allowed (pre-submission)", async () => {
-    const sb = anonClient();
-    const file = new Blob(["test"], { type: "text/plain" });
-    const folder = `temp-${Date.now()}`;
-    const { error } = await sb.storage
-      .from("applicant-documents")
-      .upload(`${folder}/probe.txt`, file, { upsert: true });
-    expect(error).toBeNull();
+    const status = await uploadViaRest(`temp-${Date.now()}/probe-${Math.random().toString(36).slice(2)}.txt`);
+    expect([200, 201]).toContain(status);
   }, 15_000);
 });
