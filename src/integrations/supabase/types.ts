@@ -842,6 +842,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      sweep_expired_adverts: { Args: never; Returns: number }
     }
     Enums: {
       app_role: "admin" | "user" | "county_treasury" | "county_commissioner"
