@@ -77,4 +77,88 @@ describe.skipIf(!hasEnv)("RLS — anon access control", () => {
       expect(/permission|denied|policy/i.test(error.message)).toBe(false);
     }
   }, 15_000);
+
+  it("anon UPDATE on bursary_applications is blocked", async () => {
+    const sb = anonClient();
+    const { data, error } = await sb
+      .from("bursary_applications")
+      .update({ status: "approved" })
+      .eq("tracking_number", "BKE-AAAAAA")
+      .select();
+    // Either explicit denial or zero rows affected (RLS hides target rows)
+    if (error) {
+      expect(isDenialError(error.message, error.code)).toBe(true);
+    } else {
+      expect(data?.length ?? 0).toBe(0);
+    }
+  }, 15_000);
+
+  it("anon DELETE on bursary_applications is blocked", async () => {
+    const sb = anonClient();
+    const { data, error } = await sb
+      .from("bursary_applications")
+      .delete()
+      .eq("tracking_number", "BKE-AAAAAA")
+      .select();
+    if (error) {
+      expect(isDenialError(error.message, error.code)).toBe(true);
+    } else {
+      expect(data?.length ?? 0).toBe(0);
+    }
+  }, 15_000);
+
+  it("anon INSERT on user_roles is blocked", async () => {
+    const sb = anonClient();
+    const { error } = await sb
+      .from("user_roles")
+      .insert({
+        user_id: "00000000-0000-0000-0000-000000000000",
+        role: "admin",
+      });
+    expect(error).not.toBeNull();
+    expect(isDenialError(error!.message, error!.code)).toBe(true);
+  }, 15_000);
+
+  it("anon INSERT on application_status_history is blocked", async () => {
+    const sb = anonClient();
+    const { error } = await sb
+      .from("application_status_history")
+      .insert({
+        application_id: "00000000-0000-0000-0000-000000000000",
+        to_status: "approved",
+      });
+    expect(error).not.toBeNull();
+    expect(isDenialError(error!.message, error!.code)).toBe(true);
+  }, 15_000);
+
+  const uploadViaRest = async (path: string) => {
+    const res = await fetch(
+      `${SUPABASE_URL}/storage/v1/object/applicant-documents/${path}`,
+      {
+        method: "POST",
+        headers: {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          "Content-Type": "text/plain",
+        },
+        body: "test-payload",
+      },
+    );
+    return res.status;
+  };
+
+  it("storage upload to applicant-documents with junk folder is blocked", async () => {
+    const status = await uploadViaRest(`hacker-folder-xyz/test.txt`);
+    expect([400, 401, 403]).toContain(status);
+  }, 15_000);
+
+  it("storage upload with valid format but non-existent tracking number is blocked", async () => {
+    const status = await uploadViaRest(`BKE-ZZZZZZ/test.txt`);
+    expect([400, 401, 403]).toContain(status);
+  }, 15_000);
+
+  it("storage upload under a temp-<timestamp> folder is allowed (pre-submission)", async () => {
+    const status = await uploadViaRest(`temp-${Date.now()}/probe-${Math.random().toString(36).slice(2)}.txt`);
+    expect([200, 201]).toContain(status);
+  }, 15_000);
 });
