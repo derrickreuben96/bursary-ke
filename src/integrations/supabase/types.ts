@@ -630,6 +630,90 @@ export type Database = {
         }
         Relationships: []
       }
+      parent_applications: {
+        Row: {
+          advert_id: string
+          ai_decision_reason: string | null
+          created_at: string
+          current_stage: string
+          document_urls: Json
+          household_dependents: number
+          household_income: number
+          id: string
+          locked_for_resubmission: boolean
+          parent_county: string
+          parent_email: string | null
+          parent_full_name: string
+          parent_national_id: string
+          parent_phone: string
+          parent_ward: string | null
+          poverty_score: number
+          poverty_tier: string | null
+          released_to_treasury: boolean
+          reviewed_at: string | null
+          reviewed_by: string | null
+          sms_consent: boolean
+          status: string
+          total_students: number
+          tracking_number: string
+          updated_at: string
+        }
+        Insert: {
+          advert_id: string
+          ai_decision_reason?: string | null
+          created_at?: string
+          current_stage?: string
+          document_urls?: Json
+          household_dependents?: number
+          household_income?: number
+          id?: string
+          locked_for_resubmission?: boolean
+          parent_county: string
+          parent_email?: string | null
+          parent_full_name: string
+          parent_national_id: string
+          parent_phone: string
+          parent_ward?: string | null
+          poverty_score?: number
+          poverty_tier?: string | null
+          released_to_treasury?: boolean
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sms_consent?: boolean
+          status?: string
+          total_students?: number
+          tracking_number: string
+          updated_at?: string
+        }
+        Update: {
+          advert_id?: string
+          ai_decision_reason?: string | null
+          created_at?: string
+          current_stage?: string
+          document_urls?: Json
+          household_dependents?: number
+          household_income?: number
+          id?: string
+          locked_for_resubmission?: boolean
+          parent_county?: string
+          parent_email?: string | null
+          parent_full_name?: string
+          parent_national_id?: string
+          parent_phone?: string
+          parent_ward?: string | null
+          poverty_score?: number
+          poverty_tier?: string | null
+          released_to_treasury?: boolean
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sms_consent?: boolean
+          status?: string
+          total_students?: number
+          tracking_number?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           assigned_county: string | null
@@ -737,6 +821,74 @@ export type Database = {
           user_agent?: string | null
         }
         Relationships: []
+      }
+      student_beneficiaries: {
+        Row: {
+          admission_number: string | null
+          ai_decision_reason: string | null
+          allocated_amount: number | null
+          allocation_date: string | null
+          class_form: string | null
+          created_at: string
+          fee_balance: number | null
+          id: string
+          institution_name: string
+          parent_application_id: string
+          released_to_treasury: boolean
+          status: string
+          student_full_name: string
+          student_identifier: string
+          student_type: string
+          updated_at: string
+          year_of_study: string | null
+        }
+        Insert: {
+          admission_number?: string | null
+          ai_decision_reason?: string | null
+          allocated_amount?: number | null
+          allocation_date?: string | null
+          class_form?: string | null
+          created_at?: string
+          fee_balance?: number | null
+          id?: string
+          institution_name: string
+          parent_application_id: string
+          released_to_treasury?: boolean
+          status?: string
+          student_full_name: string
+          student_identifier: string
+          student_type?: string
+          updated_at?: string
+          year_of_study?: string | null
+        }
+        Update: {
+          admission_number?: string | null
+          ai_decision_reason?: string | null
+          allocated_amount?: number | null
+          allocation_date?: string | null
+          class_form?: string | null
+          created_at?: string
+          fee_balance?: number | null
+          id?: string
+          institution_name?: string
+          parent_application_id?: string
+          released_to_treasury?: boolean
+          status?: string
+          student_full_name?: string
+          student_identifier?: string
+          student_type?: string
+          updated_at?: string
+          year_of_study?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_beneficiaries_parent_application_id_fkey"
+            columns: ["parent_application_id"]
+            isOneToOne: false
+            referencedRelation: "parent_applications"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sync_metrics: {
         Row: {
@@ -957,6 +1109,33 @@ export type Database = {
           year_of_study: string
         }[]
       }
+      get_parent_application_by_tracking: {
+        Args: { _tracking: string; _verifier: string }
+        Returns: Json
+      }
+      get_parent_applications_for_commissioner: {
+        Args: never
+        Returns: {
+          advert_id: string
+          ai_decision_reason: string
+          created_at: string
+          current_stage: string
+          household_dependents: number
+          household_income: number
+          id: string
+          parent_county: string
+          parent_name_masked: string
+          parent_ward: string
+          poverty_score: number
+          poverty_tier: string
+          released_to_treasury: boolean
+          status: string
+          students: Json
+          total_students: number
+          tracking_number: string
+          updated_at: string
+        }[]
+      }
       get_treasury_applications: {
         Args: never
         Returns: {
@@ -967,6 +1146,23 @@ export type Database = {
           ecitizen_ref: string
           id: string
           institution_name: string
+          status: string
+          student_name_masked: string
+          student_type: string
+          tracking_number: string
+          updated_at: string
+        }[]
+      }
+      get_treasury_student_beneficiaries: {
+        Args: never
+        Returns: {
+          allocated_amount: number
+          allocation_date: string
+          county: string
+          created_at: string
+          id: string
+          institution_name: string
+          parent_application_id: string
           status: string
           student_name_masked: string
           student_type: string
@@ -993,6 +1189,13 @@ export type Database = {
           _user_agent?: string
         }
         Returns: string
+      }
+      submit_parent_application: {
+        Args: { _advert_id: string; _parent: Json; _students: Json }
+        Returns: {
+          parent_id: string
+          tracking_number: string
+        }[]
       }
       sweep_expired_adverts: { Args: never; Returns: number }
       tracking_number_exists: { Args: { _tn: string }; Returns: boolean }
