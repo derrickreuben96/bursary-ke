@@ -382,54 +382,71 @@ export async function lookupNemisId(nemisId: string): Promise<NemisLookupResult>
     setTimeout(resolve, 300 + Math.random() * 500)
   );
 
-  // Check if student exists in our generated NEMIS database
-  const student = lookupFromDatabase(nemisId);
-  
-  if (student) {
-    const school = schoolDatabase[student.schoolCode];
-    if (school) {
-      return {
-        success: true,
-        data: {
-          studentName: student.name,
-          schoolName: school.name,
-          schoolCode: student.schoolCode,
-          countyName: school.county,
-          countyCode: validation.countyCode!,
-        },
-      };
-    }
-  }
+  // Deterministic PRNG so the same NEMIS ID always returns the same person/school
+  const hashSeed = (s: string) => {
+    let h = 2166136261;
+    for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return h >>> 0;
+  };
+  const mulberry32 = (seed: number) => {
+    let a = seed >>> 0;
+    return () => {
+      a = (a + 0x6d2b79f5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  };
+  const rnd = mulberry32(hashSeed(nemisId));
+  const pick = <T,>(arr: T[]) => arr[Math.floor(rnd() * arr.length)];
 
-  // Generate realistic data for unknown NEMIS IDs based on the school code
-  const school = schoolDatabase[validation.schoolCode!];
-  
-  if (school) {
-    // School exists, generate a student name
-    const firstNames = ["James", "Mary", "John", "Grace", "Peter", "Faith", "David", "Joy", "Samuel", "Agnes", "Kevin", "Sharon", "Hassan", "Fatuma", "Brian", "Mercy"];
-    const middleNames = ["Kamau", "Wanjiku", "Ochieng", "Akinyi", "Kiprop", "Muthoni", "Omondi", "Chebet", "Njoroge", "Wambui", "Otieno", "Nekesa", "Omar", "Mwanaisha"];
-    const lastNames = ["Mwangi", "Njoroge", "Otieno", "Odhiambo", "Korir", "Kariuki", "Kimani", "Kiplagat", "Cheruiyot", "Wafula", "Ouma", "Wanyama", "Ali", "Mohammed"];
-    
-    const randomFirst = firstNames[Math.floor(Math.random() * firstNames.length)];
-    const randomMiddle = middleNames[Math.floor(Math.random() * middleNames.length)];
-    const randomLast = lastNames[Math.floor(Math.random() * lastNames.length)];
-    
+  const firstNames = ["James","Mary","John","Grace","Peter","Faith","David","Joy","Samuel","Agnes","Kevin","Sharon","Hassan","Fatuma","Brian","Mercy","Daniel","Esther","Emmanuel","Ruth","Anthony","Catherine","Dennis","Pauline","Victor","Susan","Stephen","Alice","Patrick","Jane","Michael","Florence","Joseph","Nancy","Charles","Teresa","Ahmed","Aisha","Ibrahim","Zainab","Kipchoge","Chebet","Rotich","Jepkosgei"];
+  const middleNames = ["Kamau","Wanjiku","Ochieng","Akinyi","Kiprop","Muthoni","Omondi","Chebet","Njoroge","Wambui","Otieno","Nekesa","Omar","Mwanaisha","Mwangi","Adhiambo","Korir","Wanjiru","Kiplagat","Mueni","Mutua","Nyaboke","Onyango","Kwamboka","Hussein","Halima","Mohamed","Farah"];
+  const lastNames = ["Mwangi","Njoroge","Otieno","Odhiambo","Korir","Kariuki","Kimani","Kiplagat","Cheruiyot","Wafula","Ouma","Wanyama","Ali","Mohammed","Kamau","Musyoka","Mutua","Makau","Rotich","Kibet","Koech","Kiptoo","Baraza","Simiyu","Wekesa","Masinde","Juma","Ombati","Onyango","Achieng"];
+
+  // Try the curated database first (deterministic)
+  const known = lookupFromDatabase(nemisId);
+  const knownSchool = known ? schoolDatabase[known.schoolCode] : undefined;
+  if (known && knownSchool) {
     return {
       success: true,
       data: {
-        studentName: `${randomFirst} ${randomMiddle} ${randomLast}`,
-        schoolName: school.name,
-        schoolCode: validation.schoolCode!,
-        countyName: school.county,
+        studentName: known.name,
+        schoolName: knownSchool.name,
+        schoolCode: known.schoolCode,
+        countyName: knownSchool.county,
         countyCode: validation.countyCode!,
       },
     };
   }
 
-  // School not found in database - return error
+  const countyName = validation.countyName || "Kenya";
+  // If the school code matches a known school, use it; otherwise synthesize one deterministically
+  const realSchool = schoolDatabase[validation.schoolCode!];
+  const schoolTemplates = [
+    `${countyName} Secondary School`,
+    `${countyName} Boys High School`,
+    `${countyName} Girls High School`,
+    `St. Mary's ${countyName}`,
+    `${countyName} County High School`,
+    `Moi ${countyName} Secondary`,
+    `${countyName} Day Secondary`,
+    `Friends School ${countyName}`,
+  ];
+  const schoolName = realSchool?.name || pick(schoolTemplates);
+
+  const studentName = `${pick(firstNames)} ${pick(middleNames)} ${pick(lastNames)}`;
+
   return {
-    success: false,
-    error: `School with code ${validation.schoolCode} not found in NEMIS database. Please verify your NEMIS ID.`,
+    success: true,
+    data: {
+      studentName,
+      schoolName,
+      schoolCode: validation.schoolCode!,
+      countyName,
+      countyCode: validation.countyCode!,
+    },
   };
 }
 
