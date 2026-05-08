@@ -43,6 +43,8 @@ export default function Track() {
     setError("");
     setResult(null);
     setNotFound(false);
+    setStudents([]);
+    setParentInfo(null);
 
     const normalizedNumber = trackingNumber.toUpperCase().trim();
     const verVal = verificationValue.trim();
