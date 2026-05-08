@@ -93,7 +93,8 @@ Deno.serve(async (req) => {
     // Most-recent first when searching by ID/phone alone
     query = query.order("created_at", { ascending: false }).limit(1);
 
-    const { data, error } = await query.maybeSingle();
+    const { data: rows, error } = await query;
+    const data = rows && rows.length > 0 ? rows[0] : null;
 
     if (error) {
       console.error("[TRACK] Database error:", error);
