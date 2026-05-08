@@ -203,26 +203,19 @@ export function StudentsRepeater({ onNext, onBack, defaultType }: Props) {
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label>Class / Form</Label>
-                    <Select value={s.classForm || ""} onValueChange={(v) => update(s.id, { classForm: v })}>
-                      <SelectTrigger><SelectValue placeholder="Select form" /></SelectTrigger>
-                      <SelectContent>
-                        {["Form 1", "Form 2", "Form 3", "Form 4"].map((f) => (
-                          <SelectItem key={f} value={f}>{f}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>Admission Number</Label>
-                    <Input
-                      value={s.admissionNumber || ""}
-                      onChange={(e) => update(s.id, { admissionNumber: e.target.value })}
-                      placeholder="Optional"
-                    />
-                  </div>
+                <div>
+                  <Label>Class / Form</Label>
+                  <Select value={s.classForm || ""} onValueChange={(v) => update(s.id, { classForm: v })}>
+                    <SelectTrigger><SelectValue placeholder="Select form" /></SelectTrigger>
+                    <SelectContent>
+                      {["Form 1", "Form 2", "Form 3", "Form 4"].map((f) => (
+                        <SelectItem key={f} value={f}>{f}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    NEMIS ID is the universal admission number — no separate admission number required.
+                  </p>
                 </div>
               </div>
             ) : (
