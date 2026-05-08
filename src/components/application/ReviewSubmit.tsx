@@ -4,7 +4,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
 import { ArrowLeft, Send, Loader2, User, GraduationCap, ClipboardCheck, Shield } from "lucide-react";
 import { useApplication } from "@/context/ApplicationContext";
-import { maskId, maskPhone, maskEmail, maskStudentId, generateTrackingNumber, maskName } from "@/lib/maskData";
+import { maskId, maskPhone, maskEmail, maskStudentId, maskName } from "@/lib/maskData";
+import { useToast } from "@/hooks/use-toast";
 import { calculatePovertyScore, getPovertyTier } from "@/lib/validationSchemas";
 
 interface ReviewSubmitProps {
@@ -15,6 +16,7 @@ interface ReviewSubmitProps {
 
 export function ReviewSubmit({ onBack, onSuccess, studentType }: ReviewSubmitProps) {
   const { data } = useApplication();
+  const { toast } = useToast();
   const [confirmed, setConfirmed] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -35,18 +37,27 @@ export function ReviewSubmit({ onBack, onSuccess, studentType }: ReviewSubmitPro
         studentType,
       });
 
-      if (error) {
+      if (error || !trackingNumber) {
         console.error("Submission error:", error);
-        // Fallback to local tracking number if database fails
-        const fallbackNumber = generateTrackingNumber();
-        onSuccess(fallbackNumber);
-      } else {
-        onSuccess(trackingNumber);
+        toast({
+          variant: "destructive",
+          title: "Submission failed",
+          description:
+            error?.message ||
+            "We couldn't save your application. Please check your details (especially county/ward) and try again.",
+        });
+        return;
       }
+      onSuccess(trackingNumber);
     } catch (error) {
       console.error("Submission error:", error);
-      const fallbackNumber = generateTrackingNumber();
-      onSuccess(fallbackNumber);
+      toast({
+        variant: "destructive",
+        title: "Submission failed",
+        description:
+          (error as Error)?.message ||
+          "Network error while submitting. Please try again.",
+      });
     } finally {
       setIsSubmitting(false);
     }
