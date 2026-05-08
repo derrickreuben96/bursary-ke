@@ -340,6 +340,39 @@ export default function Track() {
                 <ProgressTimeline stages={result.stages} currentStage={result.currentStage} />
               </Card>
 
+              {students.length > 0 && (
+                <Card className="p-6 shadow-card">
+                  <h3 className="text-lg font-semibold mb-4">
+                    Linked Students ({parentInfo?.total_students ?? students.length})
+                  </h3>
+                  <div className="space-y-3">
+                    {students.map((s, i) => (
+                      <div key={i} className="p-4 rounded-lg bg-secondary/40 border">
+                        <div className="flex items-start justify-between gap-3 flex-wrap">
+                          <div>
+                            <p className="font-medium">{s.student_full_name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {s.institution_name} · {s.student_type}
+                              {s.class_form ? ` · ${s.class_form}` : ""}
+                              {s.year_of_study ? ` · ${s.year_of_study}` : ""}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-muted-foreground">Status</p>
+                            <p className="font-medium text-primary capitalize">{s.status}</p>
+                            {s.allocated_amount ? (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Allocated: KES {Number(s.allocated_amount).toLocaleString()}
+                              </p>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              )}
+
               <div className="text-center text-sm text-muted-foreground">
                 <p>
                   {t("track.need_help")}{" "}
