@@ -113,8 +113,8 @@ Deno.serve(async (req) => {
           _ip: clientIp,
           _user_agent: req.headers.get("user-agent") ?? null,
           _details: {
-            tracking_prefix: trackingNumber.substring(0, 4),
-            verification_type: verificationType,
+            tracking_prefix: trackingNumber ? trackingNumber.substring(0, 4) : null,
+            verification_type: verificationType ?? null,
           },
         });
       } catch (_e) { /* swallow logging errors */ }
@@ -126,14 +126,15 @@ Deno.serve(async (req) => {
     }
 
     // Fetch actual status history for real dates
+    const { data: appIdRow } = await supabaseAdmin
+      .from("bursary_applications")
+      .select("id")
+      .eq("tracking_number", data.tracking_number)
+      .maybeSingle();
     const { data: historyData } = await supabaseAdmin
       .from("application_status_history")
       .select("from_status, to_status, changed_at")
-      .eq("application_id", (await supabaseAdmin
-        .from("bursary_applications")
-        .select("id")
-        .eq("tracking_number", trackingNumber.toUpperCase())
-        .maybeSingle()).data?.id || "")
+      .eq("application_id", appIdRow?.id || "")
       .order("changed_at", { ascending: true });
 
     // Build a map of when each status was reached
