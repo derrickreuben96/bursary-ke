@@ -8,13 +8,33 @@ export interface SecondaryStudentFormData {
   school: string;
 }
 
+/**
+ * Generic per-student record used by the multi-student repeater.
+ * Either secondary or university shape; max 3 per parent application.
+ */
+export interface StudentEntry {
+  id: string; // local-only uuid for React keys
+  studentType: "secondary" | "university";
+  studentName: string;
+  identifier: string; // NEMIS/birth-cert OR university student id
+  institution: string;
+  admissionNumber?: string;
+  classForm?: string;
+  yearOfStudy?: string;
+  course?: string;
+  feeBalance?: number;
+}
+
 export interface ApplicationData {
   parentGuardian?: ParentGuardianFormData;
+  // Legacy single-student fields (kept for back-compat; mirror students[0])
   universityStudent?: UniversityStudentFormData;
   secondaryStudent?: SecondaryStudentFormData;
   povertyQuestionnaire?: PovertyQuestionnaireFormData;
   trackingNumber?: string;
   advertId?: string;
+  // New: 1-3 students
+  students?: StudentEntry[];
 }
 
 interface ApplicationContextType {
@@ -28,7 +48,7 @@ interface ApplicationContextType {
 const ApplicationContext = createContext<ApplicationContextType | undefined>(undefined);
 
 export function ApplicationProvider({ children }: { children: ReactNode }) {
-  const [data, setData] = useState<ApplicationData>({});
+  const [data, setData] = useState<ApplicationData>({ students: [] });
   const [currentStep, setCurrentStep] = useState(1);
 
   const updateData = (newData: Partial<ApplicationData>) => {
@@ -36,7 +56,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
   };
 
   const resetApplication = () => {
-    setData({});
+    setData({ students: [] });
     setCurrentStep(1);
   };
 
