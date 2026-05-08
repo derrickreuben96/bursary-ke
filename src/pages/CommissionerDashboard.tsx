@@ -285,7 +285,7 @@ export default function CommissionerDashboard() {
       if (document.visibilityState === "visible") {
         fetchApplications();
       }
-    }, 30000);
+    }, 15000);
     const onVisible = () => {
       if (document.visibilityState === "visible") fetchApplications();
     };

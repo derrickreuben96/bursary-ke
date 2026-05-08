@@ -92,7 +92,7 @@ export default function TreasuryDashboard() {
     // Polling fallback — PII tables are excluded from Supabase realtime by policy.
     const interval = setInterval(() => {
       if (document.visibilityState === "visible") fetchApprovedApplications();
-    }, 30000);
+    }, 15000);
     const onVisible = () => {
       if (document.visibilityState === "visible") fetchApprovedApplications();
     };
