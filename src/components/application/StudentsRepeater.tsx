@@ -166,24 +166,22 @@ export function StudentsRepeater({ onNext, onBack, defaultType }: Props) {
                   <Label>NEMIS ID *</Label>
                   <div className="relative">
                     <Input
-                      value={s.identifier}
+                      value={formatNemisId(s.identifier)}
                       onChange={(e) => handleNemisChange(s.id, e.target.value)}
-                      placeholder="e.g. 04710011234"
-                      maxLength={11}
+                      placeholder="CCC-NNNN-SSSS"
+                      maxLength={13}
                       inputMode="numeric"
-                      className={cn(ls.error && "border-destructive", ls.loading && "pr-10")}
+                      aria-label="NEMIS ID"
+                      className={cn("font-mono tracking-wider", ls.error && "border-destructive", ls.loading && "pr-10")}
                     />
                     {ls.loading && (
                       <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Format: CCC-NNNN-SSSS (County-School-Student)
+                    Format: CCC-NNNN-SSSS (County–School–Student)
                     {s.identifier.length > 0 && s.identifier.length < 11 && (
-                      <span className="ml-2">({s.identifier.length}/11)</span>
-                    )}
-                    {s.identifier.length === 11 && (
-                      <span className="ml-2 font-medium text-primary">{formatNemisId(s.identifier)}</span>
+                      <span className="ml-2">({s.identifier.length}/11 digits)</span>
                     )}
                   </p>
                   {ls.error && (
