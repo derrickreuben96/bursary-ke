@@ -148,7 +148,7 @@ export function StudentsRepeater({ onNext, onBack, defaultType }: Props) {
       </div>
 
       {students.map((s, idx) => {
-        const ls = lookupState[s.id] || {};
+        const ls: { loading?: boolean; error?: string; verified?: boolean } = lookupState[s.id] || {};
         return (
           <Card key={s.id} className="p-5 space-y-4 shadow-card">
             <div className="flex items-center justify-between">
