@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ApplicationStepper } from "@/components/application/ApplicationStepper";
 import { ParentGuardianForm } from "@/components/application/ParentGuardianForm";
-import { UniversityStudentForm } from "@/components/application/UniversityStudentForm";
+import { StudentsRepeater } from "@/components/application/StudentsRepeater";
 import { PovertyQuestionnaire } from "@/components/application/PovertyQuestionnaire";
 import { DocumentUpload } from "@/components/application/DocumentUpload";
 import { ReviewSubmit } from "@/components/application/ReviewSubmit";
@@ -71,7 +71,8 @@ function ApplicationFormContent() {
               <ParentGuardianForm onNext={() => setCurrentStep(2)} />
             )}
             {currentStep === 2 && (
-              <UniversityStudentForm
+              <StudentsRepeater
+                defaultType="university"
                 onNext={() => setCurrentStep(3)}
                 onBack={() => setCurrentStep(1)}
               />

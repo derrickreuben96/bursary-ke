@@ -60,12 +60,94 @@ export async function submitApplication(
       const povertyTier = getPovertyTier(povertyScore);
       const studentType = params.studentType;
 
-      // 3. Insert application
-      const { error: insertError } = await supabase
+      // Build students array. Prefer multi-student repeater data when present.
+      const repeaterStudents = (data.students && data.students.length > 0)
+        ? data.students
+        : [
+            {
+              id: "legacy",
+              studentType,
+              studentName:
+                studentType === "university"
+                  ? data.universityStudent?.studentName || "N/A"
+                  : data.secondaryStudent?.studentName || "N/A",
+              identifier:
+                (studentType === "university"
+                  ? data.universityStudent?.studentId
+                  : data.secondaryStudent?.nemisId) || trackingNumber + "-S1",
+              institution:
+                studentType === "university"
+                  ? data.universityStudent?.institution || "Unknown"
+                  : data.secondaryStudent?.school || "Unknown",
+              admissionNumber: "",
+              classForm:
+                studentType === "secondary" ? data.secondaryStudent?.classForm : undefined,
+              yearOfStudy:
+                studentType === "university" ? data.universityStudent?.yearOfStudy : undefined,
+              course: studentType === "university" ? data.universityStudent?.course : undefined,
+              feeBalance: 0,
+            },
+          ];
+
+      // 3a. NEW: insert into parent_applications + student_beneficiaries via RPC
+      //         (also enforces per-advert duplicate lock + max-3 + cross-parent uniqueness)
+      const { error: rpcError } = await supabase.rpc("submit_parent_application", {
+        _advert_id: advertId,
+        _tracking: trackingNumber,
+        _parent: {
+          parent_national_id: nationalId,
+          parent_full_name: data.parentGuardian?.fullName || "Guardian",
+          parent_phone: data.parentGuardian?.phoneNumber || "",
+          parent_email: data.parentGuardian?.email || null,
+          parent_county: data.parentGuardian?.county || "Not Specified",
+          parent_ward: data.parentGuardian?.ward || null,
+          sms_consent: data.parentGuardian?.consentNotifications || false,
+          household_income: data.povertyQuestionnaire?.householdIncome || 0,
+          household_dependents: data.povertyQuestionnaire?.numberOfDependents || 0,
+          poverty_score: povertyScore,
+          poverty_tier: povertyTier,
+        },
+        _students: repeaterStudents.map((s) => ({
+          student_full_name: s.studentName,
+          student_identifier: s.identifier,
+          student_type: s.studentType,
+          institution_name: s.institution,
+          admission_number: s.admissionNumber || null,
+          class_form: s.classForm || null,
+          year_of_study: s.yearOfStudy || null,
+          fee_balance: s.feeBalance || 0,
+        })),
+      });
+
+      if (rpcError) {
+        const msg = (rpcError as { message?: string }).message || "";
+        if (
+          (rpcError as { code?: string }).code === "23505" ||
+          msg.includes("already submitted")
+        ) {
+          throw new Error(
+            "You have already submitted the maximum allowed bursary application for this cycle."
+          );
+        }
+        if (msg.includes("Maximum of 3 students")) {
+          throw new Error("Maximum of 3 students allowed per application.");
+        }
+        if (msg.includes("already registered for this bursary cycle")) {
+          throw new Error("One of the students is already registered under another application for this bursary.");
+        }
+        console.error("submit_parent_application failed:", rpcError);
+        throw new Error(msg || "Failed to submit application");
+      }
+
+      // 3b. LEGACY mirror — keep one row in bursary_applications so existing
+      //     commissioner/admin/treasury views continue to function until they
+      //     migrate to the parent_applications schema.
+      const firstStudent = repeaterStudents[0];
+      const { error: legacyInsertError } = await supabase
         .from("bursary_applications")
         .insert({
           tracking_number: trackingNumber,
-          student_type: studentType,
+          student_type: firstStudent.studentType,
           status: "received",
           advert_id: advertId || null,
           parent_national_id: nationalId,
@@ -75,50 +157,19 @@ export async function submitApplication(
           parent_county: data.parentGuardian?.county || "Not Specified",
           parent_ward: data.parentGuardian?.ward || null,
           sms_consent: data.parentGuardian?.consentNotifications || false,
-          student_full_name:
-            studentType === "university"
-              ? data.universityStudent?.studentName || "N/A"
-              : data.secondaryStudent?.studentName || "N/A",
-          student_id:
-            studentType === "university"
-              ? data.universityStudent?.studentId
-              : data.secondaryStudent?.nemisId,
-          institution_name:
-            studentType === "university"
-              ? data.universityStudent?.institution || "Unknown"
-              : data.secondaryStudent?.school || "Unknown",
-          year_of_study:
-            studentType === "university"
-              ? data.universityStudent?.yearOfStudy
-              : null,
-          class_form:
-            studentType === "secondary"
-              ? data.secondaryStudent?.classForm
-              : null,
+          student_full_name: firstStudent.studentName,
+          student_id: firstStudent.identifier,
+          institution_name: firstStudent.institution,
+          year_of_study: firstStudent.yearOfStudy || null,
+          class_form: firstStudent.classForm || null,
           household_income: data.povertyQuestionnaire?.householdIncome || 0,
-          household_dependents:
-            data.povertyQuestionnaire?.numberOfDependents || 0,
+          household_dependents: data.povertyQuestionnaire?.numberOfDependents || 0,
           poverty_score: povertyScore,
           poverty_tier: povertyTier,
         });
-
-      if (insertError) {
-        // Postgres unique-violation (23505) means a parallel/duplicate submission
-        // already landed first — return that record instead of failing the user.
-        if ((insertError as { code?: string }).code === "23505" && nationalId && advertId) {
-          const { data: dupRow } = await supabase
-            .from("bursary_applications")
-            .select("tracking_number")
-            .eq("parent_national_id", nationalId)
-            .eq("advert_id", advertId)
-            .neq("status", "rejected")
-            .maybeSingle();
-          if (dupRow?.tracking_number) {
-            return { trackingNumber: dupRow.tracking_number, error: null };
-          }
-        }
-        console.error("Error inserting application:", insertError);
-        throw new Error(insertError.message || "Failed to submit application");
+      if (legacyInsertError) {
+        // Non-fatal — parent_applications row already saved. Just log.
+        console.warn("Legacy mirror insert failed (non-fatal):", legacyInsertError);
       }
 
       return { trackingNumber, error: null };
@@ -126,8 +177,6 @@ export async function submitApplication(
       console.error("Application submission error:", error);
       return { trackingNumber: "", error: error as Error };
     } finally {
-      // Release the in-flight slot so future cycles (e.g. user retries
-      // after rejection) can submit again.
       setTimeout(() => inflightSubmissions.delete(dedupeKey), 0);
     }
   })();

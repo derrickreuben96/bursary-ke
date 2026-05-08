@@ -27,12 +27,24 @@ export default function Track() {
   const [result, setResult] = useState<TrackingInfo | null>(
     initialNumber ? sampleTrackingData[initialNumber] || null : null
   );
+  const [students, setStudents] = useState<Array<{
+    student_full_name: string;
+    institution_name: string;
+    student_type: string;
+    status: string;
+    allocated_amount: number | null;
+    class_form?: string | null;
+    year_of_study?: string | null;
+  }>>([]);
+  const [parentInfo, setParentInfo] = useState<{ total_students?: number; parent_county?: string; parent_ward?: string } | null>(null);
   const [notFound, setNotFound] = useState(false);
 
   const handleTrack = async () => {
     setError("");
     setResult(null);
     setNotFound(false);
+    setStudents([]);
+    setParentInfo(null);
 
     const normalizedNumber = trackingNumber.toUpperCase().trim();
     const verVal = verificationValue.trim();
@@ -92,6 +104,40 @@ export default function Track() {
             date: s.date ? new Date(s.date) : null,
           })),
         });
+
+        // Fetch linked students (parent+children) — best-effort, won't block on error
+        if (verVal) {
+          try {
+            const { data: pData } = await supabase.rpc("get_parent_application_by_tracking", {
+              _tracking: funcData.trackingNumber,
+              _verifier: verVal,
+            });
+            if (pData && typeof pData === "object" && !(pData as { error?: string }).error) {
+              const p = pData as {
+                total_students?: number;
+                parent_county?: string;
+                parent_ward?: string;
+                students?: Array<{
+                  student_full_name: string;
+                  institution_name: string;
+                  student_type: string;
+                  status: string;
+                  allocated_amount: number | null;
+                  class_form?: string | null;
+                  year_of_study?: string | null;
+                }>;
+              };
+              setParentInfo({
+                total_students: p.total_students,
+                parent_county: p.parent_county,
+                parent_ward: p.parent_ward,
+              });
+              setStudents(p.students || []);
+            }
+          } catch (e) {
+            console.warn("Parent/students lookup failed (non-fatal):", e);
+          }
+        }
       } else {
         const sampleData = sampleTrackingData[normalizedNumber];
         if (sampleData) {
@@ -293,6 +339,39 @@ export default function Track() {
                 <h3 className="text-lg font-semibold mb-6">{t("track.progress")}</h3>
                 <ProgressTimeline stages={result.stages} currentStage={result.currentStage} />
               </Card>
+
+              {students.length > 0 && (
+                <Card className="p-6 shadow-card">
+                  <h3 className="text-lg font-semibold mb-4">
+                    Linked Students ({parentInfo?.total_students ?? students.length})
+                  </h3>
+                  <div className="space-y-3">
+                    {students.map((s, i) => (
+                      <div key={i} className="p-4 rounded-lg bg-secondary/40 border">
+                        <div className="flex items-start justify-between gap-3 flex-wrap">
+                          <div>
+                            <p className="font-medium">{s.student_full_name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {s.institution_name} · {s.student_type}
+                              {s.class_form ? ` · ${s.class_form}` : ""}
+                              {s.year_of_study ? ` · ${s.year_of_study}` : ""}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-muted-foreground">Status</p>
+                            <p className="font-medium text-primary capitalize">{s.status}</p>
+                            {s.allocated_amount ? (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Allocated: KES {Number(s.allocated_amount).toLocaleString()}
+                              </p>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              )}
 
               <div className="text-center text-sm text-muted-foreground">
                 <p>
