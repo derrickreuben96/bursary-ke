@@ -104,6 +104,40 @@ export default function Track() {
             date: s.date ? new Date(s.date) : null,
           })),
         });
+
+        // Fetch linked students (parent+children) — best-effort, won't block on error
+        if (verVal) {
+          try {
+            const { data: pData } = await supabase.rpc("get_parent_application_by_tracking", {
+              _tracking: funcData.trackingNumber,
+              _verifier: verVal,
+            });
+            if (pData && typeof pData === "object" && !(pData as { error?: string }).error) {
+              const p = pData as {
+                total_students?: number;
+                parent_county?: string;
+                parent_ward?: string;
+                students?: Array<{
+                  student_full_name: string;
+                  institution_name: string;
+                  student_type: string;
+                  status: string;
+                  allocated_amount: number | null;
+                  class_form?: string | null;
+                  year_of_study?: string | null;
+                }>;
+              };
+              setParentInfo({
+                total_students: p.total_students,
+                parent_county: p.parent_county,
+                parent_ward: p.parent_ward,
+              });
+              setStudents(p.students || []);
+            }
+          } catch (e) {
+            console.warn("Parent/students lookup failed (non-fatal):", e);
+          }
+        }
       } else {
         const sampleData = sampleTrackingData[normalizedNumber];
         if (sampleData) {
