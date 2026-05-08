@@ -56,7 +56,10 @@ export function StudentBeneficiariesPanel({
       setLoading(false);
       return;
     }
-    let rows = (data || []) as ParentRow[];
+    let rows = ((data || []) as unknown as ParentRow[]).map((r) => ({
+      ...r,
+      students: (Array.isArray(r.students) ? r.students : []) as StudentRow[],
+    }));
     if (assignedWard) rows = rows.filter((r) => r.parent_ward === assignedWard);
     else if (assignedCounty) rows = rows.filter((r) => r.parent_county === assignedCounty);
     setParents(rows);
