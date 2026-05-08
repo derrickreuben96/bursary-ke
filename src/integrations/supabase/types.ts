@@ -1191,7 +1191,12 @@ export type Database = {
         Returns: string
       }
       submit_parent_application: {
-        Args: { _advert_id: string; _parent: Json; _students: Json }
+        Args: {
+          _advert_id: string
+          _parent: Json
+          _students: Json
+          _tracking?: string
+        }
         Returns: {
           parent_id: string
           tracking_number: string
