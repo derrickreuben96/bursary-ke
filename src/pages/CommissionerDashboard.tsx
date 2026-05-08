@@ -297,6 +297,12 @@ export default function CommissionerDashboard() {
     };
   }, [assignedWard, assignedCounty]);
 
+  // Push-based updates: sanitized broadcast scoped to this commissioner's ward.
+  useDashboardRealtime(
+    assignedWard ? { kind: "commissioner", ward: assignedWard } : null,
+    () => { void fetchApplications(); },
+  );
+
   // Check if any advert deadline has passed
   const deadlinePassed = useMemo(() => {
     return wardAdverts.some(a => new Date(a.deadline) <= new Date());
