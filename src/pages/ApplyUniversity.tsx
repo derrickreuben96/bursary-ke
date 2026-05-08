@@ -71,7 +71,8 @@ function ApplicationFormContent() {
               <ParentGuardianForm onNext={() => setCurrentStep(2)} />
             )}
             {currentStep === 2 && (
-              <UniversityStudentForm
+              <StudentsRepeater
+                defaultType="university"
                 onNext={() => setCurrentStep(3)}
                 onBack={() => setCurrentStep(1)}
               />
