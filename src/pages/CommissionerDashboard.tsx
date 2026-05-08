@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useDashboardRealtime } from "@/hooks/useDashboardRealtime";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   GraduationCap, LogOut, CheckCircle2, XCircle, Clock, 
@@ -295,6 +296,12 @@ export default function CommissionerDashboard() {
       document.removeEventListener("visibilitychange", onVisible);
     };
   }, [assignedWard, assignedCounty]);
+
+  // Push-based updates: sanitized broadcast scoped to this commissioner's ward.
+  useDashboardRealtime(
+    assignedWard ? { kind: "commissioner", ward: assignedWard } : null,
+    () => { void fetchApplications(); },
+  );
 
   // Check if any advert deadline has passed
   const deadlinePassed = useMemo(() => {

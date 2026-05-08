@@ -196,6 +196,45 @@ export type Database = {
           },
         ]
       }
+      audit_runs: {
+        Row: {
+          deployment_ref: string | null
+          details: Json
+          duration_ms: number
+          failed: number
+          id: string
+          passed: number
+          run_at: string
+          status: string
+          suite: string
+          total: number
+        }
+        Insert: {
+          deployment_ref?: string | null
+          details?: Json
+          duration_ms?: number
+          failed?: number
+          id?: string
+          passed?: number
+          run_at?: string
+          status: string
+          suite: string
+          total?: number
+        }
+        Update: {
+          deployment_ref?: string | null
+          details?: Json
+          duration_ms?: number
+          failed?: number
+          id?: string
+          passed?: number
+          run_at?: string
+          status?: string
+          suite?: string
+          total?: number
+        }
+        Relationships: []
+      }
       bursary_adverts: {
         Row: {
           budget_amount: number | null
@@ -627,6 +666,45 @@ export type Database = {
         }
         Relationships: []
       }
+      provisioning_invites: {
+        Row: {
+          accepted_at: string | null
+          assigned_county: string | null
+          assigned_ward: string | null
+          email: string
+          id: string
+          invited_at: string
+          invited_by: string | null
+          notes: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          status: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          assigned_county?: string | null
+          assigned_ward?: string | null
+          email: string
+          id?: string
+          invited_at?: string
+          invited_by?: string | null
+          notes?: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          status?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          assigned_county?: string | null
+          assigned_ward?: string | null
+          email?: string
+          id?: string
+          invited_at?: string
+          invited_by?: string | null
+          notes?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          status?: string
+        }
+        Relationships: []
+      }
       security_events: {
         Row: {
           created_at: string
@@ -657,6 +735,36 @@ export type Database = {
           severity?: string
           source?: string | null
           user_agent?: string | null
+        }
+        Relationships: []
+      }
+      sync_metrics: {
+        Row: {
+          details: Json
+          id: string
+          metric: string
+          recorded_at: string
+          severity: string
+          source: string
+          value: number
+        }
+        Insert: {
+          details?: Json
+          id?: string
+          metric: string
+          recorded_at?: string
+          severity?: string
+          source: string
+          value: number
+        }
+        Update: {
+          details?: Json
+          id?: string
+          metric?: string
+          recorded_at?: string
+          severity?: string
+          source?: string
+          value?: number
         }
         Relationships: []
       }
@@ -888,6 +996,13 @@ export type Database = {
       }
       sweep_expired_adverts: { Args: never; Returns: number }
       tracking_number_exists: { Args: { _tn: string }; Returns: boolean }
+      workflow_backlog_snapshot: {
+        Args: never
+        Returns: {
+          metric: string
+          value: number
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "user" | "county_treasury" | "county_commissioner"

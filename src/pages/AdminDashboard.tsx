@@ -12,6 +12,7 @@ import { adminDashboardData } from "@/lib/mockData";
 import { formatKES, formatNumber, formatPercentage } from "@/lib/formatters";
 import { maskEmail } from "@/lib/maskData";
 import { useAuth } from "@/hooks/useAuth";
+import { useDashboardRealtime } from "@/hooks/useDashboardRealtime";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { downloadAiSummaryPdf } from "@/lib/aiSummaryPdf";
@@ -120,6 +121,11 @@ export default function AdminDashboard() {
       document.removeEventListener("visibilitychange", onVisible);
     };
   }, []);
+
+  // Push-based updates via sanitized broadcast channel (no PII in payload).
+  useDashboardRealtime({ kind: "admin" }, () => {
+    void fetchDashboardStats().then((d) => d && setDashboardData(d)).catch(() => {});
+  });
 
   const openSummaryDialog = async () => {
     setSummaryOpen(true);
