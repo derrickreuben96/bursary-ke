@@ -76,16 +76,15 @@ Deno.serve(async (req) => {
 
     if (trackingNumber) {
       query = query.eq("tracking_number", trackingNumber.toUpperCase());
-      // If verification details also supplied, require them to match (defence in depth)
       if (verificationValue && verificationType === "phone") {
-        const formattedPhone = formatPhone(verificationValue);
-        query = query.or(`parent_phone.eq.${formattedPhone},parent_phone.eq.${verificationValue}`);
+        const variants = phoneVariants(verificationValue);
+        query = query.or(variants.map((v) => `parent_phone.eq.${v}`).join(","));
       } else if (verificationValue && verificationType === "national_id") {
         query = query.eq("parent_national_id", verificationValue);
       }
     } else if (verificationType === "phone" && verificationValue) {
-      const formattedPhone = formatPhone(verificationValue);
-      query = query.or(`parent_phone.eq.${formattedPhone},parent_phone.eq.${verificationValue}`);
+      const variants = phoneVariants(verificationValue);
+      query = query.or(variants.map((v) => `parent_phone.eq.${v}`).join(","));
     } else if (verificationType === "national_id" && verificationValue) {
       query = query.eq("parent_national_id", verificationValue);
     }
