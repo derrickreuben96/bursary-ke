@@ -97,8 +97,8 @@ export function StudentsRepeater({ onNext, onBack, defaultType }: Props) {
       if (ids.has(k)) {
         toast({
           variant: "destructive",
-          title: "Duplicate student",
-          description: `Identifier ${k} appears twice. Each student must be unique.`,
+          title: "Duplicate NEMIS ID",
+          description: `${isSecondary ? formatNemisId(k) : k} appears more than once. Each student must be unique.`,
         });
         return;
       }
