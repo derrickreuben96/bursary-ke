@@ -4,9 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Plus, Trash2, GraduationCap, ArrowLeft, ArrowRight, AlertCircle } from "lucide-react";
+import { Plus, Trash2, GraduationCap, ArrowLeft, ArrowRight, AlertCircle, Loader2, Check, School } from "lucide-react";
 import { useApplication, type StudentEntry } from "@/context/ApplicationContext";
 import { useToast } from "@/hooks/use-toast";
+import { lookupNemisId, validateNemisFormat, formatNemisId } from "@/lib/nemisApi";
+import { maskName } from "@/lib/maskData";
+import { cn } from "@/lib/utils";
 
 interface Props {
   onNext: () => void;
@@ -25,18 +28,42 @@ const newStudent = (defaultType: "secondary" | "university"): StudentEntry => ({
   classForm: "",
   yearOfStudy: "",
   course: "",
-  feeBalance: 0,
 });
 
 export function StudentsRepeater({ onNext, onBack, defaultType }: Props) {
   const { data, updateData } = useApplication();
   const { toast } = useToast();
+  const isSecondary = defaultType === "secondary";
   const [students, setStudents] = useState<StudentEntry[]>(
     data.students && data.students.length > 0 ? data.students : [newStudent(defaultType)]
   );
+  const [lookupState, setLookupState] = useState<Record<string, { loading: boolean; error?: string; verified?: boolean }>>({});
 
   const update = (id: string, patch: Partial<StudentEntry>) =>
     setStudents((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+
+  const handleNemisChange = async (id: string, raw: string) => {
+    const value = raw.replace(/\D/g, "").slice(0, 11);
+    update(id, { identifier: value, studentName: "", institution: "" });
+    setLookupState((p) => ({ ...p, [id]: { loading: false, verified: false } }));
+
+    if (value.length < 11) return;
+
+    const fmt = validateNemisFormat(value);
+    if (!fmt.isValid) {
+      setLookupState((p) => ({ ...p, [id]: { loading: false, error: fmt.error } }));
+      return;
+    }
+
+    setLookupState((p) => ({ ...p, [id]: { loading: true } }));
+    const res = await lookupNemisId(value);
+    if (res.success && res.data) {
+      update(id, { studentName: res.data.studentName, institution: res.data.schoolName });
+      setLookupState((p) => ({ ...p, [id]: { loading: false, verified: true } }));
+    } else {
+      setLookupState((p) => ({ ...p, [id]: { loading: false, error: res.error } }));
+    }
+  };
 
   const add = () => {
     if (students.length >= MAX_STUDENTS) return;
@@ -46,18 +73,24 @@ export function StudentsRepeater({ onNext, onBack, defaultType }: Props) {
   const remove = (id: string) => {
     if (students.length <= 1) return;
     setStudents((prev) => prev.filter((s) => s.id !== id));
+    setLookupState((p) => { const { [id]: _, ...rest } = p; return rest; });
   };
 
   const handleNext = () => {
-    // Validate
     const ids = new Set<string>();
     for (const s of students) {
       if (!s.studentName.trim() || !s.identifier.trim() || !s.institution.trim()) {
         toast({
           variant: "destructive",
           title: "Missing student info",
-          description: "Each student needs a name, ID/NEMIS/birth certificate, and institution.",
+          description: isSecondary
+            ? "Each student needs a verified NEMIS ID."
+            : "Each student needs a name, ID, and institution.",
         });
+        return;
+      }
+      if (isSecondary && s.identifier.length !== 11) {
+        toast({ variant: "destructive", title: "Invalid NEMIS ID", description: "NEMIS ID must be 11 digits." });
         return;
       }
       const k = s.identifier.trim().toUpperCase();
@@ -65,14 +98,12 @@ export function StudentsRepeater({ onNext, onBack, defaultType }: Props) {
         toast({
           variant: "destructive",
           title: "Duplicate student",
-          description: `Student identifier ${k} appears twice. Each student must be unique.`,
+          description: `Identifier ${k} appears twice. Each student must be unique.`,
         });
         return;
       }
       ids.add(k);
     }
-    // Mirror students[0] into legacy single-student fields so other parts of
-    // the codebase that still read those keep working.
     const first = students[0];
     updateData({
       students,
@@ -109,104 +140,114 @@ export function StudentsRepeater({ onNext, onBack, defaultType }: Props) {
         <div>
           <h3 className="font-semibold text-lg">Students ({students.length}/3)</h3>
           <p className="text-sm text-muted-foreground">
-            Add up to 3 students under this single application.
+            {isSecondary
+              ? "Add up to 3 secondary students. Enter NEMIS ID to auto-fill name & school."
+              : "Add up to 3 students under this single application."}
           </p>
         </div>
       </div>
 
-      {students.map((s, idx) => (
-        <Card key={s.id} className="p-5 space-y-4 shadow-card">
-          <div className="flex items-center justify-between">
-            <h4 className="font-semibold">Student {idx + 1}</h4>
-            {students.length > 1 && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => remove(s.id)}
-                className="text-destructive"
-              >
-                <Trash2 className="h-4 w-4 mr-1" /> Remove
-              </Button>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label>Student Type *</Label>
-              <Select
-                value={s.studentType}
-                onValueChange={(v) => update(s.id, { studentType: v as StudentEntry["studentType"] })}
-              >
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="secondary">Secondary School</SelectItem>
-                  <SelectItem value="university">University / College</SelectItem>
-                </SelectContent>
-              </Select>
+      {students.map((s, idx) => {
+        const ls: { loading?: boolean; error?: string; verified?: boolean } = lookupState[s.id] || {};
+        return (
+          <Card key={s.id} className="p-5 space-y-4 shadow-card">
+            <div className="flex items-center justify-between">
+              <h4 className="font-semibold">Student {idx + 1}</h4>
+              {students.length > 1 && (
+                <Button type="button" variant="ghost" size="sm" onClick={() => remove(s.id)} className="text-destructive">
+                  <Trash2 className="h-4 w-4 mr-1" /> Remove
+                </Button>
+              )}
             </div>
 
-            <div>
-              <Label>Full Name *</Label>
-              <Input
-                value={s.studentName}
-                onChange={(e) => update(s.id, { studentName: e.target.value })}
-                placeholder="Student full name"
-              />
-            </div>
+            {isSecondary ? (
+              <div className="space-y-4">
+                <div>
+                  <Label>NEMIS ID *</Label>
+                  <div className="relative">
+                    <Input
+                      value={s.identifier}
+                      onChange={(e) => handleNemisChange(s.id, e.target.value)}
+                      placeholder="e.g. 04710011234"
+                      maxLength={11}
+                      inputMode="numeric"
+                      className={cn(ls.error && "border-destructive", ls.loading && "pr-10")}
+                    />
+                    {ls.loading && (
+                      <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Format: CCC-NNNN-SSSS (County-School-Student)
+                    {s.identifier.length > 0 && s.identifier.length < 11 && (
+                      <span className="ml-2">({s.identifier.length}/11)</span>
+                    )}
+                    {s.identifier.length === 11 && (
+                      <span className="ml-2 font-medium text-primary">{formatNemisId(s.identifier)}</span>
+                    )}
+                  </p>
+                  {ls.error && (
+                    <div className="flex items-center gap-1.5 mt-1 text-sm text-destructive">
+                      <AlertCircle className="h-4 w-4" /> <span>{ls.error}</span>
+                    </div>
+                  )}
+                </div>
 
-            <div>
-              <Label>
-                {s.studentType === "secondary" ? "NEMIS / Birth Cert No. *" : "Student ID *"}
-              </Label>
-              <Input
-                value={s.identifier}
-                onChange={(e) => update(s.id, { identifier: e.target.value })}
-                placeholder={s.studentType === "secondary" ? "e.g. 12345678901" : "e.g. CS/123/2024"}
-              />
-            </div>
+                {ls.verified && s.studentName && (
+                  <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg space-y-1 animate-in fade-in-50">
+                    <div className="flex items-center gap-2 text-sm font-medium">
+                      <Check className="h-4 w-4 text-primary" /> Verified via NEMIS
+                    </div>
+                    <p className="font-semibold">{maskName(s.studentName)}</p>
+                    <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                      <School className="h-4 w-4" /> {s.institution}
+                    </div>
+                  </div>
+                )}
 
-            <div>
-              <Label>Institution *</Label>
-              <Input
-                value={s.institution}
-                onChange={(e) => update(s.id, { institution: e.target.value })}
-                placeholder={s.studentType === "secondary" ? "School name" : "University / College"}
-              />
-            </div>
-
-            <div>
-              <Label>Admission Number</Label>
-              <Input
-                value={s.admissionNumber || ""}
-                onChange={(e) => update(s.id, { admissionNumber: e.target.value })}
-                placeholder="Optional"
-              />
-            </div>
-
-            {s.studentType === "secondary" ? (
-              <div>
-                <Label>Class / Form</Label>
-                <Select
-                  value={s.classForm || ""}
-                  onValueChange={(v) => update(s.id, { classForm: v })}
-                >
-                  <SelectTrigger><SelectValue placeholder="Select form" /></SelectTrigger>
-                  <SelectContent>
-                    {["Form 1", "Form 2", "Form 3", "Form 4"].map((f) => (
-                      <SelectItem key={f} value={f}>{f}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Class / Form</Label>
+                    <Select value={s.classForm || ""} onValueChange={(v) => update(s.id, { classForm: v })}>
+                      <SelectTrigger><SelectValue placeholder="Select form" /></SelectTrigger>
+                      <SelectContent>
+                        {["Form 1", "Form 2", "Form 3", "Form 4"].map((f) => (
+                          <SelectItem key={f} value={f}>{f}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Admission Number</Label>
+                    <Input
+                      value={s.admissionNumber || ""}
+                      onChange={(e) => update(s.id, { admissionNumber: e.target.value })}
+                      placeholder="Optional"
+                    />
+                  </div>
+                </div>
               </div>
             ) : (
-              <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Full Name *</Label>
+                  <Input value={s.studentName} onChange={(e) => update(s.id, { studentName: e.target.value })} placeholder="Student full name" />
+                </div>
+                <div>
+                  <Label>Student ID *</Label>
+                  <Input value={s.identifier} onChange={(e) => update(s.id, { identifier: e.target.value })} placeholder="e.g. CS/123/2024" />
+                </div>
+                <div>
+                  <Label>Institution *</Label>
+                  <Input value={s.institution} onChange={(e) => update(s.id, { institution: e.target.value })} placeholder="University / College" />
+                </div>
+                <div>
+                  <Label>Admission Number</Label>
+                  <Input value={s.admissionNumber || ""} onChange={(e) => update(s.id, { admissionNumber: e.target.value })} placeholder="Optional" />
+                </div>
                 <div>
                   <Label>Year of Study</Label>
-                  <Select
-                    value={s.yearOfStudy || ""}
-                    onValueChange={(v) => update(s.id, { yearOfStudy: v })}
-                  >
+                  <Select value={s.yearOfStudy || ""} onValueChange={(v) => update(s.id, { yearOfStudy: v })}>
                     <SelectTrigger><SelectValue placeholder="Select year" /></SelectTrigger>
                     <SelectContent>
                       {["Year 1","Year 2","Year 3","Year 4","Year 5","Year 6"].map((y) => (
@@ -217,42 +258,21 @@ export function StudentsRepeater({ onNext, onBack, defaultType }: Props) {
                 </div>
                 <div>
                   <Label>Course / Program</Label>
-                  <Input
-                    value={s.course || ""}
-                    onChange={(e) => update(s.id, { course: e.target.value })}
-                    placeholder="e.g. BSc Computer Science"
-                  />
+                  <Input value={s.course || ""} onChange={(e) => update(s.id, { course: e.target.value })} placeholder="e.g. BSc Computer Science" />
                 </div>
-              </>
+              </div>
             )}
-
-            <div>
-              <Label>Fee Balance (KES)</Label>
-              <Input
-                type="number"
-                min="0"
-                value={s.feeBalance ?? 0}
-                onChange={(e) => update(s.id, { feeBalance: Number(e.target.value) || 0 })}
-              />
-            </div>
-          </div>
-        </Card>
-      ))}
+          </Card>
+        );
+      })}
 
       <div className="flex flex-col items-start gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={add}
-          disabled={atMax}
-          className="hover:scale-[1.02] transition-transform"
-        >
+        <Button type="button" variant="outline" onClick={add} disabled={atMax} className="hover:scale-[1.02] transition-transform">
           <Plus className="h-4 w-4 mr-1" /> Add another student
         </Button>
         {atMax && (
           <p className="text-xs flex items-center gap-1 text-muted-foreground">
-            <AlertCircle className="h-3 w-3" />
-            Maximum of 3 students allowed per application.
+            <AlertCircle className="h-3 w-3" /> Maximum of 3 students allowed per application.
           </p>
         )}
       </div>
