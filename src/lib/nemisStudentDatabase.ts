@@ -142,65 +142,73 @@ const schoolCodes: Record<string, string[]> = {
   "047": ["0471001", "0471002", "0471003", "0471004", "0471005", "0471006", "0471007", "0471008", "0471009"], // Nairobi
 };
 
-// Generate unique student numbers to avoid duplicates
-const usedStudentNumbers = new Set<string>();
-
-function generateUniqueStudentNumber(): string {
-  let studentNum: string;
-  do {
-    studentNum = String(Math.floor(1000 + Math.random() * 9000));
-  } while (usedStudentNumbers.has(studentNum));
-  usedStudentNumbers.add(studentNum);
-  return studentNum;
+// Deterministic PRNG (Mulberry32) seeded per NEMIS ID so the same ID always
+// resolves to the same student across reloads & tests.
+function hashSeed(input: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < input.length; i++) {
+    h ^= input.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
 }
 
-// Generate a student for a specific school
-function generateStudent(schoolCode: string, studentNum: string): NemisStudent {
-  const countyCode = schoolCode.substring(0, 3);
+function mulberry32(seed: number): () => number {
+  let a = seed >>> 0;
+  return function () {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const pick = <T,>(arr: T[], rnd: () => number) => arr[Math.floor(rnd() * arr.length)];
+
+function generateStudentDeterministic(schoolCode: string, index: number): NemisStudent {
+  const studentNum = String(1000 + index); // 1000..1999 deterministic 4 digits
   const nemisId = schoolCode + studentNum;
-  const gender: "Male" | "Female" = Math.random() > 0.5 ? "Male" : "Female";
-  const classForm: "Form 1" | "Form 2" | "Form 3" | "Form 4" = 
-    ["Form 1", "Form 2", "Form 3", "Form 4"][Math.floor(Math.random() * 4)] as any;
-  
+  const rnd = mulberry32(hashSeed(nemisId));
+  const countyCode = schoolCode.substring(0, 3);
+  const gender: "Male" | "Female" = rnd() > 0.5 ? "Male" : "Female";
+  const classForm = (["Form 1", "Form 2", "Form 3", "Form 4"] as const)[Math.floor(rnd() * 4)];
   const firstNames = gender === "Male" ? maleFirstNames : femaleFirstNames;
   const middleNames = getRegionalMiddleNames(countyCode);
-  
-  const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
-  const middleName = middleNames[Math.floor(Math.random() * middleNames.length)];
-  const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
-  
+  const firstName = pick(firstNames, rnd);
+  const middleName = pick(middleNames, rnd);
+  const lastName = pick(lastNames, rnd);
+
+  const currentYear = new Date().getFullYear();
+  const ageOffset = { "Form 1": 14, "Form 2": 15, "Form 3": 16, "Form 4": 17 }[classForm];
+  const birthYear = currentYear - ageOffset - Math.floor(rnd() * 2);
+  const month = String(Math.floor(rnd() * 12) + 1).padStart(2, "0");
+  const day = String(Math.floor(rnd() * 28) + 1).padStart(2, "0");
+
   return {
     nemisId,
     name: `${firstName} ${middleName} ${lastName}`,
     schoolCode,
     classForm,
     gender,
-    dateOfBirth: generateDOB(classForm),
+    dateOfBirth: `${birthYear}-${month}-${day}`,
   };
 }
 
-// Pre-generated student database - evenly distributed across all 47 counties
-// Each county gets 20-30 students to total ~1000 students
+// Fully deterministic — every school gets sequential student numbers 1000..1007
+const STUDENTS_PER_SCHOOL = 8;
+
 function generateStudentDatabase(): Map<string, NemisStudent> {
   const database = new Map<string, NemisStudent>();
-  const studentsPerCounty = 22; // Roughly 22 per county = ~1000 total
-  
-  Object.entries(schoolCodes).forEach(([countyCode, schools]) => {
-    const studentsPerSchool = Math.ceil(studentsPerCounty / schools.length);
-    
-    schools.forEach(schoolCode => {
-      for (let i = 0; i < studentsPerSchool; i++) {
-        const studentNum = generateUniqueStudentNumber();
-        const student = generateStudent(schoolCode, studentNum);
-        database.set(student.nemisId, student);
-      }
-    });
+  Object.values(schoolCodes).flat().forEach((schoolCode) => {
+    for (let i = 0; i < STUDENTS_PER_SCHOOL; i++) {
+      const student = generateStudentDeterministic(schoolCode, i);
+      database.set(student.nemisId, student);
+    }
   });
-  
   return database;
 }
 
-// Export the pre-generated database
 export const nemisStudentDatabase: Map<string, NemisStudent> = generateStudentDatabase();
 
 // Get all students as an array
