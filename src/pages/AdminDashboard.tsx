@@ -93,21 +93,32 @@ export default function AdminDashboard() {
   const [generatingSummary, setGeneratingSummary] = useState(false);
 
   useEffect(() => {
-    async function loadData() {
-      setIsLoading(true);
+    let mounted = true;
+    async function loadData(showSpinner = true) {
+      if (showSpinner) setIsLoading(true);
       try {
         const data = await fetchDashboardStats();
-        if (data) {
-          setDashboardData(data);
-        }
+        if (data && mounted) setDashboardData(data);
       } catch (error) {
         console.error("Failed to load dashboard data:", error);
-        // Fallback to mock data
       } finally {
-        setIsLoading(false);
+        if (showSpinner && mounted) setIsLoading(false);
       }
     }
-    loadData();
+    loadData(true);
+    // Polling fallback — PII tables are excluded from Supabase realtime by policy.
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") loadData(false);
+    }, 30000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") loadData(false);
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, []);
 
   const openSummaryDialog = async () => {

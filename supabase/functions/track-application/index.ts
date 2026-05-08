@@ -19,10 +19,13 @@ const RATE_LIMIT_CONFIG = {
 };
 
 const TrackingSchema = z.object({
-  trackingNumber: z.string().regex(/^BKE-[A-Z0-9]{6}$/, "Invalid tracking number format"),
-  verificationValue: z.string().min(1, "Verification value required"),
-  verificationType: z.enum(["phone", "national_id"]),
-});
+  trackingNumber: z.string().regex(/^BKE-[A-Z0-9]{6}$/i, "Invalid tracking number format").optional(),
+  verificationValue: z.string().min(1).optional(),
+  verificationType: z.enum(["phone", "national_id"]).optional(),
+}).refine(
+  (v) => !!v.trackingNumber || (!!v.verificationValue && !!v.verificationType),
+  { message: "Provide a tracking number, or a phone/national ID to search by" }
+);
 
 function formatPhone(phone: string): string {
   let formatted = phone.replace(/\s+/g, "").replace(/-/g, "");
@@ -70,17 +73,28 @@ Deno.serve(async (req) => {
 
     let query = supabaseAdmin
       .from("bursary_applications")
-      .select("tracking_number, student_type, status, created_at, updated_at, allocated_amount, institution_name, released_to_treasury")
-      .eq("tracking_number", trackingNumber.toUpperCase());
+      .select("tracking_number, student_type, status, created_at, updated_at, allocated_amount, institution_name, released_to_treasury");
 
-    if (verificationType === "phone") {
+    if (trackingNumber) {
+      query = query.eq("tracking_number", trackingNumber.toUpperCase());
+      // If verification details also supplied, require them to match (defence in depth)
+      if (verificationValue && verificationType === "phone") {
+        const formattedPhone = formatPhone(verificationValue);
+        query = query.or(`parent_phone.eq.${formattedPhone},parent_phone.eq.${verificationValue}`);
+      } else if (verificationValue && verificationType === "national_id") {
+        query = query.eq("parent_national_id", verificationValue);
+      }
+    } else if (verificationType === "phone" && verificationValue) {
       const formattedPhone = formatPhone(verificationValue);
       query = query.or(`parent_phone.eq.${formattedPhone},parent_phone.eq.${verificationValue}`);
-    } else {
+    } else if (verificationType === "national_id" && verificationValue) {
       query = query.eq("parent_national_id", verificationValue);
     }
+    // Most-recent first when searching by ID/phone alone
+    query = query.order("created_at", { ascending: false }).limit(1);
 
-    const { data, error } = await query.maybeSingle();
+    const { data: rows, error } = await query;
+    const data = rows && rows.length > 0 ? rows[0] : null;
 
     if (error) {
       console.error("[TRACK] Database error:", error);
@@ -100,8 +114,8 @@ Deno.serve(async (req) => {
           _ip: clientIp,
           _user_agent: req.headers.get("user-agent") ?? null,
           _details: {
-            tracking_prefix: trackingNumber.substring(0, 4),
-            verification_type: verificationType,
+            tracking_prefix: trackingNumber ? trackingNumber.substring(0, 4) : null,
+            verification_type: verificationType ?? null,
           },
         });
       } catch (_e) { /* swallow logging errors */ }
@@ -113,14 +127,15 @@ Deno.serve(async (req) => {
     }
 
     // Fetch actual status history for real dates
+    const { data: appIdRow } = await supabaseAdmin
+      .from("bursary_applications")
+      .select("id")
+      .eq("tracking_number", data.tracking_number)
+      .maybeSingle();
     const { data: historyData } = await supabaseAdmin
       .from("application_status_history")
       .select("from_status, to_status, changed_at")
-      .eq("application_id", (await supabaseAdmin
-        .from("bursary_applications")
-        .select("id")
-        .eq("tracking_number", trackingNumber.toUpperCase())
-        .maybeSingle()).data?.id || "")
+      .eq("application_id", appIdRow?.id || "")
       .order("changed_at", { ascending: true });
 
     // Build a map of when each status was reached

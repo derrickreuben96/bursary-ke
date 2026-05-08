@@ -277,26 +277,23 @@ export default function CommissionerDashboard() {
     }
   }, [assignedWard, assignedCounty]);
 
-  // Real-time subscription for incoming applications
+  // Polling fallback (PII tables are excluded from Supabase realtime by policy).
+  // Refresh every 30s while the dashboard is visible.
   useEffect(() => {
-    const channel = supabase
-      .channel("commissioner-incoming")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "bursary_applications" },
-        () => {
-          fetchApplications();
-          toast({ title: "New Application", description: "A new application has been submitted to your ward." });
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "bursary_applications" },
-        () => fetchApplications()
-      )
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
+    if (!assignedWard && !assignedCounty) return;
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        fetchApplications();
+      }
+    }, 30000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") fetchApplications();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [assignedWard, assignedCounty]);
 
   // Check if any advert deadline has passed

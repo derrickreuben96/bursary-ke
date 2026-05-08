@@ -35,34 +35,31 @@ export default function Track() {
     setNotFound(false);
 
     const normalizedNumber = trackingNumber.toUpperCase().trim();
+    const verVal = verificationValue.trim();
 
-    if (!normalizedNumber) {
+    if (!normalizedNumber && !verVal) {
       setError(t("track.error_enter_tracking"));
       return;
     }
 
-    if (!isValidTrackingNumber(normalizedNumber)) {
+    if (normalizedNumber && !isValidTrackingNumber(normalizedNumber)) {
       setError(t("track.error_invalid_format"));
-      return;
-    }
-
-    if (!verificationValue.trim()) {
-      setError(`${t(verificationType === "phone" ? "track.phone_number" : "track.national_id")} ${t("track.error_enter_verification")}`);
       return;
     }
 
     setIsLoading(true);
 
     try {
+      const body: Record<string, string> = {};
+      if (normalizedNumber) body.trackingNumber = normalizedNumber;
+      if (verVal) {
+        body.verificationValue = verVal;
+        body.verificationType = verificationType;
+      }
+
       const { data: funcData, error: funcError } = await supabase.functions.invoke(
         "track-application",
-        {
-          body: {
-            trackingNumber: normalizedNumber,
-            verificationValue: verificationValue.trim(),
-            verificationType,
-          },
-        }
+        { body }
       );
 
       if (funcError) {
@@ -164,7 +161,7 @@ export default function Track() {
                   <span className="text-sm font-medium">{t("track.verification_required")}</span>
                 </div>
                 <p className="text-xs text-muted-foreground mb-4">
-                  {t("track.verification_desc")}
+                  {t("track.verification_desc")} You can also search by phone or National ID alone if you've lost your tracking number.
                 </p>
 
                 <RadioGroup

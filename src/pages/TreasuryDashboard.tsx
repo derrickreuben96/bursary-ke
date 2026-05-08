@@ -86,22 +86,21 @@ export default function TreasuryDashboard() {
   };
 
   useEffect(() => {
-    if (assignedCounty) fetchApprovedApplications();
+    if (!assignedCounty) return;
+    fetchApprovedApplications();
 
-    const channel = supabase
-      .channel("treasury-applications")
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "bursary_applications" },
-        (payload) => {
-          const newRecord = payload.new as any;
-          if (newRecord?.released_to_treasury === true && newRecord?.status === "approved") {
-            toast({ title: "🔔 New Applications Released", description: "The Commissioner has released new approved applications.", duration: 10000 });
-          }
-          fetchApprovedApplications();
-        }
-      )
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
+    // Polling fallback — PII tables are excluded from Supabase realtime by policy.
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") fetchApprovedApplications();
+    }, 30000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") fetchApprovedApplications();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [assignedCounty]);
 
   const handleLogout = async () => {
