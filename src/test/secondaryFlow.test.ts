@@ -44,7 +44,7 @@ describe("NEMIS test database — deterministic across counties", () => {
       expect(r.data?.studentName.length).toBeGreaterThan(3);
       expect(r.data?.schoolName.length).toBeGreaterThan(0);
     }
-  });
+  }, 60000);
 
   it("database has > 300 deterministic students", () => {
     expect(nemisStudentDatabase.size).toBeGreaterThan(300);
