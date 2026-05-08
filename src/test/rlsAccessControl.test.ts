@@ -185,4 +185,60 @@ describe.skipIf(!hasEnv)("RLS — anon access control", () => {
     const status = await uploadViaRest(`rootfile-${Date.now()}.txt`);
     expect([400, 401, 403]).toContain(status);
   }, 15_000);
+
+  // --- Edge cases: spaces, extra segments, URL-encoded chars ---
+  const tn = (import.meta.env.VITE_TEST_TRACKING_NUMBER as string | undefined) ?? "BKE-2B1286";
+
+  it("upload with leading space in tracking_number folder is blocked", async () => {
+    const status = await uploadViaRest(`${encodeURIComponent(` ${tn}`)}/file.txt`);
+    expect([400, 401, 403]).toContain(status);
+  }, 15_000);
+
+  it("upload with trailing space in tracking_number folder is blocked", async () => {
+    const status = await uploadViaRest(`${encodeURIComponent(`${tn} `)}/file.txt`);
+    expect([400, 401, 403]).toContain(status);
+  }, 15_000);
+
+  it("upload with internal space in tracking_number folder is blocked", async () => {
+    const status = await uploadViaRest(`${encodeURIComponent(`BKE -2B1286`)}/file.txt`);
+    expect([400, 401, 403]).toContain(status);
+  }, 15_000);
+
+  it("upload with extra path segment prefix is blocked", async () => {
+    const status = await uploadViaRest(`evil/${tn}/file.txt`);
+    expect([400, 401, 403]).toContain(status);
+  }, 15_000);
+
+  it("upload with deep nested path under junk root is blocked", async () => {
+    const status = await uploadViaRest(`a/b/c/${tn}/file.txt`);
+    expect([400, 401, 403]).toContain(status);
+  }, 15_000);
+
+  it("upload with URL-encoded suffix appended to tracking_number is blocked", async () => {
+    // %20 = space; should not normalize into a valid tracking number
+    const status = await uploadViaRest(`${tn}%20extra/file.txt`);
+    expect([400, 401, 403]).toContain(status);
+  }, 15_000);
+
+  it("upload with URL-encoded slash inside folder name is blocked", async () => {
+    // %2F should not let the attacker smuggle a valid tracking_number as a sub-path
+    const status = await uploadViaRest(`hacker%2F${tn}/file.txt`);
+    expect([400, 401, 403]).toContain(status);
+  }, 15_000);
+
+  it("upload with path traversal segment is blocked", async () => {
+    const status = await uploadViaRest(`${tn}/../other/file.txt`);
+    expect([400, 401, 403]).toContain(status);
+  }, 15_000);
+
+  it("upload with URL-encoded uppercase tracking_number variation is blocked when not exact", async () => {
+    // Append URL-encoded junk that decodes to non-matching characters
+    const status = await uploadViaRest(`${tn}%2E/file.txt`); // appends '.'
+    expect([400, 401, 403]).toContain(status);
+  }, 15_000);
+
+  it("upload to EXACT tracking_number folder still succeeds (control)", async () => {
+    const status = await uploadViaRest(`${tn}/edge-control-${Date.now()}.txt`);
+    expect([200, 201]).toContain(status);
+  }, 15_000);
 });
