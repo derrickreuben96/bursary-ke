@@ -5,7 +5,7 @@ import { Footer } from "@/components/layout/Footer";
 import { ApplicationProvider, useApplication } from "@/context/ApplicationContext";
 import { ApplicationStepper } from "@/components/application/ApplicationStepper";
 import { ParentGuardianForm } from "@/components/application/ParentGuardianForm";
-import { SecondaryStudentForm } from "@/components/application/SecondaryStudentForm";
+import { StudentsRepeater } from "@/components/application/StudentsRepeater";
 import { PovertyQuestionnaire } from "@/components/application/PovertyQuestionnaire";
 import { DocumentUpload } from "@/components/application/DocumentUpload";
 import { ReviewSubmit } from "@/components/application/ReviewSubmit";
