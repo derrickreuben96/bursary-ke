@@ -27,16 +27,15 @@ const TrackingSchema = z.object({
   { message: "Provide a tracking number, or a phone/national ID to search by" }
 );
 
-function formatPhone(phone: string): string {
-  let formatted = phone.replace(/\s+/g, "").replace(/-/g, "");
-  if (formatted.startsWith("0")) {
-    formatted = "+254" + formatted.substring(1);
-  } else if (formatted.startsWith("254") && !formatted.startsWith("+")) {
-    formatted = "+" + formatted;
-  } else if (!formatted.startsWith("+")) {
-    formatted = "+254" + formatted;
-  }
-  return formatted;
+function phoneVariants(phone: string): string[] {
+  const cleaned = phone.replace(/\s+/g, "").replace(/-/g, "");
+  let local = cleaned;
+  if (cleaned.startsWith("+254")) local = "0" + cleaned.substring(4);
+  else if (cleaned.startsWith("254")) local = "0" + cleaned.substring(3);
+  else if (!cleaned.startsWith("0") && !cleaned.startsWith("+")) local = "0" + cleaned;
+  const intl = "+254" + (local.startsWith("0") ? local.substring(1) : local);
+  const noPlus = intl.substring(1);
+  return Array.from(new Set([cleaned, local, intl, noPlus]));
 }
 
 Deno.serve(async (req) => {
@@ -77,16 +76,15 @@ Deno.serve(async (req) => {
 
     if (trackingNumber) {
       query = query.eq("tracking_number", trackingNumber.toUpperCase());
-      // If verification details also supplied, require them to match (defence in depth)
       if (verificationValue && verificationType === "phone") {
-        const formattedPhone = formatPhone(verificationValue);
-        query = query.or(`parent_phone.eq.${formattedPhone},parent_phone.eq.${verificationValue}`);
+        const variants = phoneVariants(verificationValue);
+        query = query.or(variants.map((v) => `parent_phone.eq.${v}`).join(","));
       } else if (verificationValue && verificationType === "national_id") {
         query = query.eq("parent_national_id", verificationValue);
       }
     } else if (verificationType === "phone" && verificationValue) {
-      const formattedPhone = formatPhone(verificationValue);
-      query = query.or(`parent_phone.eq.${formattedPhone},parent_phone.eq.${verificationValue}`);
+      const variants = phoneVariants(verificationValue);
+      query = query.or(variants.map((v) => `parent_phone.eq.${v}`).join(","));
     } else if (verificationType === "national_id" && verificationValue) {
       query = query.eq("parent_national_id", verificationValue);
     }
