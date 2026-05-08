@@ -27,6 +27,16 @@ export default function Track() {
   const [result, setResult] = useState<TrackingInfo | null>(
     initialNumber ? sampleTrackingData[initialNumber] || null : null
   );
+  const [students, setStudents] = useState<Array<{
+    student_full_name: string;
+    institution_name: string;
+    student_type: string;
+    status: string;
+    allocated_amount: number | null;
+    class_form?: string | null;
+    year_of_study?: string | null;
+  }>>([]);
+  const [parentInfo, setParentInfo] = useState<{ total_students?: number; parent_county?: string; parent_ward?: string } | null>(null);
   const [notFound, setNotFound] = useState(false);
 
   const handleTrack = async () => {
