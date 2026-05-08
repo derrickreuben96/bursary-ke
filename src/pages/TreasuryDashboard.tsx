@@ -104,6 +104,12 @@ export default function TreasuryDashboard() {
     };
   }, [assignedCounty]);
 
+  // Push-based updates: sanitized broadcast scoped to this treasury's county.
+  useDashboardRealtime(
+    assignedCounty ? { kind: "treasury", county: assignedCounty } : null,
+    () => { void fetchApprovedApplications(); },
+  );
+
   const handleLogout = async () => {
     await signOut();
     navigate("/");
