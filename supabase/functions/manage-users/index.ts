@@ -270,6 +270,73 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === "invite_user") {
+      // Automated onboarding: send Supabase email invite + provision role/profile
+      // + record provisioning_invites row. No manual password handoff required.
+      const { email, role, displayName, assignedCounty, assignedWard, redirectTo } = body;
+      if (!email || !role) {
+        return new Response(JSON.stringify({ error: "email and role required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (!["admin", "county_commissioner", "county_treasury"].includes(role)) {
+        return new Response(JSON.stringify({ error: "Invalid role" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (role === "county_commissioner" && !assignedWard) {
+        return new Response(JSON.stringify({ error: "Commissioner must be assigned a ward" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (role === "county_treasury" && !assignedCounty) {
+        return new Response(JSON.stringify({ error: "Treasury user must be assigned a county" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: existing } = await adminClient
+        .from("profiles").select("user_id").eq("email", email).maybeSingle();
+
+      let invitedUserId: string;
+      if (existing?.user_id) {
+        invitedUserId = existing.user_id;
+      } else {
+        const { data: invited, error: inviteErr } = await adminClient.auth.admin.inviteUserByEmail(
+          email,
+          redirectTo ? { redirectTo } : undefined,
+        );
+        if (inviteErr || !invited?.user) {
+          return new Response(JSON.stringify({ error: inviteErr?.message ?? "invite failed" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        invitedUserId = invited.user.id;
+        await adminClient.from("profiles").insert({
+          user_id: invitedUserId, email,
+          display_name: displayName || email,
+          assigned_county: assignedCounty || null,
+          assigned_ward: assignedWard || null,
+        });
+      }
+
+      // Idempotent role assignment (unique on user_id+role)
+      await adminClient.from("user_roles")
+        .upsert({ user_id: invitedUserId, role }, { onConflict: "user_id,role" });
+
+      await adminClient.from("provisioning_invites").insert({
+        email, role,
+        assigned_county: assignedCounty || null,
+        assigned_ward: assignedWard || null,
+        invited_by: user.id, status: "pending",
+      });
+
+      return new Response(JSON.stringify({
+        success: true, userId: invitedUserId,
+        message: `Invitation sent to ${email}. They will set their password via the email link.`,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     return new Response(JSON.stringify({ error: "Unknown action" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
