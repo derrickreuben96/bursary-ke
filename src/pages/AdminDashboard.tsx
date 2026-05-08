@@ -122,6 +122,11 @@ export default function AdminDashboard() {
     };
   }, []);
 
+  // Push-based updates via sanitized broadcast channel (no PII in payload).
+  useDashboardRealtime({ kind: "admin" }, () => {
+    void fetchDashboardStats().then((d) => d && setDashboardData(d)).catch(() => {});
+  });
+
   const openSummaryDialog = async () => {
     setSummaryOpen(true);
     if (adverts.length === 0) {
