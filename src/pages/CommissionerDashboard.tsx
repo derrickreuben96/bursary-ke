@@ -17,6 +17,7 @@ import {
   ShieldAlert, Star, History, Send, Play, Inbox, Archive, FileDown, Sparkles
 } from "lucide-react";
 import { generateAiSummaryPdf, aiSummaryPdfFilename, type AiSummaryPayload } from "@/lib/aiSummaryPdf";
+import { StudentBeneficiariesPanel } from "@/components/dashboard/StudentBeneficiariesPanel";
 import { buildChartSummaryDoc, chartSummaryPdfFilename, type ChartPdfPayload } from "@/lib/chartSummaryPdf";
 import { AiPdfConsentDialog } from "@/components/ai/AiPdfConsentDialog";
 import { AiPdfPreviewDialog } from "@/components/ai/AiPdfPreviewDialog";
@@ -897,8 +898,13 @@ export default function CommissionerDashboard() {
             <TabsTrigger value="summary"><BarChart3 className="h-4 w-4 mr-2" />Summary</TabsTrigger>
             <TabsTrigger value="approved"><CheckCircle2 className="h-4 w-4 mr-2" />Approved ({stats.approved})</TabsTrigger>
             <TabsTrigger value="rejected"><XCircle className="h-4 w-4 mr-2" />Rejected ({stats.rejected + stats.duplicates})</TabsTrigger>
+            <TabsTrigger value="students"><Users className="h-4 w-4 mr-2" />Students</TabsTrigger>
             <TabsTrigger value="archive"><Archive className="h-4 w-4 mr-2" />Audit Archive</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="students">
+            <StudentBeneficiariesPanel assignedWard={assignedWard} assignedCounty={assignedCounty} />
+          </TabsContent>
 
           {/* Incoming Applications Tab */}
           <TabsContent value="incoming">
