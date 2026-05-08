@@ -249,7 +249,7 @@ export type Database = {
       }
       bursary_applications: {
         Row: {
-          advert_id: string | null
+          advert_id: string
           ai_decision_reason: string | null
           allocated_amount: number | null
           allocation_date: string | null
@@ -290,7 +290,7 @@ export type Database = {
           year_of_study: string | null
         }
         Insert: {
-          advert_id?: string | null
+          advert_id: string
           ai_decision_reason?: string | null
           allocated_amount?: number | null
           allocation_date?: string | null
@@ -331,7 +331,7 @@ export type Database = {
           year_of_study?: string | null
         }
         Update: {
-          advert_id?: string | null
+          advert_id?: string
           ai_decision_reason?: string | null
           allocated_amount?: number | null
           allocation_date?: string | null
