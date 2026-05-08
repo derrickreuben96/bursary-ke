@@ -7,6 +7,7 @@ import { Search, AlertCircle, CheckCircle2, Clock, Loader2 } from "lucide-react"
 import { isValidTrackingNumber } from "@/lib/maskData";
 import { sampleTrackingData } from "@/lib/mockData";
 import { useI18n } from "@/lib/i18n";
+import { supabase } from "@/integrations/supabase/client";
 
 export function TrackingWidget() {
   const [trackingNumber, setTrackingNumber] = useState("");
@@ -37,22 +38,41 @@ export function TrackingWidget() {
     }
 
     setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      const { data: funcData, error: funcError } = await supabase.functions.invoke(
+        "track-application",
+        { body: { trackingNumber: normalizedNumber } }
+      );
 
-    const data = sampleTrackingData[normalizedNumber];
-    
-    if (data) {
-      const currentStage = data.stages[data.currentStage - 1];
-      setResult({
-        found: true,
-        status: currentStage.status === "completed" ? "Approved" : "In Progress",
-        stage: currentStage.name,
-      });
-    } else {
+      if (funcData?.found) {
+        const currentStage = funcData.stages?.find((stage: { status: string }) => stage.status === "current")
+          ?? funcData.stages?.[0];
+        setResult({
+          found: true,
+          status: funcData.status === "approved" || funcData.status === "disbursed" ? "Approved" : "In Progress",
+          stage: currentStage?.name ?? funcData.status,
+        });
+      } else if (!funcError) {
+        setResult({ found: false });
+      } else {
+        const data = sampleTrackingData[normalizedNumber];
+        if (data) {
+          const currentStage = data.stages[data.currentStage - 1];
+          setResult({
+            found: true,
+            status: currentStage.status === "completed" ? "Approved" : "In Progress",
+            stage: currentStage.name,
+          });
+        } else {
+          setResult({ found: false });
+        }
+      }
+    } catch (err) {
+      console.error("Tracking widget lookup error:", err);
       setResult({ found: false });
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   };
 
   const handleViewDetails = () => {
