@@ -27,7 +27,9 @@ export async function recordSyncMetric(m: SyncMetric): Promise<void> {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return; // anon writes blocked by RLS anyway
 
-    await supabase.from("sync_metrics").insert({
+    await (supabase.from("sync_metrics") as unknown as {
+      insert: (row: Record<string, unknown>) => Promise<unknown>;
+    }).insert({
       source: m.source,
       metric: m.metric,
       value: m.value,
