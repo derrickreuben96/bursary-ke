@@ -118,7 +118,7 @@ export async function submitApplication(
           }
         }
         console.error("Error inserting application:", insertError);
-        throw new Error("Failed to submit application");
+        throw new Error(insertError.message || "Failed to submit application");
       }
 
       return { trackingNumber, error: null };
