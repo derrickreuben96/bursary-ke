@@ -161,7 +161,7 @@ export default function Track() {
                   <span className="text-sm font-medium">{t("track.verification_required")}</span>
                 </div>
                 <p className="text-xs text-muted-foreground mb-4">
-                  {t("track.verification_desc")}
+                  {t("track.verification_desc")} You can also search by phone or National ID alone if you've lost your tracking number.
                 </p>
 
                 <RadioGroup
