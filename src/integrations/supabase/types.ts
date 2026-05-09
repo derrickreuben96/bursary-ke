@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_allocation_runs: {
+        Row: {
+          advert_id: string
+          applicants_count: number
+          approved_count: number
+          id: string
+          rejected_count: number
+          run_at: string
+          run_by: string | null
+          summary: Json
+          total_allocated: number
+          total_budget: number
+        }
+        Insert: {
+          advert_id: string
+          applicants_count?: number
+          approved_count?: number
+          id?: string
+          rejected_count?: number
+          run_at?: string
+          run_by?: string | null
+          summary?: Json
+          total_allocated?: number
+          total_budget?: number
+        }
+        Update: {
+          advert_id?: string
+          applicants_count?: number
+          approved_count?: number
+          id?: string
+          rejected_count?: number
+          run_at?: string
+          run_by?: string | null
+          summary?: Json
+          total_allocated?: number
+          total_budget?: number
+        }
+        Relationships: []
+      }
       allocation_cycles: {
         Row: {
           advert_id: string | null
@@ -657,6 +696,7 @@ export type Database = {
           total_students: number
           tracking_number: string
           updated_at: string
+          workflow_stage: string
         }
         Insert: {
           advert_id: string
@@ -684,6 +724,7 @@ export type Database = {
           total_students?: number
           tracking_number: string
           updated_at?: string
+          workflow_stage?: string
         }
         Update: {
           advert_id?: string
@@ -711,6 +752,7 @@ export type Database = {
           total_students?: number
           tracking_number?: string
           updated_at?: string
+          workflow_stage?: string
         }
         Relationships: []
       }
