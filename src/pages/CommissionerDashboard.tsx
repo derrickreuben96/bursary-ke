@@ -310,7 +310,14 @@ export default function CommissionerDashboard() {
   }, [wardAdverts]);
 
   const activeAdvert = useMemo(() => {
-    return wardAdverts.find(a => a.is_active);
+    if (wardAdverts.length === 0) return undefined;
+    // Prefer an active advert; otherwise fall back to the most recent advert
+    // for this ward so the commissioner always sees governance controls.
+    const active = wardAdverts.find(a => a.is_active);
+    if (active) return active;
+    return [...wardAdverts].sort(
+      (a, b) => new Date(b.deadline).getTime() - new Date(a.deadline).getTime(),
+    )[0];
   }, [wardAdverts]);
 
   const hasUnreleasedApproved = useMemo(() => {
