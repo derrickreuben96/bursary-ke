@@ -317,6 +317,29 @@ export default function CommissionerDashboard() {
     return applications.some(a => a.status === "approved" && !a.released_to_treasury);
   }, [applications]);
 
+  // Processing is "complete" once at least one application has been moved out of pending.
+  const processingComplete = useMemo(() => {
+    return stats.approved + stats.rejected > 0;
+  }, [stats.approved, stats.rejected]);
+
+  // Should the AI PDF button glow? Only after deadline, while there's pending work
+  // and no allocation has been processed yet — encourages pre-processing review.
+  const shouldGlowAiPdf = deadlinePassed && stats.pending > 0 && !processingComplete;
+
+  // One-time toast when the deadline crosses for an active advert.
+  useEffect(() => {
+    if (!activeAdvert) return;
+    if (!deadlinePassed) return;
+    const key = `bke:deadline-notified:${activeAdvert.id}`;
+    if (typeof window !== "undefined" && !window.localStorage.getItem(key)) {
+      window.localStorage.setItem(key, "1");
+      toast({
+        title: "Application deadline has elapsed",
+        description: "AI processing is ready. Please review the AI PDF Summary, then run Process Applications.",
+      });
+    }
+  }, [deadlinePassed, activeAdvert, toast]);
+
   // Process applications (trigger allocation after deadline)
   const handleProcessApplications = async () => {
     if (!activeAdvert) {
