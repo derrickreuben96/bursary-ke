@@ -840,6 +840,26 @@ export default function CommissionerDashboard() {
         />
 
         {/* Deadline & Action Banner */}
+        {!activeAdvert && (
+          <Card className="mb-6 border-amber-200 dark:border-amber-800">
+            <CardContent className="py-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div>
+                <h3 className="font-semibold text-foreground">No bursary advert assigned</h3>
+                <p className="text-sm text-muted-foreground">
+                  No bursary advert exists for {assignedWard ?? assignedCounty ?? "your jurisdiction"} yet. Governance actions will activate once an advert is published.
+                </p>
+              </div>
+              <div className="flex gap-2 flex-shrink-0">
+                <Button disabled variant="outline" className="bg-muted text-muted-foreground border-muted cursor-not-allowed opacity-60">
+                  <Clock className="h-4 w-4 mr-2" />Waiting for advert
+                </Button>
+                <Button disabled variant="outline" className="bg-muted text-muted-foreground border-muted cursor-not-allowed opacity-60">
+                  <Send className="h-4 w-4 mr-2" />Release to Treasury
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
         {activeAdvert && (
           <Card className="mb-6 border-blue-200 dark:border-blue-800">
             <CardContent className="py-4">
