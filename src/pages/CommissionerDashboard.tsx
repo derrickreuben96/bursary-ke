@@ -17,7 +17,7 @@ import {
   ShieldAlert, Star, History, Send, Play, Inbox, Archive, FileDown, Sparkles
 } from "lucide-react";
 import { generateAiSummaryPdf, aiSummaryPdfFilename, type AiSummaryPayload } from "@/lib/aiSummaryPdf";
-import { StudentBeneficiariesPanel } from "@/components/dashboard/StudentBeneficiariesPanel";
+// StudentBeneficiariesPanel intentionally removed — commissioner is oversight-only.
 import { buildChartSummaryDoc, chartSummaryPdfFilename, type ChartPdfPayload } from "@/lib/chartSummaryPdf";
 import { AiPdfConsentDialog } from "@/components/ai/AiPdfConsentDialog";
 import { AiPdfPreviewDialog } from "@/components/ai/AiPdfPreviewDialog";
