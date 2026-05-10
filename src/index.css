@@ -221,3 +221,24 @@
   -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
 }
 
+/* Attention-glow used to draw commissioner attention to the AI PDF Summary
+   button after the deadline has elapsed and processing is still required. */
+@keyframes attention-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 hsl(var(--primary) / 0.55), 0 0 0 0 hsl(var(--primary) / 0);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 6px hsl(var(--primary) / 0), 0 0 22px 4px hsl(var(--primary) / 0.55);
+    transform: scale(1.02);
+  }
+}
+
+.animate-attention-glow {
+  animation: attention-glow 2.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-attention-glow { animation: none; box-shadow: 0 0 0 2px hsl(var(--primary) / 0.5); }
+}
+

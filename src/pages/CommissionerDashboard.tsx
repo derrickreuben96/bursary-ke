@@ -17,7 +17,7 @@ import {
   ShieldAlert, Star, History, Send, Play, Inbox, Archive, FileDown, Sparkles
 } from "lucide-react";
 import { generateAiSummaryPdf, aiSummaryPdfFilename, type AiSummaryPayload } from "@/lib/aiSummaryPdf";
-import { StudentBeneficiariesPanel } from "@/components/dashboard/StudentBeneficiariesPanel";
+// StudentBeneficiariesPanel intentionally removed — commissioner is oversight-only.
 import { buildChartSummaryDoc, chartSummaryPdfFilename, type ChartPdfPayload } from "@/lib/chartSummaryPdf";
 import { AiPdfConsentDialog } from "@/components/ai/AiPdfConsentDialog";
 import { AiPdfPreviewDialog } from "@/components/ai/AiPdfPreviewDialog";
@@ -316,6 +316,29 @@ export default function CommissionerDashboard() {
   const hasUnreleasedApproved = useMemo(() => {
     return applications.some(a => a.status === "approved" && !a.released_to_treasury);
   }, [applications]);
+
+  // Processing is "complete" once at least one application has been moved out of pending.
+  const processingComplete = useMemo(() => {
+    return stats.approved + stats.rejected > 0;
+  }, [stats.approved, stats.rejected]);
+
+  // Should the AI PDF button glow? Only after deadline, while there's pending work
+  // and no allocation has been processed yet — encourages pre-processing review.
+  const shouldGlowAiPdf = deadlinePassed && stats.pending > 0 && !processingComplete;
+
+  // One-time toast when the deadline crosses for an active advert.
+  useEffect(() => {
+    if (!activeAdvert) return;
+    if (!deadlinePassed) return;
+    const key = `bke:deadline-notified:${activeAdvert.id}`;
+    if (typeof window !== "undefined" && !window.localStorage.getItem(key)) {
+      window.localStorage.setItem(key, "1");
+      toast({
+        title: "Application deadline has elapsed",
+        description: "AI processing is ready. Please review the AI PDF Summary, then run Process Applications.",
+      });
+    }
+  }, [deadlinePassed, activeAdvert, toast]);
 
   // Process applications (trigger allocation after deadline)
   const handleProcessApplications = async () => {
@@ -727,7 +750,13 @@ export default function CommissionerDashboard() {
                   <SelectItem value="sw">PDF: Kiswahili</SelectItem>
                 </SelectContent>
               </Select>
-              <Button variant="outline" onClick={handleGenerateAiSummary} disabled={generatingSummary}>
+              <Button
+                variant="outline"
+                onClick={handleGenerateAiSummary}
+                disabled={generatingSummary}
+                title={shouldGlowAiPdf ? "Review the AI summary before running allocation" : undefined}
+                className={shouldGlowAiPdf ? "animate-attention-glow border-primary text-primary" : undefined}
+              >
                 {generatingSummary ? (
                   <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Generating...</>
                 ) : (
@@ -832,20 +861,27 @@ export default function CommissionerDashboard() {
                     onClick={handleProcessApplications}
                     disabled={!deadlinePassed || stats.pending === 0 || isProcessing}
                     variant={!deadlinePassed ? "outline" : "default"}
-                    className={!deadlinePassed 
-                      ? "bg-muted text-muted-foreground border-muted cursor-not-allowed opacity-60" 
-                      : "bg-blue-600 hover:bg-blue-700"}
+                    title={!deadlinePassed ? "Waiting for application deadline" : undefined}
+                    className={!deadlinePassed
+                      ? "bg-muted text-muted-foreground border-muted cursor-not-allowed opacity-60"
+                      : "bg-green-600 hover:bg-green-700 text-white"}
                   >
                     {isProcessing ? (
                       <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Processing...</>
+                    ) : !deadlinePassed ? (
+                      <><Clock className="h-4 w-4 mr-2" />Waiting for application deadline</>
                     ) : (
                       <><Play className="h-4 w-4 mr-2" />Process Applications</>
                     )}
                   </Button>
                   <Button
                     onClick={handleReleaseToTreasury}
-                    disabled={!hasUnreleasedApproved || isReleasing}
+                    disabled={!processingComplete || !hasUnreleasedApproved || isReleasing}
                     variant="default"
+                    title={!processingComplete ? "Run Process Applications first" : undefined}
+                    className={!processingComplete || !hasUnreleasedApproved
+                      ? "bg-muted text-muted-foreground border-muted cursor-not-allowed opacity-60"
+                      : undefined}
                   >
                     {isReleasing ? (
                       <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Releasing...</>
@@ -898,13 +934,8 @@ export default function CommissionerDashboard() {
             <TabsTrigger value="summary"><BarChart3 className="h-4 w-4 mr-2" />Summary</TabsTrigger>
             <TabsTrigger value="approved"><CheckCircle2 className="h-4 w-4 mr-2" />Approved ({stats.approved})</TabsTrigger>
             <TabsTrigger value="rejected"><XCircle className="h-4 w-4 mr-2" />Rejected ({stats.rejected + stats.duplicates})</TabsTrigger>
-            <TabsTrigger value="students"><Users className="h-4 w-4 mr-2" />Students</TabsTrigger>
             <TabsTrigger value="archive"><Archive className="h-4 w-4 mr-2" />Audit Archive</TabsTrigger>
           </TabsList>
-
-          <TabsContent value="students">
-            <StudentBeneficiariesPanel assignedWard={assignedWard} assignedCounty={assignedCounty} />
-          </TabsContent>
 
           {/* Incoming Applications Tab */}
           <TabsContent value="incoming">
