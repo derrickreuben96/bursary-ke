@@ -861,20 +861,27 @@ export default function CommissionerDashboard() {
                     onClick={handleProcessApplications}
                     disabled={!deadlinePassed || stats.pending === 0 || isProcessing}
                     variant={!deadlinePassed ? "outline" : "default"}
-                    className={!deadlinePassed 
-                      ? "bg-muted text-muted-foreground border-muted cursor-not-allowed opacity-60" 
-                      : "bg-blue-600 hover:bg-blue-700"}
+                    title={!deadlinePassed ? "Waiting for application deadline" : undefined}
+                    className={!deadlinePassed
+                      ? "bg-muted text-muted-foreground border-muted cursor-not-allowed opacity-60"
+                      : "bg-green-600 hover:bg-green-700 text-white"}
                   >
                     {isProcessing ? (
                       <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Processing...</>
+                    ) : !deadlinePassed ? (
+                      <><Clock className="h-4 w-4 mr-2" />Waiting for application deadline</>
                     ) : (
                       <><Play className="h-4 w-4 mr-2" />Process Applications</>
                     )}
                   </Button>
                   <Button
                     onClick={handleReleaseToTreasury}
-                    disabled={!hasUnreleasedApproved || isReleasing}
+                    disabled={!processingComplete || !hasUnreleasedApproved || isReleasing}
                     variant="default"
+                    title={!processingComplete ? "Run Process Applications first" : undefined}
+                    className={!processingComplete || !hasUnreleasedApproved
+                      ? "bg-muted text-muted-foreground border-muted cursor-not-allowed opacity-60"
+                      : undefined}
                   >
                     {isReleasing ? (
                       <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Releasing...</>
