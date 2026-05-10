@@ -750,7 +750,13 @@ export default function CommissionerDashboard() {
                   <SelectItem value="sw">PDF: Kiswahili</SelectItem>
                 </SelectContent>
               </Select>
-              <Button variant="outline" onClick={handleGenerateAiSummary} disabled={generatingSummary}>
+              <Button
+                variant="outline"
+                onClick={handleGenerateAiSummary}
+                disabled={generatingSummary}
+                title={shouldGlowAiPdf ? "Review the AI summary before running allocation" : undefined}
+                className={shouldGlowAiPdf ? "animate-attention-glow border-primary text-primary" : undefined}
+              >
                 {generatingSummary ? (
                   <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Generating...</>
                 ) : (
