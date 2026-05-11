@@ -15,6 +15,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDashboardRealtime } from "@/hooks/useDashboardRealtime";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { DangerZoneResetCard } from "@/components/admin/DangerZoneResetCard";
 import { downloadAiSummaryPdf } from "@/lib/aiSummaryPdf";
 import {
   Users,
@@ -384,6 +385,8 @@ export default function AdminDashboard() {
             No personally identifiable information (PII) such as names, ID numbers, or contact details is visible or accessible.
           </p>
         </div>
+
+        <DangerZoneResetCard onCompleted={() => { void fetchDashboardStats().then((d) => d && setDashboardData(d)); }} />
 
         <Dialog open={summaryOpen} onOpenChange={setSummaryOpen}>
           <DialogContent className="max-w-md">
