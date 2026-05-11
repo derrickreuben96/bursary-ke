@@ -133,16 +133,32 @@ export function AiPdfPreviewDialog({
           ) : (
             <>
               {blobUrl && (
-                <iframe
-                  src={blobUrl}
-                  title="PDF preview"
+                <object
+                  data={`${blobUrl}#toolbar=1&navpanes=0&view=FitH`}
+                  type="application/pdf"
                   className="w-full h-full"
                   onLoad={() => setStatus("ready")}
-                  onError={() => {
-                    setErrorMsg("Browser failed to render the PDF preview.");
-                    setStatus("error");
-                  }}
-                />
+                >
+                  <iframe
+                    src={`${blobUrl}#toolbar=1&navpanes=0&view=FitH`}
+                    title="PDF preview"
+                    className="w-full h-full"
+                    onLoad={() => setStatus("ready")}
+                    onError={() => {
+                      setErrorMsg("Browser failed to render the PDF preview.");
+                      setStatus("error");
+                    }}
+                  />
+                  <div className="flex flex-col items-center justify-center h-full gap-3 px-6 text-center">
+                    <AlertTriangle className="h-8 w-8 text-muted-foreground" />
+                    <p className="text-sm font-medium text-foreground">
+                      Inline preview unavailable in this browser
+                    </p>
+                    <p className="text-xs text-muted-foreground max-w-md">
+                      Use "Open in new tab" or "Download PDF" below to view the report.
+                    </p>
+                  </div>
+                </object>
               )}
               {showOverlay && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-muted/60 backdrop-blur-sm">
