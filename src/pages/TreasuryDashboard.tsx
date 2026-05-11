@@ -45,6 +45,8 @@ interface ApprovedApplication {
   advert_budget: number | null;
   poverty_tier: string | null;
   poverty_score: number | null;
+  advert_closed_at: string | null;
+  advert_is_active: boolean | null;
 }
 
 interface Cycle {
@@ -58,6 +60,8 @@ interface Cycle {
   pendingCount: number;
   disbursedCount: number;
   povertyDist: Record<string, number>;
+  closedAt: string | null;
+  isActive: boolean | null;
 }
 
 const ACK_STORAGE_KEY_PREFIX = "treasury.acknowledgedCycles.v2";
@@ -404,6 +408,8 @@ export default function TreasuryDashboard() {
           pendingCount: 0,
           disbursedCount: 0,
           povertyDist: {},
+          closedAt: app.advert_closed_at,
+          isActive: app.advert_is_active,
         });
       }
       const c = map.get(key)!;
@@ -953,10 +959,21 @@ export default function TreasuryDashboard() {
                   <TableBody>
                     {historyCycles.map((c) => (
                       <TableRow key={c.advertId}>
-                        <TableCell className="font-medium">{c.title}</TableCell>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            <span>{c.title}</span>
+                            {c.closedAt && (
+                              <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 text-[10px]">
+                                <Lock className="h-3 w-3 mr-1" />Closed
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell className="text-sm text-muted-foreground">{c.ward || "County-wide"}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">
-                          {c.deadline ? new Date(c.deadline).toLocaleDateString() : "—"}
+                          {c.closedAt
+                            ? `Closed ${new Date(c.closedAt).toLocaleDateString()}`
+                            : c.deadline ? new Date(c.deadline).toLocaleDateString() : "—"}
                         </TableCell>
                         <TableCell className="text-right">{c.disbursedCount}</TableCell>
                         <TableCell className="text-right font-medium">

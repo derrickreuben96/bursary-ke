@@ -255,6 +255,7 @@ export type Database = {
       bursary_adverts: {
         Row: {
           budget_amount: number | null
+          closed_at: string | null
           county: string
           created_at: string | null
           deadline: string
@@ -271,6 +272,7 @@ export type Database = {
         }
         Insert: {
           budget_amount?: number | null
+          closed_at?: string | null
           county: string
           created_at?: string | null
           deadline: string
@@ -287,6 +289,7 @@ export type Database = {
         }
         Update: {
           budget_amount?: number | null
+          closed_at?: string | null
           county?: string
           created_at?: string | null
           deadline?: string
@@ -1160,8 +1163,10 @@ export type Database = {
         Args: never
         Returns: {
           advert_budget: number
+          advert_closed_at: string
           advert_deadline: string
           advert_id: string
+          advert_is_active: boolean
           advert_title: string
           advert_ward: string
           allocated_amount: number
