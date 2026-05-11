@@ -1242,6 +1242,64 @@ export default function CommissionerDashboard() {
             </Card>
           </TabsContent>
 
+          {/* History Tab — past cycles already released to Treasury */}
+          <TabsContent value="history">
+            <Card>
+              <CardHeader>
+                <CardTitle>Cycle History</CardTitle>
+                <CardDescription>
+                  Past bursary cycles for your jurisdiction. Each card represents one advert whose approved
+                  applications were released to County Treasury. Click a cycle to view its applications.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {completedCycles.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No completed cycles yet. Once you release a cycle to Treasury, it will appear here.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {completedCycles.map(({ advert, apps, approved, rejected, allocated }) => {
+                      const isOpen = historyExpanded === advert.id;
+                      return (
+                        <Card key={advert.id} className="border-border">
+                          <CardHeader className="pb-3">
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                              <div>
+                                <CardTitle className="text-lg">{advert.title}</CardTitle>
+                                <CardDescription>
+                                  Deadline: {new Date(advert.deadline).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" })}
+                                  {advert.ward ? ` · Ward: ${advert.ward}` : ""} · County: {advert.county}
+                                </CardDescription>
+                              </div>
+                              <div className="flex flex-wrap gap-2 items-center">
+                                <Badge variant="secondary">Total {apps.length}</Badge>
+                                <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">Approved {approved.length}</Badge>
+                                <Badge variant="destructive">Rejected {rejected.length}</Badge>
+                                <Badge variant="outline">KES {allocated.toLocaleString()}</Badge>
+                                <Button size="sm" variant="outline" onClick={() => setHistoryExpanded(isOpen ? null : advert.id)}>
+                                  {isOpen ? "Hide" : "View"}
+                                </Button>
+                              </div>
+                            </div>
+                          </CardHeader>
+                          {isOpen && (
+                            <CardContent>
+                              {apps.length === 0 ? (
+                                <p className="text-sm text-muted-foreground">No applications recorded for this cycle.</p>
+                              ) : renderAppTable(apps, true)}
+                            </CardContent>
+                          )}
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Audit Archive Tab */}
           <TabsContent value="archive">
             <Card>
