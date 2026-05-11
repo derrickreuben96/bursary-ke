@@ -38,7 +38,29 @@ interface ApprovedApplication {
   ecitizen_ref: string;
   county: string;
   allocation_date: string;
+  advert_id: string | null;
+  advert_title: string | null;
+  advert_deadline: string | null;
+  advert_ward: string | null;
+  advert_budget: number | null;
+  poverty_tier: string | null;
+  poverty_score: number | null;
 }
+
+interface Cycle {
+  advertId: string;
+  title: string;
+  ward: string | null;
+  deadline: string | null;
+  budget: number | null;
+  apps: ApprovedApplication[];
+  totalAmount: number;
+  pendingCount: number;
+  disbursedCount: number;
+  povertyDist: Record<string, number>;
+}
+
+const ACK_STORAGE_KEY = "treasury.acknowledgedCycles.v1";
 
 export default function TreasuryDashboard() {
   const [applications, setApplications] = useState<ApprovedApplication[]>([]);
