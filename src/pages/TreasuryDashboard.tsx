@@ -654,19 +654,16 @@ export default function TreasuryDashboard() {
           <CardHeader>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
-                <CardTitle>Approved Applications</CardTitle>
-                <CardDescription>Applications ready for fund disbursement via eCitizen</CardDescription>
+                <CardTitle className="flex items-center gap-2"><Layers className="h-5 w-5" />Released Application Cycles</CardTitle>
+                <CardDescription>
+                  Each card is a bursary cycle released by a Commissioner. Open a cycle, download the
+                  pre-disbursement PDF, and acknowledge it to unlock disbursement.
+                </CardDescription>
               </div>
               <div className="flex gap-2 w-full md:w-auto">
-                {applications.some(a => a.status === "approved") && (
-                  <Button size="sm" onClick={() => setConfirmDialog({ open: true, mode: "bulk" })} disabled={disbursingIds.size > 0}>
-                    {disbursingIds.size > 0 ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
-                    Mark All Disbursed
-                  </Button>
-                )}
                 <div className="relative flex-1 md:w-64">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="Search applications..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
+                  <Input placeholder="Search cycles..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
                 </div>
                 <Button variant="outline" size="icon" onClick={fetchApprovedApplications}>
                   <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
@@ -677,78 +674,67 @@ export default function TreasuryDashboard() {
           <CardContent>
             {isLoading ? (
               <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
-            ) : filteredApplications.length === 0 ? (
+            ) : cycles.length === 0 ? (
               <div className="text-center py-12">
                 <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">No approved applications found</p>
+                <p className="text-muted-foreground">No released cycles yet. Awaiting Commissioner release.</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                   <TableHeader>
-                    <TableRow>
-                      <TableHead>Tracking #</TableHead>
-                      <TableHead>Institution</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>County</TableHead>
-                      <TableHead className="text-right">Amount (KES)</TableHead>
-                      <TableHead>eCitizen Ref</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Action</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredApplications.map((app) => (
-                      <TableRow key={app.id}>
-                        <TableCell className="font-mono font-medium">{app.tracking_number}</TableCell>
-                        <TableCell>{app.institution_name}</TableCell>
-                        <TableCell><Badge variant="secondary" className="capitalize">{app.student_type}</Badge></TableCell>
-                        <TableCell>
-                          <Badge variant={app.status === "disbursed" ? "default" : "outline"} className={app.status === "disbursed" ? "bg-emerald-600" : ""}>
-                            {app.status === "disbursed" ? "Disbursed" : "Approved"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{app.county}</TableCell>
-                        <TableCell className="text-right font-medium">{(app.allocated_amount || 0).toLocaleString()}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <code className="text-xs bg-muted px-2 py-1 rounded">{app.ecitizen_ref || "—"}</code>
-                            {app.ecitizen_ref && (
-                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyEcitizenRef(app.ecitizen_ref)}>
-                                <Copy className="h-3 w-3" />
-                              </Button>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {app.allocation_date ? new Date(app.allocation_date).toLocaleDateString() : "—"}
-                        </TableCell>
-                        <TableCell>
-                          {app.status === "approved" ? (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setConfirmDialog({ open: true, mode: "single", app })}
-                              disabled={disbursingIds.has(app.id)}
-                            >
-                              {disbursingIds.has(app.id) ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                              ) : (
-                                <>
-                                  <CheckCircle2 className="h-3 w-3 mr-1" />
-                                  Disburse
-                                </>
-                              )}
-                            </Button>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">Done</span>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+              <div className="grid gap-4 md:grid-cols-2">
+                {cycles.map((c) => {
+                  const ack = isAcknowledged(c.advertId);
+                  return (
+                    <div key={c.advertId} className="border rounded-lg p-4 bg-card hover:shadow-md transition">
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <div className="min-w-0">
+                          <p className="font-semibold truncate">{c.title}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {c.ward || "County-wide"}{c.deadline ? ` · Deadline ${new Date(c.deadline).toLocaleDateString()}` : ""}
+                          </p>
+                        </div>
+                        {ack ? (
+                          <Badge className="bg-emerald-600 shrink-0"><ShieldCheck className="h-3 w-3 mr-1" />Acknowledged</Badge>
+                        ) : (
+                          <Badge variant="outline" className="shrink-0"><Lock className="h-3 w-3 mr-1" />Locked</Badge>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 text-center mb-3">
+                        <div className="bg-muted/40 rounded p-2">
+                          <p className="text-xs text-muted-foreground flex items-center justify-center gap-1"><Users className="h-3 w-3" />Applicants</p>
+                          <p className="font-bold">{c.apps.length}</p>
+                        </div>
+                        <div className="bg-amber-50 dark:bg-amber-950/20 rounded p-2">
+                          <p className="text-xs text-muted-foreground">Pending</p>
+                          <p className="font-bold text-amber-600">{c.pendingCount}</p>
+                        </div>
+                        <div className="bg-emerald-50 dark:bg-emerald-950/20 rounded p-2">
+                          <p className="text-xs text-muted-foreground">Disbursed</p>
+                          <p className="font-bold text-emerald-600">{c.disbursedCount}</p>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground mb-3">
+                        Total: <span className="font-medium text-foreground">KES {c.totalAmount.toLocaleString()}</span>
+                      </p>
+                      <div className="flex gap-2 flex-wrap">
+                        <Button size="sm" variant="outline" onClick={() => setSelectedCycleId(c.advertId)}>
+                          <FileText className="h-3 w-3 mr-1" />View Submissions
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => downloadCyclePdf(c)}>
+                          <FileDown className="h-3 w-3 mr-1" />Download & Acknowledge
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => disburseCycle(c)}
+                          disabled={!ack || c.pendingCount === 0 || disbursingIds.size > 0}
+                          title={!ack ? "Download and acknowledge first" : c.pendingCount === 0 ? "Nothing pending" : ""}
+                        >
+                          {disbursingIds.size > 0 ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <CheckCircle2 className="h-3 w-3 mr-1" />}
+                          Disburse Cycle
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </CardContent>
@@ -756,11 +742,140 @@ export default function TreasuryDashboard() {
 
         <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg">
           <p className="text-sm text-amber-800 dark:text-amber-200">
-            <strong>Security Notice:</strong> This data is for official County Treasury use only. 
+            <strong>Security Notice:</strong> This data is for official County Treasury use only.
             All access is logged and audited. Student names are masked for privacy compliance.
           </p>
         </div>
 
+        {/* Cycle detail dialog: applicants + poverty distribution */}
+        <Dialog open={!!selectedCycle} onOpenChange={(o) => { if (!o) setSelectedCycleId(null); }}>
+          <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
+            {selectedCycle && (
+              <>
+                <DialogHeader>
+                  <DialogTitle>{selectedCycle.title}</DialogTitle>
+                  <DialogDescription>
+                    {selectedCycle.ward || "County-wide"} · {selectedCycle.apps.length} applicant(s) · KES {selectedCycle.totalAmount.toLocaleString()}
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="border rounded-lg p-3 bg-muted/30">
+                  <p className="text-sm font-medium mb-2">Poverty Tier Distribution</p>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(selectedCycle.povertyDist).map(([tier, count]) => (
+                      <Badge key={tier} variant="outline" className="text-xs">
+                        {tier}: <span className="ml-1 font-bold">{count}</span>
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Tracking #</TableHead>
+                        <TableHead>Student</TableHead>
+                        <TableHead>Institution</TableHead>
+                        <TableHead>Tier</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Amount (KES)</TableHead>
+                        <TableHead>eCitizen Ref</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {selectedCycle.apps.map((app) => (
+                        <TableRow key={app.id}>
+                          <TableCell className="font-mono text-xs">{app.tracking_number}</TableCell>
+                          <TableCell className="text-sm">{app.student_name_masked}</TableCell>
+                          <TableCell className="text-sm">{app.institution_name}</TableCell>
+                          <TableCell><Badge variant="outline" className="text-xs">{app.poverty_tier || "—"}</Badge></TableCell>
+                          <TableCell>
+                            <Badge variant={app.status === "disbursed" ? "default" : "outline"} className={app.status === "disbursed" ? "bg-emerald-600" : ""}>
+                              {app.status === "disbursed" ? "Disbursed" : "Approved"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right font-medium">{(app.allocated_amount || 0).toLocaleString()}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <code className="text-xs bg-muted px-2 py-1 rounded">{app.ecitizen_ref || "—"}</code>
+                              {app.ecitizen_ref && (
+                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyEcitizenRef(app.ecitizen_ref)}>
+                                  <Copy className="h-3 w-3" />
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                <DialogFooter className="gap-2 flex-wrap">
+                  <Button variant="outline" onClick={() => downloadCyclePdf(selectedCycle)}>
+                    <FileDown className="h-4 w-4 mr-2" />Download & Acknowledge
+                  </Button>
+                  <Button
+                    onClick={() => disburseCycle(selectedCycle)}
+                    disabled={!isAcknowledged(selectedCycle.advertId) || selectedCycle.pendingCount === 0 || disbursingIds.size > 0}
+                  >
+                    {!isAcknowledged(selectedCycle.advertId) ? <Lock className="h-4 w-4 mr-2" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
+                    Disburse Cycle ({selectedCycle.pendingCount})
+                  </Button>
+                </DialogFooter>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Acknowledgment dialog (signature gate) */}
+        <Dialog open={!!ackDialogCycle} onOpenChange={(o) => { if (!o) { setAckDialogCycleId(null); setAckChecked(false); } }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <ShieldCheck className="h-5 w-5 text-emerald-600" />
+                Treasury Officer Acknowledgment
+              </DialogTitle>
+              <DialogDescription>
+                {ackDialogCycle?.title}
+                {ackDialogCycle?.ward ? ` · ${ackDialogCycle.ward}` : ""}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-3 text-sm">
+              <p className="text-muted-foreground">
+                The cycle PDF has been downloaded to your device. Please review the masked
+                beneficiary list, allocations, and poverty-tier distribution before confirming.
+              </p>
+              <div className="border rounded-lg p-3 bg-muted/30 text-xs space-y-1">
+                <div className="flex justify-between"><span>Applicants released:</span><span className="font-medium">{ackDialogCycle?.apps.length ?? 0}</span></div>
+                <div className="flex justify-between"><span>Pending disbursement:</span><span className="font-medium">{ackDialogCycle?.pendingCount ?? 0}</span></div>
+                <div className="flex justify-between"><span>Total allocated:</span><span className="font-medium">KES {(ackDialogCycle?.totalAmount ?? 0).toLocaleString()}</span></div>
+              </div>
+              <label className="flex items-start gap-2 cursor-pointer p-3 border rounded-lg hover:bg-muted/40">
+                <Checkbox checked={ackChecked} onCheckedChange={(v) => setAckChecked(!!v)} className="mt-0.5" />
+                <span className="text-sm">
+                  <strong>I acknowledge</strong> that I have downloaded, reviewed, and verified the
+                  cycle submissions for this bursary release. My acknowledgment serves as a digital
+                  signature authorising disbursement of the listed allocations via eCitizen.
+                </span>
+              </label>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => { setAckDialogCycleId(null); setAckChecked(false); }}>
+                Cancel
+              </Button>
+              <Button onClick={confirmAcknowledgment} disabled={!ackChecked}>
+                <ShieldCheck className="h-4 w-4 mr-2" />
+                Confirm & Unlock Disbursement
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Legacy single/bulk confirm dialog kept for compatibility (no longer triggered by UI) */}
         <AlertDialog open={confirmDialog.open} onOpenChange={(open) => setConfirmDialog(prev => ({ ...prev, open }))}>
           <AlertDialogContent>
             <AlertDialogHeader>
