@@ -329,10 +329,10 @@ Deno.serve(async (req) => {
           `• Ensure all information remains consistent across applications`,
         ].filter(l => l !== "").join("\n");
 
-        await supabaseAdmin.from("bursary_applications").update({
+        failIfErr("reject", await supabaseAdmin.from("bursary_applications").update({
           status: "rejected",
           ai_decision_reason: reason,
-        }).eq("id", app.id);
+        }).eq("id", app.id));
 
         results.push({ applicationId: app.id, trackingNumber: app.tracking_number, status: "rejected", reason });
       }
