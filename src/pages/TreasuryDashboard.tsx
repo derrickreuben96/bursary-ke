@@ -540,7 +540,15 @@ export default function TreasuryDashboard() {
     if (!isAcknowledged(cycle.advertId)) {
       toast({
         title: "Acknowledgment required",
-        description: "Download and acknowledge the cycle PDF first.",
+        description: "Preview, download and acknowledge the cycle PDF first.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (cycleHasMissingScores(cycle)) {
+      toast({
+        title: "Disbursement blocked",
+        description: "One or more applicants in this cycle are missing required poverty score data.",
         variant: "destructive",
       });
       return;
