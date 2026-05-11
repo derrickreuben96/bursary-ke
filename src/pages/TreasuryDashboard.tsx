@@ -420,8 +420,25 @@ export default function TreasuryDashboard() {
     return Array.from(map.values()).sort((a, b) => a.title.localeCompare(b.title));
   }, [filteredApplications]);
 
+  // Distinct wards present across released cycles for the filter dropdown.
+  const wardOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const c of cycles) {
+      if (c.ward) set.add(c.ward);
+    }
+    return Array.from(set).sort();
+  }, [cycles]);
+
+  // Apply ward filter to displayed cycles.
+  const visibleCycles = useMemo(() => {
+    if (wardFilter === "all") return cycles;
+    if (wardFilter === "__county_wide__") return cycles.filter((c) => !c.ward);
+    return cycles.filter((c) => c.ward === wardFilter);
+  }, [cycles, wardFilter]);
+
   const selectedCycle = cycles.find((c) => c.advertId === selectedCycleId) || null;
   const ackDialogCycle = cycles.find((c) => c.advertId === ackDialogCycleId) || null;
+  const previewCycle = cycles.find((c) => c.advertId === cyclePreviewOpenId) || null;
 
   const isAcknowledged = (cycleId: string) => Boolean(acknowledgments[cycleId]);
   const ackInfoFor = (cycleId: string) => acknowledgments[cycleId] ?? null;
