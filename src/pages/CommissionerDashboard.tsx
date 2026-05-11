@@ -1245,7 +1245,11 @@ export default function CommissionerDashboard() {
                       <FileDown className="h-4 w-4 mr-2" />Export PDF
                     </Button>
                     {hasUnreleasedApproved && (
-                      <Button onClick={handleReleaseToTreasury} disabled={isReleasing}>
+                      <Button
+                        onClick={handleReleaseToTreasury}
+                        disabled={!canReleaseToTreasury || isReleasing}
+                        title={hasUnresolvedPending ? "Resolve pending applications before releasing" : undefined}
+                      >
                         {isReleasing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
                         Release to Treasury
                       </Button>
