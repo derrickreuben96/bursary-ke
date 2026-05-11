@@ -423,11 +423,25 @@ export default function TreasuryDashboard() {
   const selectedCycle = cycles.find((c) => c.advertId === selectedCycleId) || null;
   const ackDialogCycle = cycles.find((c) => c.advertId === ackDialogCycleId) || null;
 
-  const isAcknowledged = (cycleId: string) => acknowledgedCycles.has(cycleId);
+  const isAcknowledged = (cycleId: string) => Boolean(acknowledgments[cycleId]);
+  const ackInfoFor = (cycleId: string) => acknowledgments[cycleId] ?? null;
 
-  const downloadCyclePdf = async (cycle: Cycle) => {
+  // Detect cycles where any pending applicant is missing required poverty score data.
+  const cycleHasMissingScores = (cycle: Cycle) =>
+    cycle.apps.some(
+      (a) =>
+        a.status === "approved" &&
+        (a.poverty_score === null || a.poverty_score === undefined || !a.poverty_tier),
+    );
+
+  const buildCyclePdfPayload = (cycle: Cycle): ChartPdfPayload => {
     const sortedTiers = Object.entries(cycle.povertyDist).sort((a, b) => b[1] - a[1]);
-    const payload: ChartPdfPayload = {
+    // Defensive: only include applicants in approved/disbursed status (RPC already filters,
+    // but we re-assert here so the printed PDF matches the disbursable scope exactly).
+    const eligibleApps = cycle.apps.filter(
+      (a) => a.status === "approved" || a.status === "disbursed",
+    );
+    return {
       title: pdfLanguage === "sw" ? "Mzunguko wa Ufadhili — Muhtasari" : "Bursary Cycle — Submission Summary",
       subtitle: `${cycle.title}${cycle.ward ? ` · ${cycle.ward}` : ""}${assignedCounty ? ` · ${assignedCounty} County` : ""}`,
       portalName: "Bursary-KE · Treasury Portal",
@@ -438,12 +452,13 @@ export default function TreasuryDashboard() {
         { label: "Ward", value: cycle.ward || "—" },
         { label: "Deadline", value: cycle.deadline ? new Date(cycle.deadline).toLocaleString() : "—" },
         { label: "Budget (KES)", value: cycle.budget ? cycle.budget.toLocaleString() : "—" },
+        { label: "Records Included", value: `${eligibleApps.length} (released & approved/disbursed only)` },
       ],
       sections: [
         {
           heading: pdfLanguage === "sw" ? "Muhtasari wa Mzunguko" : "Cycle Summary",
           rows: [
-            { label: "Total Applicants Released", value: cycle.apps.length },
+            { label: "Total Applicants Released", value: eligibleApps.length },
             { label: "Pending Disbursement", value: cycle.pendingCount },
             { label: "Already Disbursed", value: cycle.disbursedCount },
             { label: "Total Allocated (KES)", value: cycle.totalAmount.toLocaleString() },
@@ -455,8 +470,8 @@ export default function TreasuryDashboard() {
         },
         {
           heading: pdfLanguage === "sw" ? "Walengwa" : "Beneficiaries (masked)",
-          rows: cycle.apps.map((a) => ({
-            label: `${a.tracking_number} · ${a.student_name_masked} · ${a.institution_name}`,
+          rows: eligibleApps.map((a) => ({
+            label: `${a.tracking_number} · ${a.student_name_masked} · ${a.institution_name} · Tier: ${a.poverty_tier ?? "—"}`,
             value: `KES ${(a.allocated_amount || 0).toLocaleString()}`,
           })),
         },
@@ -467,16 +482,31 @@ export default function TreasuryDashboard() {
           : "This document is for official County Treasury use only. Digital acknowledgment is required before disbursement.",
       ],
     };
-    const doc = await buildChartSummaryDoc(payload);
-    doc.save(chartSummaryPdfFilename(payload, `cycle-${cycle.title.replace(/\s+/g, "_")}`));
+  };
+
+  // Step 1: open the in-site PDF preview modal. The user can review then click
+  // "Download PDF" inside it; on download, we open the acknowledgment modal.
+  const openCyclePreview = (cycle: Cycle) => {
+    setCyclePreviewPayload(buildCyclePdfPayload(cycle));
+    setCyclePreviewOpenId(cycle.advertId);
+  };
+
+  // Step 2: triggered after user clicks Download in the preview modal.
+  const handleCyclePdfDownloaded = (cycleId: string) => {
     setAckChecked(false);
-    setAckDialogCycleId(cycle.advertId);
+    setAckDialogCycleId(cycleId);
   };
 
   const confirmAcknowledgment = () => {
     if (!ackDialogCycleId || !ackChecked) return;
-    const next = new Set(acknowledgedCycles);
-    next.add(ackDialogCycleId);
+    const next: Record<string, AckRecord> = {
+      ...acknowledgments,
+      [ackDialogCycleId]: {
+        cycleId: ackDialogCycleId,
+        acknowledgedAt: new Date().toISOString(),
+        byUserId: user?.id ?? null,
+      },
+    };
     persistAck(next);
     toast({
       title: "Acknowledgment recorded",
@@ -484,6 +514,9 @@ export default function TreasuryDashboard() {
     });
     setAckDialogCycleId(null);
     setAckChecked(false);
+    // Close the preview if still open
+    setCyclePreviewOpenId(null);
+    setCyclePreviewPayload(null);
   };
 
   const disburseCycle = async (cycle: Cycle) => {
