@@ -317,15 +317,22 @@ export default function CommissionerDashboard() {
     return map;
   }, [applications]);
 
-  // A cycle is "complete" when nothing is pending AND every approved row has been released to Treasury.
+  // A cycle is "complete" (i.e. fully released to Treasury) when:
+  //  • there are NO live applications still pending or in review/verification (excluding duplicates)
+  //  • every non-duplicate APPROVED row has released_to_treasury = true
+  //  • duplicates and rejected rows are terminal — they do not block completion
+  // Rows where status='approved' AND is_duplicate=true are inconsistent legacy data and
+  // are treated as terminal (they should never be released).
   const isAdvertCycleComplete = (advertId: string): boolean => {
     const apps = appsByAdvert.get(advertId);
     if (!apps || apps.length === 0) return false;
-    const pending = apps.some(a => ["received", "review", "verification"].includes(a.status) && !a.is_duplicate);
-    if (pending) return false;
-    const approved = apps.filter(a => a.status === "approved" && !a.is_duplicate);
-    if (approved.length === 0) return true; // processed, nothing to release
-    return approved.every(a => a.released_to_treasury);
+    const livePending = apps.some(
+      a => !a.is_duplicate && ["received", "review", "verification"].includes(a.status),
+    );
+    if (livePending) return false;
+    const liveApproved = apps.filter(a => a.status === "approved" && !a.is_duplicate);
+    if (liveApproved.length === 0) return true; // processed, nothing left to release
+    return liveApproved.every(a => a.released_to_treasury === true);
   };
 
   // Active advert = newest ward advert whose cycle is NOT yet released to Treasury.
@@ -352,11 +359,13 @@ export default function CommissionerDashboard() {
     const redFlagged = cycleApps.filter(a => fairnessMap.get(a.id)?.historicalStatus === "red_flagged").length;
     return {
       total: cycleApps.length,
-      approved: cycleApps.filter(a => a.status === "approved").length,
-      rejected: cycleApps.filter(a => a.status === "rejected").length,
-      pending: cycleApps.filter(a => ["received", "review", "verification"].includes(a.status)).length,
+      approved: cycleApps.filter(a => a.status === "approved" && !a.is_duplicate).length,
+      rejected: cycleApps.filter(a => a.status === "rejected" && !a.is_duplicate).length,
+      pending: cycleApps.filter(a => !a.is_duplicate && ["received", "review", "verification"].includes(a.status)).length,
       duplicates: cycleApps.filter(a => a.is_duplicate).length,
-      totalAllocated: cycleApps.reduce((sum, a) => sum + (a.allocated_amount || 0), 0),
+      totalAllocated: cycleApps
+        .filter(a => a.status === "approved" && !a.is_duplicate)
+        .reduce((sum, a) => sum + (a.allocated_amount || 0), 0),
       fairnessPriorityCandidates,
       redFlagged,
     };
@@ -368,9 +377,21 @@ export default function CommissionerDashboard() {
     return new Date(activeAdvert.deadline).getTime() <= nowTick;
   }, [activeAdvert, nowTick]);
 
+  // Approved rows still awaiting release in the active cycle.
   const hasUnreleasedApproved = useMemo(() => {
-    return cycleApps.some(a => a.status === "approved" && !a.released_to_treasury);
+    return cycleApps.some(a => a.status === "approved" && !a.is_duplicate && !a.released_to_treasury);
   }, [cycleApps]);
+
+  // Block release while ANY non-duplicate application is still pending/locked.
+  // This prevents partial releases that would leave the cycle in a mixed,
+  // unauditable state where some applicants are released while others remain unreviewed.
+  const hasUnresolvedPending = useMemo(() => {
+    return cycleApps.some(a => !a.is_duplicate && ["received", "review", "verification"].includes(a.status));
+  }, [cycleApps]);
+
+  // Release is allowed only when: deadline passed, processing produced approvals
+  // that haven't been released yet, AND no pending rows remain.
+  const canReleaseToTreasury = deadlinePassed && hasUnreleasedApproved && !hasUnresolvedPending;
 
   // Processing is "complete" once at least one application has been moved out of pending.
   const processingComplete = useMemo(() => {
