@@ -1,10 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -12,9 +14,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useDashboardRealtime } from "@/hooks/useDashboardRealtime";
 import { supabase } from "@/integrations/supabase/client";
-import { 
-  Landmark, LogOut, Search, Download, 
-  Loader2, RefreshCw, Copy, FileText, CheckCircle2, Sparkles, FileDown
+import {
+  Landmark, LogOut, Search, Download,
+  Loader2, RefreshCw, Copy, FileText, CheckCircle2, Sparkles, FileDown,
+  Layers, Lock, ShieldCheck, Users
 } from "lucide-react";
 import { TreasurySummaryCards } from "@/components/treasury/TreasurySummaryCards";
 import { generateAiSummaryPdf, aiSummaryPdfFilename, type AiSummaryPayload } from "@/lib/aiSummaryPdf";
@@ -35,7 +38,29 @@ interface ApprovedApplication {
   ecitizen_ref: string;
   county: string;
   allocation_date: string;
+  advert_id: string | null;
+  advert_title: string | null;
+  advert_deadline: string | null;
+  advert_ward: string | null;
+  advert_budget: number | null;
+  poverty_tier: string | null;
+  poverty_score: number | null;
 }
+
+interface Cycle {
+  advertId: string;
+  title: string;
+  ward: string | null;
+  deadline: string | null;
+  budget: number | null;
+  apps: ApprovedApplication[];
+  totalAmount: number;
+  pendingCount: number;
+  disbursedCount: number;
+  povertyDist: Record<string, number>;
+}
+
+const ACK_STORAGE_KEY = "treasury.acknowledgedCycles.v1";
 
 export default function TreasuryDashboard() {
   const [applications, setApplications] = useState<ApprovedApplication[]>([]);
@@ -51,10 +76,25 @@ export default function TreasuryDashboard() {
   const [aiPayload, setAiPayload] = useState<AiSummaryPayload | null>(null);
   const [chartPreviewOpen, setChartPreviewOpen] = useState(false);
   const [chartPayload, setChartPayload] = useState<ChartPdfPayload | null>(null);
+  // Cycle-based flow state
+  const [selectedCycleId, setSelectedCycleId] = useState<string | null>(null);
+  const [acknowledgedCycles, setAcknowledgedCycles] = useState<Set<string>>(() => {
+    try {
+      const raw = localStorage.getItem(ACK_STORAGE_KEY);
+      return new Set(raw ? (JSON.parse(raw) as string[]) : []);
+    } catch { return new Set(); }
+  });
+  const [ackDialogCycleId, setAckDialogCycleId] = useState<string | null>(null);
+  const [ackChecked, setAckChecked] = useState(false);
   const { signOut, user } = useAuth();
   const { toast } = useToast();
   const { language: uiLanguage } = useI18n();
   const navigate = useNavigate();
+
+  const persistAck = (next: Set<string>) => {
+    setAcknowledgedCycles(next);
+    try { localStorage.setItem(ACK_STORAGE_KEY, JSON.stringify(Array.from(next))); } catch { /* noop */ }
+  };
 
   useEffect(() => { setPdfLanguage(uiLanguage); }, [uiLanguage]);
 
@@ -327,10 +367,138 @@ export default function TreasuryDashboard() {
   const filteredApplications = applications.filter(app =>
     app.tracking_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     app.institution_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    app.county?.toLowerCase().includes(searchTerm.toLowerCase())
+    app.county?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (app.advert_title || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const totalAmount = applications.reduce((sum, app) => sum + (app.allocated_amount || 0), 0);
+
+  // Group applications by cycle (advert_id)
+  const cycles: Cycle[] = useMemo(() => {
+    const map = new Map<string, Cycle>();
+    for (const app of filteredApplications) {
+      const key = app.advert_id || "unassigned";
+      if (!map.has(key)) {
+        map.set(key, {
+          advertId: key,
+          title: app.advert_title || "Unlinked Cycle",
+          ward: app.advert_ward,
+          deadline: app.advert_deadline,
+          budget: app.advert_budget,
+          apps: [],
+          totalAmount: 0,
+          pendingCount: 0,
+          disbursedCount: 0,
+          povertyDist: {},
+        });
+      }
+      const c = map.get(key)!;
+      c.apps.push(app);
+      c.totalAmount += app.allocated_amount || 0;
+      if (app.status === "disbursed") c.disbursedCount++;
+      else if (app.status === "approved") c.pendingCount++;
+      const tier = app.poverty_tier || "Unscored";
+      c.povertyDist[tier] = (c.povertyDist[tier] || 0) + 1;
+    }
+    return Array.from(map.values()).sort((a, b) => a.title.localeCompare(b.title));
+  }, [filteredApplications]);
+
+  const selectedCycle = cycles.find((c) => c.advertId === selectedCycleId) || null;
+  const ackDialogCycle = cycles.find((c) => c.advertId === ackDialogCycleId) || null;
+
+  const isAcknowledged = (cycleId: string) => acknowledgedCycles.has(cycleId);
+
+  const downloadCyclePdf = async (cycle: Cycle) => {
+    const sortedTiers = Object.entries(cycle.povertyDist).sort((a, b) => b[1] - a[1]);
+    const payload: ChartPdfPayload = {
+      title: pdfLanguage === "sw" ? "Mzunguko wa Ufadhili — Muhtasari" : "Bursary Cycle — Submission Summary",
+      subtitle: `${cycle.title}${cycle.ward ? ` · ${cycle.ward}` : ""}${assignedCounty ? ` · ${assignedCounty} County` : ""}`,
+      portalName: "Bursary-KE · Treasury Portal",
+      scopeLabel: pdfLanguage === "sw" ? "Hati ya Kabla ya Malipo" : "Pre-Disbursement Acknowledgment Document",
+      language: pdfLanguage,
+      appliedFilters: [
+        { label: "Cycle", value: cycle.title },
+        { label: "Ward", value: cycle.ward || "—" },
+        { label: "Deadline", value: cycle.deadline ? new Date(cycle.deadline).toLocaleString() : "—" },
+        { label: "Budget (KES)", value: cycle.budget ? cycle.budget.toLocaleString() : "—" },
+      ],
+      sections: [
+        {
+          heading: pdfLanguage === "sw" ? "Muhtasari wa Mzunguko" : "Cycle Summary",
+          rows: [
+            { label: "Total Applicants Released", value: cycle.apps.length },
+            { label: "Pending Disbursement", value: cycle.pendingCount },
+            { label: "Already Disbursed", value: cycle.disbursedCount },
+            { label: "Total Allocated (KES)", value: cycle.totalAmount.toLocaleString() },
+          ],
+        },
+        {
+          heading: pdfLanguage === "sw" ? "Mgawanyo wa Kiwango cha Umaskini" : "Poverty Tier Distribution",
+          rows: sortedTiers.map(([tier, count]) => ({ label: tier, value: count })),
+        },
+        {
+          heading: pdfLanguage === "sw" ? "Walengwa" : "Beneficiaries (masked)",
+          rows: cycle.apps.map((a) => ({
+            label: `${a.tracking_number} · ${a.student_name_masked} · ${a.institution_name}`,
+            value: `KES ${(a.allocated_amount || 0).toLocaleString()}`,
+          })),
+        },
+      ],
+      notes: [
+        pdfLanguage === "sw"
+          ? "Hati hii ni ya matumizi rasmi ya Hazina ya Kaunti pekee. Saini ya kidijitali inahitajika kabla ya malipo."
+          : "This document is for official County Treasury use only. Digital acknowledgment is required before disbursement.",
+      ],
+    };
+    const doc = await buildChartSummaryDoc(payload);
+    doc.save(chartSummaryPdfFilename(payload, `cycle-${cycle.title.replace(/\s+/g, "_")}`));
+    setAckChecked(false);
+    setAckDialogCycleId(cycle.advertId);
+  };
+
+  const confirmAcknowledgment = () => {
+    if (!ackDialogCycleId || !ackChecked) return;
+    const next = new Set(acknowledgedCycles);
+    next.add(ackDialogCycleId);
+    persistAck(next);
+    toast({
+      title: "Acknowledgment recorded",
+      description: "Disbursement is now unlocked for this cycle.",
+    });
+    setAckDialogCycleId(null);
+    setAckChecked(false);
+  };
+
+  const disburseCycle = async (cycle: Cycle) => {
+    if (!isAcknowledged(cycle.advertId)) {
+      toast({
+        title: "Acknowledgment required",
+        description: "Download and acknowledge the cycle PDF first.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const ids = cycle.apps.filter((a) => a.status === "approved").map((a) => a.id);
+    if (ids.length === 0) return;
+    setDisbursingIds(new Set(ids));
+    try {
+      const { data, error } = await supabase
+        .from("bursary_applications")
+        .update({ status: "disbursed" as any })
+        .in("id", ids)
+        .select();
+      if (error) throw error;
+      if (!data || data.length === 0) throw new Error("Update was blocked by access policy.");
+      toast({ title: "✅ Cycle Disbursed", description: `${data.length} application(s) disbursed for ${cycle.title}.` });
+      sendDisbursementNotifications();
+      fetchApprovedApplications();
+    } catch (err) {
+      console.error(err);
+      toast({ title: "Error", description: "Failed to disburse cycle", variant: "destructive" });
+    } finally {
+      setDisbursingIds(new Set());
+    }
+  };
 
   const exportToCSV = async () => {
     const appIds = applications.map(a => a.id).filter(Boolean);
@@ -486,19 +654,16 @@ export default function TreasuryDashboard() {
           <CardHeader>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
-                <CardTitle>Approved Applications</CardTitle>
-                <CardDescription>Applications ready for fund disbursement via eCitizen</CardDescription>
+                <CardTitle className="flex items-center gap-2"><Layers className="h-5 w-5" />Released Application Cycles</CardTitle>
+                <CardDescription>
+                  Each card is a bursary cycle released by a Commissioner. Open a cycle, download the
+                  pre-disbursement PDF, and acknowledge it to unlock disbursement.
+                </CardDescription>
               </div>
               <div className="flex gap-2 w-full md:w-auto">
-                {applications.some(a => a.status === "approved") && (
-                  <Button size="sm" onClick={() => setConfirmDialog({ open: true, mode: "bulk" })} disabled={disbursingIds.size > 0}>
-                    {disbursingIds.size > 0 ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
-                    Mark All Disbursed
-                  </Button>
-                )}
                 <div className="relative flex-1 md:w-64">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="Search applications..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
+                  <Input placeholder="Search cycles..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
                 </div>
                 <Button variant="outline" size="icon" onClick={fetchApprovedApplications}>
                   <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
@@ -509,78 +674,67 @@ export default function TreasuryDashboard() {
           <CardContent>
             {isLoading ? (
               <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
-            ) : filteredApplications.length === 0 ? (
+            ) : cycles.length === 0 ? (
               <div className="text-center py-12">
                 <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">No approved applications found</p>
+                <p className="text-muted-foreground">No released cycles yet. Awaiting Commissioner release.</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                   <TableHeader>
-                    <TableRow>
-                      <TableHead>Tracking #</TableHead>
-                      <TableHead>Institution</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>County</TableHead>
-                      <TableHead className="text-right">Amount (KES)</TableHead>
-                      <TableHead>eCitizen Ref</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Action</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredApplications.map((app) => (
-                      <TableRow key={app.id}>
-                        <TableCell className="font-mono font-medium">{app.tracking_number}</TableCell>
-                        <TableCell>{app.institution_name}</TableCell>
-                        <TableCell><Badge variant="secondary" className="capitalize">{app.student_type}</Badge></TableCell>
-                        <TableCell>
-                          <Badge variant={app.status === "disbursed" ? "default" : "outline"} className={app.status === "disbursed" ? "bg-emerald-600" : ""}>
-                            {app.status === "disbursed" ? "Disbursed" : "Approved"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{app.county}</TableCell>
-                        <TableCell className="text-right font-medium">{(app.allocated_amount || 0).toLocaleString()}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <code className="text-xs bg-muted px-2 py-1 rounded">{app.ecitizen_ref || "—"}</code>
-                            {app.ecitizen_ref && (
-                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyEcitizenRef(app.ecitizen_ref)}>
-                                <Copy className="h-3 w-3" />
-                              </Button>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {app.allocation_date ? new Date(app.allocation_date).toLocaleDateString() : "—"}
-                        </TableCell>
-                        <TableCell>
-                          {app.status === "approved" ? (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setConfirmDialog({ open: true, mode: "single", app })}
-                              disabled={disbursingIds.has(app.id)}
-                            >
-                              {disbursingIds.has(app.id) ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                              ) : (
-                                <>
-                                  <CheckCircle2 className="h-3 w-3 mr-1" />
-                                  Disburse
-                                </>
-                              )}
-                            </Button>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">Done</span>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+              <div className="grid gap-4 md:grid-cols-2">
+                {cycles.map((c) => {
+                  const ack = isAcknowledged(c.advertId);
+                  return (
+                    <div key={c.advertId} className="border rounded-lg p-4 bg-card hover:shadow-md transition">
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <div className="min-w-0">
+                          <p className="font-semibold truncate">{c.title}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {c.ward || "County-wide"}{c.deadline ? ` · Deadline ${new Date(c.deadline).toLocaleDateString()}` : ""}
+                          </p>
+                        </div>
+                        {ack ? (
+                          <Badge className="bg-emerald-600 shrink-0"><ShieldCheck className="h-3 w-3 mr-1" />Acknowledged</Badge>
+                        ) : (
+                          <Badge variant="outline" className="shrink-0"><Lock className="h-3 w-3 mr-1" />Locked</Badge>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 text-center mb-3">
+                        <div className="bg-muted/40 rounded p-2">
+                          <p className="text-xs text-muted-foreground flex items-center justify-center gap-1"><Users className="h-3 w-3" />Applicants</p>
+                          <p className="font-bold">{c.apps.length}</p>
+                        </div>
+                        <div className="bg-amber-50 dark:bg-amber-950/20 rounded p-2">
+                          <p className="text-xs text-muted-foreground">Pending</p>
+                          <p className="font-bold text-amber-600">{c.pendingCount}</p>
+                        </div>
+                        <div className="bg-emerald-50 dark:bg-emerald-950/20 rounded p-2">
+                          <p className="text-xs text-muted-foreground">Disbursed</p>
+                          <p className="font-bold text-emerald-600">{c.disbursedCount}</p>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground mb-3">
+                        Total: <span className="font-medium text-foreground">KES {c.totalAmount.toLocaleString()}</span>
+                      </p>
+                      <div className="flex gap-2 flex-wrap">
+                        <Button size="sm" variant="outline" onClick={() => setSelectedCycleId(c.advertId)}>
+                          <FileText className="h-3 w-3 mr-1" />View Submissions
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => downloadCyclePdf(c)}>
+                          <FileDown className="h-3 w-3 mr-1" />Download & Acknowledge
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => disburseCycle(c)}
+                          disabled={!ack || c.pendingCount === 0 || disbursingIds.size > 0}
+                          title={!ack ? "Download and acknowledge first" : c.pendingCount === 0 ? "Nothing pending" : ""}
+                        >
+                          {disbursingIds.size > 0 ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <CheckCircle2 className="h-3 w-3 mr-1" />}
+                          Disburse Cycle
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </CardContent>
@@ -588,11 +742,140 @@ export default function TreasuryDashboard() {
 
         <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg">
           <p className="text-sm text-amber-800 dark:text-amber-200">
-            <strong>Security Notice:</strong> This data is for official County Treasury use only. 
+            <strong>Security Notice:</strong> This data is for official County Treasury use only.
             All access is logged and audited. Student names are masked for privacy compliance.
           </p>
         </div>
 
+        {/* Cycle detail dialog: applicants + poverty distribution */}
+        <Dialog open={!!selectedCycle} onOpenChange={(o) => { if (!o) setSelectedCycleId(null); }}>
+          <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
+            {selectedCycle && (
+              <>
+                <DialogHeader>
+                  <DialogTitle>{selectedCycle.title}</DialogTitle>
+                  <DialogDescription>
+                    {selectedCycle.ward || "County-wide"} · {selectedCycle.apps.length} applicant(s) · KES {selectedCycle.totalAmount.toLocaleString()}
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="border rounded-lg p-3 bg-muted/30">
+                  <p className="text-sm font-medium mb-2">Poverty Tier Distribution</p>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(selectedCycle.povertyDist).map(([tier, count]) => (
+                      <Badge key={tier} variant="outline" className="text-xs">
+                        {tier}: <span className="ml-1 font-bold">{count}</span>
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Tracking #</TableHead>
+                        <TableHead>Student</TableHead>
+                        <TableHead>Institution</TableHead>
+                        <TableHead>Tier</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Amount (KES)</TableHead>
+                        <TableHead>eCitizen Ref</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {selectedCycle.apps.map((app) => (
+                        <TableRow key={app.id}>
+                          <TableCell className="font-mono text-xs">{app.tracking_number}</TableCell>
+                          <TableCell className="text-sm">{app.student_name_masked}</TableCell>
+                          <TableCell className="text-sm">{app.institution_name}</TableCell>
+                          <TableCell><Badge variant="outline" className="text-xs">{app.poverty_tier || "—"}</Badge></TableCell>
+                          <TableCell>
+                            <Badge variant={app.status === "disbursed" ? "default" : "outline"} className={app.status === "disbursed" ? "bg-emerald-600" : ""}>
+                              {app.status === "disbursed" ? "Disbursed" : "Approved"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right font-medium">{(app.allocated_amount || 0).toLocaleString()}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <code className="text-xs bg-muted px-2 py-1 rounded">{app.ecitizen_ref || "—"}</code>
+                              {app.ecitizen_ref && (
+                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyEcitizenRef(app.ecitizen_ref)}>
+                                  <Copy className="h-3 w-3" />
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                <DialogFooter className="gap-2 flex-wrap">
+                  <Button variant="outline" onClick={() => downloadCyclePdf(selectedCycle)}>
+                    <FileDown className="h-4 w-4 mr-2" />Download & Acknowledge
+                  </Button>
+                  <Button
+                    onClick={() => disburseCycle(selectedCycle)}
+                    disabled={!isAcknowledged(selectedCycle.advertId) || selectedCycle.pendingCount === 0 || disbursingIds.size > 0}
+                  >
+                    {!isAcknowledged(selectedCycle.advertId) ? <Lock className="h-4 w-4 mr-2" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
+                    Disburse Cycle ({selectedCycle.pendingCount})
+                  </Button>
+                </DialogFooter>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Acknowledgment dialog (signature gate) */}
+        <Dialog open={!!ackDialogCycle} onOpenChange={(o) => { if (!o) { setAckDialogCycleId(null); setAckChecked(false); } }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <ShieldCheck className="h-5 w-5 text-emerald-600" />
+                Treasury Officer Acknowledgment
+              </DialogTitle>
+              <DialogDescription>
+                {ackDialogCycle?.title}
+                {ackDialogCycle?.ward ? ` · ${ackDialogCycle.ward}` : ""}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-3 text-sm">
+              <p className="text-muted-foreground">
+                The cycle PDF has been downloaded to your device. Please review the masked
+                beneficiary list, allocations, and poverty-tier distribution before confirming.
+              </p>
+              <div className="border rounded-lg p-3 bg-muted/30 text-xs space-y-1">
+                <div className="flex justify-between"><span>Applicants released:</span><span className="font-medium">{ackDialogCycle?.apps.length ?? 0}</span></div>
+                <div className="flex justify-between"><span>Pending disbursement:</span><span className="font-medium">{ackDialogCycle?.pendingCount ?? 0}</span></div>
+                <div className="flex justify-between"><span>Total allocated:</span><span className="font-medium">KES {(ackDialogCycle?.totalAmount ?? 0).toLocaleString()}</span></div>
+              </div>
+              <label className="flex items-start gap-2 cursor-pointer p-3 border rounded-lg hover:bg-muted/40">
+                <Checkbox checked={ackChecked} onCheckedChange={(v) => setAckChecked(!!v)} className="mt-0.5" />
+                <span className="text-sm">
+                  <strong>I acknowledge</strong> that I have downloaded, reviewed, and verified the
+                  cycle submissions for this bursary release. My acknowledgment serves as a digital
+                  signature authorising disbursement of the listed allocations via eCitizen.
+                </span>
+              </label>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => { setAckDialogCycleId(null); setAckChecked(false); }}>
+                Cancel
+              </Button>
+              <Button onClick={confirmAcknowledgment} disabled={!ackChecked}>
+                <ShieldCheck className="h-4 w-4 mr-2" />
+                Confirm & Unlock Disbursement
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Legacy single/bulk confirm dialog kept for compatibility (no longer triggered by UI) */}
         <AlertDialog open={confirmDialog.open} onOpenChange={(open) => setConfirmDialog(prev => ({ ...prev, open }))}>
           <AlertDialogContent>
             <AlertDialogHeader>
