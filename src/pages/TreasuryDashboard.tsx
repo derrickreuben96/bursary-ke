@@ -60,12 +60,21 @@ interface Cycle {
   povertyDist: Record<string, number>;
 }
 
-const ACK_STORAGE_KEY = "treasury.acknowledgedCycles.v1";
+const ACK_STORAGE_KEY_PREFIX = "treasury.acknowledgedCycles.v2";
+const ackKeyFor = (userId: string | null | undefined) =>
+  `${ACK_STORAGE_KEY_PREFIX}:${userId ?? "anon"}`;
+
+interface AckRecord {
+  cycleId: string;
+  acknowledgedAt: string;
+  byUserId: string | null;
+}
 
 export default function TreasuryDashboard() {
   const [applications, setApplications] = useState<ApprovedApplication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [wardFilter, setWardFilter] = useState<string>("all");
   const [assignedCounty, setAssignedCounty] = useState<string | null>(null);
   const [generatingSummary, setGeneratingSummary] = useState(false);
   const [dataLastFetched, setDataLastFetched] = useState<Date | null>(null);
@@ -78,22 +87,30 @@ export default function TreasuryDashboard() {
   const [chartPayload, setChartPayload] = useState<ChartPdfPayload | null>(null);
   // Cycle-based flow state
   const [selectedCycleId, setSelectedCycleId] = useState<string | null>(null);
-  const [acknowledgedCycles, setAcknowledgedCycles] = useState<Set<string>>(() => {
-    try {
-      const raw = localStorage.getItem(ACK_STORAGE_KEY);
-      return new Set(raw ? (JSON.parse(raw) as string[]) : []);
-    } catch { return new Set(); }
-  });
+  const [acknowledgments, setAcknowledgments] = useState<Record<string, AckRecord>>({});
   const [ackDialogCycleId, setAckDialogCycleId] = useState<string | null>(null);
   const [ackChecked, setAckChecked] = useState(false);
+  // Cycle PDF preview gate (Step 1 of acknowledge flow)
+  const [cyclePreviewOpenId, setCyclePreviewOpenId] = useState<string | null>(null);
+  const [cyclePreviewPayload, setCyclePreviewPayload] = useState<ChartPdfPayload | null>(null);
   const { signOut, user } = useAuth();
   const { toast } = useToast();
   const { language: uiLanguage } = useI18n();
   const navigate = useNavigate();
 
-  const persistAck = (next: Set<string>) => {
-    setAcknowledgedCycles(next);
-    try { localStorage.setItem(ACK_STORAGE_KEY, JSON.stringify(Array.from(next))); } catch { /* noop */ }
+  // Load per-user acknowledgments from localStorage
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(ackKeyFor(user?.id));
+      setAcknowledgments(raw ? (JSON.parse(raw) as Record<string, AckRecord>) : {});
+    } catch {
+      setAcknowledgments({});
+    }
+  }, [user?.id]);
+
+  const persistAck = (next: Record<string, AckRecord>) => {
+    setAcknowledgments(next);
+    try { localStorage.setItem(ackKeyFor(user?.id), JSON.stringify(next)); } catch { /* noop */ }
   };
 
   useEffect(() => { setPdfLanguage(uiLanguage); }, [uiLanguage]);
@@ -403,14 +420,45 @@ export default function TreasuryDashboard() {
     return Array.from(map.values()).sort((a, b) => a.title.localeCompare(b.title));
   }, [filteredApplications]);
 
+  // Distinct wards present across released cycles for the filter dropdown.
+  const wardOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const c of cycles) {
+      if (c.ward) set.add(c.ward);
+    }
+    return Array.from(set).sort();
+  }, [cycles]);
+
+  // Apply ward filter to displayed cycles.
+  const visibleCycles = useMemo(() => {
+    if (wardFilter === "all") return cycles;
+    if (wardFilter === "__county_wide__") return cycles.filter((c) => !c.ward);
+    return cycles.filter((c) => c.ward === wardFilter);
+  }, [cycles, wardFilter]);
+
   const selectedCycle = cycles.find((c) => c.advertId === selectedCycleId) || null;
   const ackDialogCycle = cycles.find((c) => c.advertId === ackDialogCycleId) || null;
+  const previewCycle = cycles.find((c) => c.advertId === cyclePreviewOpenId) || null;
 
-  const isAcknowledged = (cycleId: string) => acknowledgedCycles.has(cycleId);
+  const isAcknowledged = (cycleId: string) => Boolean(acknowledgments[cycleId]);
+  const ackInfoFor = (cycleId: string) => acknowledgments[cycleId] ?? null;
 
-  const downloadCyclePdf = async (cycle: Cycle) => {
+  // Detect cycles where any pending applicant is missing required poverty score data.
+  const cycleHasMissingScores = (cycle: Cycle) =>
+    cycle.apps.some(
+      (a) =>
+        a.status === "approved" &&
+        (a.poverty_score === null || a.poverty_score === undefined || !a.poverty_tier),
+    );
+
+  const buildCyclePdfPayload = (cycle: Cycle): ChartPdfPayload => {
     const sortedTiers = Object.entries(cycle.povertyDist).sort((a, b) => b[1] - a[1]);
-    const payload: ChartPdfPayload = {
+    // Defensive: only include applicants in approved/disbursed status (RPC already filters,
+    // but we re-assert here so the printed PDF matches the disbursable scope exactly).
+    const eligibleApps = cycle.apps.filter(
+      (a) => a.status === "approved" || a.status === "disbursed",
+    );
+    return {
       title: pdfLanguage === "sw" ? "Mzunguko wa Ufadhili — Muhtasari" : "Bursary Cycle — Submission Summary",
       subtitle: `${cycle.title}${cycle.ward ? ` · ${cycle.ward}` : ""}${assignedCounty ? ` · ${assignedCounty} County` : ""}`,
       portalName: "Bursary-KE · Treasury Portal",
@@ -421,12 +469,13 @@ export default function TreasuryDashboard() {
         { label: "Ward", value: cycle.ward || "—" },
         { label: "Deadline", value: cycle.deadline ? new Date(cycle.deadline).toLocaleString() : "—" },
         { label: "Budget (KES)", value: cycle.budget ? cycle.budget.toLocaleString() : "—" },
+        { label: "Records Included", value: `${eligibleApps.length} (released & approved/disbursed only)` },
       ],
       sections: [
         {
           heading: pdfLanguage === "sw" ? "Muhtasari wa Mzunguko" : "Cycle Summary",
           rows: [
-            { label: "Total Applicants Released", value: cycle.apps.length },
+            { label: "Total Applicants Released", value: eligibleApps.length },
             { label: "Pending Disbursement", value: cycle.pendingCount },
             { label: "Already Disbursed", value: cycle.disbursedCount },
             { label: "Total Allocated (KES)", value: cycle.totalAmount.toLocaleString() },
@@ -438,8 +487,8 @@ export default function TreasuryDashboard() {
         },
         {
           heading: pdfLanguage === "sw" ? "Walengwa" : "Beneficiaries (masked)",
-          rows: cycle.apps.map((a) => ({
-            label: `${a.tracking_number} · ${a.student_name_masked} · ${a.institution_name}`,
+          rows: eligibleApps.map((a) => ({
+            label: `${a.tracking_number} · ${a.student_name_masked} · ${a.institution_name} · Tier: ${a.poverty_tier ?? "—"}`,
             value: `KES ${(a.allocated_amount || 0).toLocaleString()}`,
           })),
         },
@@ -450,16 +499,31 @@ export default function TreasuryDashboard() {
           : "This document is for official County Treasury use only. Digital acknowledgment is required before disbursement.",
       ],
     };
-    const doc = await buildChartSummaryDoc(payload);
-    doc.save(chartSummaryPdfFilename(payload, `cycle-${cycle.title.replace(/\s+/g, "_")}`));
+  };
+
+  // Step 1: open the in-site PDF preview modal. The user can review then click
+  // "Download PDF" inside it; on download, we open the acknowledgment modal.
+  const openCyclePreview = (cycle: Cycle) => {
+    setCyclePreviewPayload(buildCyclePdfPayload(cycle));
+    setCyclePreviewOpenId(cycle.advertId);
+  };
+
+  // Step 2: triggered after user clicks Download in the preview modal.
+  const handleCyclePdfDownloaded = (cycleId: string) => {
     setAckChecked(false);
-    setAckDialogCycleId(cycle.advertId);
+    setAckDialogCycleId(cycleId);
   };
 
   const confirmAcknowledgment = () => {
     if (!ackDialogCycleId || !ackChecked) return;
-    const next = new Set(acknowledgedCycles);
-    next.add(ackDialogCycleId);
+    const next: Record<string, AckRecord> = {
+      ...acknowledgments,
+      [ackDialogCycleId]: {
+        cycleId: ackDialogCycleId,
+        acknowledgedAt: new Date().toISOString(),
+        byUserId: user?.id ?? null,
+      },
+    };
     persistAck(next);
     toast({
       title: "Acknowledgment recorded",
@@ -467,13 +531,24 @@ export default function TreasuryDashboard() {
     });
     setAckDialogCycleId(null);
     setAckChecked(false);
+    // Close the preview if still open
+    setCyclePreviewOpenId(null);
+    setCyclePreviewPayload(null);
   };
 
   const disburseCycle = async (cycle: Cycle) => {
     if (!isAcknowledged(cycle.advertId)) {
       toast({
         title: "Acknowledgment required",
-        description: "Download and acknowledge the cycle PDF first.",
+        description: "Preview, download and acknowledge the cycle PDF first.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (cycleHasMissingScores(cycle)) {
+      toast({
+        title: "Disbursement blocked",
+        description: "One or more applicants in this cycle are missing required poverty score data.",
         variant: "destructive",
       });
       return;
@@ -639,6 +714,39 @@ export default function TreasuryDashboard() {
           title={pdfLanguage === "sw" ? "Hakiki Muhtasari wa Chati" : "Preview Chart Summary"}
         />
 
+        {/* Cycle PDF in-site preview (Step 1 of acknowledge flow) */}
+        <AiPdfPreviewDialog
+          open={!!cyclePreviewOpenId}
+          onOpenChange={(o) => {
+            if (!o) {
+              setCyclePreviewOpenId(null);
+              setCyclePreviewPayload(null);
+            }
+          }}
+          buildDoc={cyclePreviewPayload ? () => buildChartSummaryDoc(cyclePreviewPayload) : null}
+          filename={
+            cyclePreviewPayload
+              ? chartSummaryPdfFilename(cyclePreviewPayload, `cycle-${(previewCycle?.title ?? "release").replace(/\s+/g, "_")}`)
+              : "cycle.pdf"
+          }
+          title={pdfLanguage === "sw" ? "Hakiki Mzunguko Kabla ya Saini" : "Review Cycle PDF Before Acknowledgment"}
+          onDownloaded={() => {
+            if (cyclePreviewOpenId) handleCyclePdfDownloaded(cyclePreviewOpenId);
+          }}
+          extraFooterAction={
+            previewCycle && (
+              <Button
+                variant={isAcknowledged(previewCycle.advertId) ? "outline" : "default"}
+                onClick={() => previewCycle && handleCyclePdfDownloaded(previewCycle.advertId)}
+                disabled={isAcknowledged(previewCycle.advertId)}
+              >
+                <ShieldCheck className="h-4 w-4 mr-2" />
+                {isAcknowledged(previewCycle.advertId) ? "Already Acknowledged" : "Proceed to Acknowledge"}
+              </Button>
+            )
+          }
+        />
+
         <div className="flex justify-between items-center mb-2">
           <p className="text-sm font-medium text-muted-foreground">Disbursement Overview</p>
           <Button variant="outline" size="sm" onClick={handleDownloadDisbursementChartPdf}>
@@ -660,7 +768,19 @@ export default function TreasuryDashboard() {
                   pre-disbursement PDF, and acknowledge it to unlock disbursement.
                 </CardDescription>
               </div>
-              <div className="flex gap-2 w-full md:w-auto">
+              <div className="flex gap-2 w-full md:w-auto flex-wrap">
+                <Select value={wardFilter} onValueChange={setWardFilter}>
+                  <SelectTrigger className="w-[180px] h-9">
+                    <SelectValue placeholder="All wards" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All wards</SelectItem>
+                    <SelectItem value="__county_wide__">County-wide only</SelectItem>
+                    {wardOptions.map((w) => (
+                      <SelectItem key={w} value={w}>{w}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <div className="relative flex-1 md:w-64">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input placeholder="Search cycles..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
@@ -674,15 +794,29 @@ export default function TreasuryDashboard() {
           <CardContent>
             {isLoading ? (
               <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
-            ) : cycles.length === 0 ? (
+            ) : visibleCycles.length === 0 ? (
               <div className="text-center py-12">
                 <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">No released cycles yet. Awaiting Commissioner release.</p>
+                <p className="text-muted-foreground">
+                  {cycles.length === 0
+                    ? "No released cycles yet. Awaiting Commissioner release."
+                    : "No cycles match the current ward filter."}
+                </p>
               </div>
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
-                {cycles.map((c) => {
+                {visibleCycles.map((c) => {
                   const ack = isAcknowledged(c.advertId);
+                  const ackInfo = ackInfoFor(c.advertId);
+                  const missingScores = cycleHasMissingScores(c);
+                  const disburseDisabled = !ack || c.pendingCount === 0 || disbursingIds.size > 0 || missingScores;
+                  const disabledReason = missingScores
+                    ? "Some applicants are missing poverty score data"
+                    : !ack
+                      ? "Download and acknowledge first"
+                      : c.pendingCount === 0
+                        ? "Nothing pending"
+                        : "";
                   return (
                     <div key={c.advertId} className="border rounded-lg p-4 bg-card hover:shadow-md transition">
                       <div className="flex items-start justify-between gap-3 mb-3">
@@ -693,11 +827,28 @@ export default function TreasuryDashboard() {
                           </p>
                         </div>
                         {ack ? (
-                          <Badge className="bg-emerald-600 shrink-0"><ShieldCheck className="h-3 w-3 mr-1" />Acknowledged</Badge>
+                          <Badge
+                            className="bg-emerald-600 shrink-0"
+                            title={ackInfo?.acknowledgedAt
+                              ? `Acknowledged ${new Date(ackInfo.acknowledgedAt).toLocaleString()}`
+                              : "Acknowledged"}
+                          >
+                            <ShieldCheck className="h-3 w-3 mr-1" />Acknowledged
+                          </Badge>
                         ) : (
                           <Badge variant="outline" className="shrink-0"><Lock className="h-3 w-3 mr-1" />Locked</Badge>
                         )}
                       </div>
+                      {ack && ackInfo?.acknowledgedAt && (
+                        <p className="text-[11px] text-muted-foreground mb-2">
+                          Signed {new Date(ackInfo.acknowledgedAt).toLocaleString()}
+                        </p>
+                      )}
+                      {missingScores && (
+                        <div className="mb-2 p-2 rounded border border-destructive/30 bg-destructive/10 text-[11px] text-destructive">
+                          ⚠ Missing poverty score data on one or more applicants. Disbursement blocked.
+                        </div>
+                      )}
                       <div className="grid grid-cols-3 gap-2 text-center mb-3">
                         <div className="bg-muted/40 rounded p-2">
                           <p className="text-xs text-muted-foreground flex items-center justify-center gap-1"><Users className="h-3 w-3" />Applicants</p>
@@ -719,14 +870,14 @@ export default function TreasuryDashboard() {
                         <Button size="sm" variant="outline" onClick={() => setSelectedCycleId(c.advertId)}>
                           <FileText className="h-3 w-3 mr-1" />View Submissions
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => downloadCyclePdf(c)}>
-                          <FileDown className="h-3 w-3 mr-1" />Download & Acknowledge
+                        <Button size="sm" variant="outline" onClick={() => openCyclePreview(c)}>
+                          <FileDown className="h-3 w-3 mr-1" />Preview & Acknowledge
                         </Button>
                         <Button
                           size="sm"
                           onClick={() => disburseCycle(c)}
-                          disabled={!ack || c.pendingCount === 0 || disbursingIds.size > 0}
-                          title={!ack ? "Download and acknowledge first" : c.pendingCount === 0 ? "Nothing pending" : ""}
+                          disabled={disburseDisabled}
+                          title={disabledReason}
                         >
                           {disbursingIds.size > 0 ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <CheckCircle2 className="h-3 w-3 mr-1" />}
                           Disburse Cycle
@@ -813,12 +964,18 @@ export default function TreasuryDashboard() {
                 </div>
 
                 <DialogFooter className="gap-2 flex-wrap">
-                  <Button variant="outline" onClick={() => downloadCyclePdf(selectedCycle)}>
-                    <FileDown className="h-4 w-4 mr-2" />Download & Acknowledge
+                  <Button variant="outline" onClick={() => openCyclePreview(selectedCycle)}>
+                    <FileDown className="h-4 w-4 mr-2" />Preview & Acknowledge
                   </Button>
                   <Button
                     onClick={() => disburseCycle(selectedCycle)}
-                    disabled={!isAcknowledged(selectedCycle.advertId) || selectedCycle.pendingCount === 0 || disbursingIds.size > 0}
+                    disabled={
+                      !isAcknowledged(selectedCycle.advertId) ||
+                      selectedCycle.pendingCount === 0 ||
+                      disbursingIds.size > 0 ||
+                      cycleHasMissingScores(selectedCycle)
+                    }
+                    title={cycleHasMissingScores(selectedCycle) ? "Some applicants are missing poverty score data" : ""}
                   >
                     {!isAcknowledged(selectedCycle.advertId) ? <Lock className="h-4 w-4 mr-2" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
                     Disburse Cycle ({selectedCycle.pendingCount})

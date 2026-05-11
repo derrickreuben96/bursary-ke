@@ -19,6 +19,10 @@ interface AiPdfPreviewDialogProps {
   /** Filename used when the user clicks "Download". */
   filename: string;
   title?: string;
+  /** Optional extra footer action button (rendered between Close and Download). */
+  extraFooterAction?: React.ReactNode;
+  /** Optional callback fired after a successful download. */
+  onDownloaded?: () => void;
 }
 
 /**
@@ -31,6 +35,8 @@ export function AiPdfPreviewDialog({
   buildDoc,
   filename,
   title = "Preview report",
+  extraFooterAction,
+  onDownloaded,
 }: AiPdfPreviewDialogProps) {
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "building" | "loading" | "ready" | "error">("idle");
@@ -84,6 +90,7 @@ export function AiPdfPreviewDialog({
     try {
       const doc = builder();
       doc.save(filename);
+      onDownloaded?.();
     } catch (e) {
       console.error("PDF download failed:", e);
       setErrorMsg(e instanceof Error ? e.message : "Failed to download PDF.");
@@ -168,6 +175,7 @@ export function AiPdfPreviewDialog({
             <Download className="h-4 w-4 mr-2" />
             Download PDF
           </Button>
+          {extraFooterAction}
         </DialogFooter>
       </DialogContent>
     </Dialog>
