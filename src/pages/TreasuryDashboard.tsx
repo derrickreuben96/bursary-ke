@@ -60,12 +60,21 @@ interface Cycle {
   povertyDist: Record<string, number>;
 }
 
-const ACK_STORAGE_KEY = "treasury.acknowledgedCycles.v1";
+const ACK_STORAGE_KEY_PREFIX = "treasury.acknowledgedCycles.v2";
+const ackKeyFor = (userId: string | null | undefined) =>
+  `${ACK_STORAGE_KEY_PREFIX}:${userId ?? "anon"}`;
+
+interface AckRecord {
+  cycleId: string;
+  acknowledgedAt: string;
+  byUserId: string | null;
+}
 
 export default function TreasuryDashboard() {
   const [applications, setApplications] = useState<ApprovedApplication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [wardFilter, setWardFilter] = useState<string>("all");
   const [assignedCounty, setAssignedCounty] = useState<string | null>(null);
   const [generatingSummary, setGeneratingSummary] = useState(false);
   const [dataLastFetched, setDataLastFetched] = useState<Date | null>(null);
@@ -78,22 +87,30 @@ export default function TreasuryDashboard() {
   const [chartPayload, setChartPayload] = useState<ChartPdfPayload | null>(null);
   // Cycle-based flow state
   const [selectedCycleId, setSelectedCycleId] = useState<string | null>(null);
-  const [acknowledgedCycles, setAcknowledgedCycles] = useState<Set<string>>(() => {
-    try {
-      const raw = localStorage.getItem(ACK_STORAGE_KEY);
-      return new Set(raw ? (JSON.parse(raw) as string[]) : []);
-    } catch { return new Set(); }
-  });
+  const [acknowledgments, setAcknowledgments] = useState<Record<string, AckRecord>>({});
   const [ackDialogCycleId, setAckDialogCycleId] = useState<string | null>(null);
   const [ackChecked, setAckChecked] = useState(false);
+  // Cycle PDF preview gate (Step 1 of acknowledge flow)
+  const [cyclePreviewOpenId, setCyclePreviewOpenId] = useState<string | null>(null);
+  const [cyclePreviewPayload, setCyclePreviewPayload] = useState<ChartPdfPayload | null>(null);
   const { signOut, user } = useAuth();
   const { toast } = useToast();
   const { language: uiLanguage } = useI18n();
   const navigate = useNavigate();
 
-  const persistAck = (next: Set<string>) => {
-    setAcknowledgedCycles(next);
-    try { localStorage.setItem(ACK_STORAGE_KEY, JSON.stringify(Array.from(next))); } catch { /* noop */ }
+  // Load per-user acknowledgments from localStorage
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(ackKeyFor(user?.id));
+      setAcknowledgments(raw ? (JSON.parse(raw) as Record<string, AckRecord>) : {});
+    } catch {
+      setAcknowledgments({});
+    }
+  }, [user?.id]);
+
+  const persistAck = (next: Record<string, AckRecord>) => {
+    setAcknowledgments(next);
+    try { localStorage.setItem(ackKeyFor(user?.id), JSON.stringify(next)); } catch { /* noop */ }
   };
 
   useEffect(() => { setPdfLanguage(uiLanguage); }, [uiLanguage]);
