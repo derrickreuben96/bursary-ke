@@ -15,6 +15,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDashboardRealtime } from "@/hooks/useDashboardRealtime";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { DangerZoneResetCard } from "@/components/admin/DangerZoneResetCard";
 import { downloadAiSummaryPdf } from "@/lib/aiSummaryPdf";
 import {
   Users,
