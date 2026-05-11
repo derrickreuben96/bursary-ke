@@ -920,9 +920,17 @@ export default function CommissionerDashboard() {
           <Card className="mb-6 border-amber-200 dark:border-amber-800">
             <CardContent className="py-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <div>
-                <h3 className="font-semibold text-foreground">No bursary advert assigned</h3>
+                <h3 className="font-semibold text-foreground">
+                  {wardAdverts.length === 0
+                    ? "No bursary advert assigned"
+                    : completedCycles.length > 0
+                      ? "No active cycle — last cycle released to County Treasury"
+                      : "No active cycle"}
+                </h3>
                 <p className="text-sm text-muted-foreground">
-                  No bursary advert exists for {assignedWard ?? assignedCounty ?? "your jurisdiction"} yet. Governance actions will activate once an advert is published.
+                  {wardAdverts.length === 0
+                    ? `No bursary advert exists for ${assignedWard ?? assignedCounty ?? "your jurisdiction"} yet. Governance actions will activate once an advert is published.`
+                    : `All processed applications for the previous cycle have been released to Treasury. Past cycles are available in the History tab. Governance actions reactivate when a new advert is published.`}
                 </p>
               </div>
               <div className="flex gap-2 flex-shrink-0">
