@@ -237,11 +237,18 @@ Deno.serve(async (req) => {
     let totalAllocated = 0;
 
     for (const app of scoredApps) {
+      const failIfErr = (label: string, res: { error: { message: string } | null }) => {
+        if (res.error) {
+          console.error(`[ALLOCATION] ${label} update failed for ${app.tracking_number}:`, res.error.message);
+          throw new Error(`${label} update failed: ${res.error.message}`);
+        }
+      };
+
       // Skip red-flagged
       if (app.isRedFlagged) {
         const reason = "Application excluded due to active red flag in historical records.";
-        await supabaseAdmin.from("bursary_applications")
-          .update({ status: "rejected", ai_decision_reason: reason }).eq("id", app.id);
+        failIfErr("red_flag", await supabaseAdmin.from("bursary_applications")
+          .update({ status: "rejected", ai_decision_reason: reason }).eq("id", app.id));
         await supabaseAdmin.from("fairness_audit_log").insert({
           application_id: app.id, action: "red_flag_exclusion",
           details: { reason, historicalStatus: app.historicalStatus }, performed_by: "allocation_engine",
