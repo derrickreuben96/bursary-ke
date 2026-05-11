@@ -447,7 +447,7 @@ export default function CommissionerDashboard() {
 
   // Release approved applications to treasury
   const handleReleaseToTreasury = async () => {
-    const approvedIds = applications
+    const approvedIds = cycleApps
       .filter(a => a.status === "approved" && !a.released_to_treasury)
       .map(a => a.id);
 
