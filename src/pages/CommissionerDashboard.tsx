@@ -174,7 +174,8 @@ export default function CommissionerDashboard() {
       if (!assignedWard && !assignedCounty) return;
       let query = supabase
         .from("bursary_adverts")
-        .select("id, title, county, ward, deadline, budget_amount, max_slots, is_active");
+        .select("id, title, county, ward, deadline, budget_amount, max_slots, is_active")
+        .order("deadline", { ascending: false });
 
       if (assignedWard) {
         query = query.eq("ward", assignedWard);
@@ -320,13 +321,12 @@ export default function CommissionerDashboard() {
 
   const activeAdvert = useMemo(() => {
     if (wardAdverts.length === 0) return undefined;
-    // Prefer an active advert; otherwise fall back to the most recent advert
-    // for this ward so the commissioner always sees governance controls.
-    const active = wardAdverts.find(a => a.is_active);
-    if (active) return active;
-    return [...wardAdverts].sort(
+    const orderedAdverts = [...wardAdverts].sort(
       (a, b) => new Date(b.deadline).getTime() - new Date(a.deadline).getTime(),
-    )[0];
+    );
+    // Prefer the newest currently active advert; otherwise fall back to the
+    // newest elapsed/inactive advert so post-deadline processing remains visible.
+    return orderedAdverts.find(a => a.is_active) ?? orderedAdverts[0];
   }, [wardAdverts]);
 
   // Deadline is considered passed when EITHER the currently displayed advert
