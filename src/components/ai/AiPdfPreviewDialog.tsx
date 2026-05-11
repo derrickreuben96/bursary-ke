@@ -19,6 +19,10 @@ interface AiPdfPreviewDialogProps {
   /** Filename used when the user clicks "Download". */
   filename: string;
   title?: string;
+  /** Optional extra footer action button (rendered between Close and Download). */
+  extraFooterAction?: React.ReactNode;
+  /** Optional callback fired after a successful download. */
+  onDownloaded?: () => void;
 }
 
 /**
