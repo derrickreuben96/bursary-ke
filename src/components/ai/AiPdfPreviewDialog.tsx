@@ -35,6 +35,8 @@ export function AiPdfPreviewDialog({
   buildDoc,
   filename,
   title = "Preview report",
+  extraFooterAction,
+  onDownloaded,
 }: AiPdfPreviewDialogProps) {
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "building" | "loading" | "ready" | "error">("idle");
