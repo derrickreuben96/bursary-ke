@@ -45,6 +45,8 @@ interface ApprovedApplication {
   advert_budget: number | null;
   poverty_tier: string | null;
   poverty_score: number | null;
+  advert_closed_at: string | null;
+  advert_is_active: boolean | null;
 }
 
 interface Cycle {
