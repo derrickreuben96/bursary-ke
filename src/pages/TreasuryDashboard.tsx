@@ -471,6 +471,7 @@ export default function TreasuryDashboard() {
   ).length;
 
   const selectedCycle = cycles.find((c) => c.advertId === selectedCycleId) || null;
+  const historyCycle = cycles.find((c) => c.advertId === historyCycleId) || null;
   const ackDialogCycle = cycles.find((c) => c.advertId === ackDialogCycleId) || null;
   const previewCycle = cycles.find((c) => c.advertId === cyclePreviewOpenId) || null;
 
