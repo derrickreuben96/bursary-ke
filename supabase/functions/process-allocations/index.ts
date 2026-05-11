@@ -260,8 +260,8 @@ Deno.serve(async (req) => {
       // Skip high fraud risk
       if (app.fraudRisk === "high") {
         const reason = "Application flagged for high fraud risk. Manual review required.";
-        await supabaseAdmin.from("bursary_applications")
-          .update({ status: "rejected", ai_decision_reason: reason }).eq("id", app.id);
+        failIfErr("fraud", await supabaseAdmin.from("bursary_applications")
+          .update({ status: "rejected", ai_decision_reason: reason }).eq("id", app.id));
         results.push({ applicationId: app.id, trackingNumber: app.tracking_number, status: "rejected", reason });
         continue;
       }
