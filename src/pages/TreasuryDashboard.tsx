@@ -76,10 +76,25 @@ export default function TreasuryDashboard() {
   const [aiPayload, setAiPayload] = useState<AiSummaryPayload | null>(null);
   const [chartPreviewOpen, setChartPreviewOpen] = useState(false);
   const [chartPayload, setChartPayload] = useState<ChartPdfPayload | null>(null);
+  // Cycle-based flow state
+  const [selectedCycleId, setSelectedCycleId] = useState<string | null>(null);
+  const [acknowledgedCycles, setAcknowledgedCycles] = useState<Set<string>>(() => {
+    try {
+      const raw = localStorage.getItem(ACK_STORAGE_KEY);
+      return new Set(raw ? (JSON.parse(raw) as string[]) : []);
+    } catch { return new Set(); }
+  });
+  const [ackDialogCycleId, setAckDialogCycleId] = useState<string | null>(null);
+  const [ackChecked, setAckChecked] = useState(false);
   const { signOut, user } = useAuth();
   const { toast } = useToast();
   const { language: uiLanguage } = useI18n();
   const navigate = useNavigate();
+
+  const persistAck = (next: Set<string>) => {
+    setAcknowledgedCycles(next);
+    try { localStorage.setItem(ACK_STORAGE_KEY, JSON.stringify(Array.from(next))); } catch { /* noop */ }
+  };
 
   useEffect(() => { setPdfLanguage(uiLanguage); }, [uiLanguage]);
 
