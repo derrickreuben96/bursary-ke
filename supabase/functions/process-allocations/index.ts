@@ -299,13 +299,13 @@ Deno.serve(async (req) => {
         approvedCount++;
         totalAllocated += allocationAmount;
 
-        await supabaseAdmin.from("bursary_applications").update({
+        failIfErr("approve", await supabaseAdmin.from("bursary_applications").update({
           status: "approved",
           ai_decision_reason: reason,
           allocated_amount: allocationAmount,
           allocation_date: new Date().toISOString(),
           ecitizen_ref: `ECIT-${advert.county.substring(0, 3).toUpperCase()}-${Date.now()}-${approvedCount}`,
-        }).eq("id", app.id);
+        }).eq("id", app.id));
 
         results.push({ applicationId: app.id, trackingNumber: app.tracking_number, status: "approved", reason, allocatedAmount: allocationAmount });
       } else {
