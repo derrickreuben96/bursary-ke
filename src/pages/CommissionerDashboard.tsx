@@ -877,55 +877,58 @@ export default function CommissionerDashboard() {
             </CardContent>
           </Card>
         )}
-        {activeAdvert && (
+        {activeAdvert && (() => {
+          const deadlineMs = new Date(activeAdvert.deadline).getTime();
+          const diff = deadlineMs - nowTick;
+          const passed = diff <= 0;
+          const abs = Math.abs(diff);
+          const d = Math.floor(abs / 86400000);
+          const h = Math.floor((abs / 3600000) % 24);
+          const m = Math.floor((abs / 60000) % 60);
+          const s = Math.floor((abs / 1000) % 60);
+          const pad = (n: number) => n.toString().padStart(2, "0");
+          const countdown = `${d}d ${pad(h)}:${pad(m)}:${pad(s)}`;
+          return (
           <Card className="mb-6 border-blue-200 dark:border-blue-800">
-            <CardContent className="py-4">
+            <CardContent className="py-4 space-y-4">
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
                   <h3 className="font-semibold text-foreground">{activeAdvert.title}</h3>
                   <p className="text-sm text-muted-foreground">
-                    Deadline: {new Date(activeAdvert.deadline).toLocaleDateString("en-KE", { day: "numeric", month: "long", year: "numeric" })}
+                    Deadline: {new Date(activeAdvert.deadline).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" })}
                     {activeAdvert.budget_amount && ` | Budget: KES ${activeAdvert.budget_amount.toLocaleString()}`}
                   </p>
-                  {!deadlinePassed && (
-                    <p className="text-sm text-amber-600 dark:text-amber-400 mt-1">
-                      <Clock className="h-3 w-3 inline mr-1" />
-                      Application window is still open. Processing will be available after the deadline.
-                    </p>
-                  )}
-                  {deadlinePassed && stats.pending > 0 && (
+                  <p className={`text-sm mt-1 font-mono ${passed ? "text-green-600 dark:text-green-400" : "text-amber-600 dark:text-amber-400"}`}>
+                    <Clock className="h-3 w-3 inline mr-1" />
+                    {passed ? `Deadline passed · ${countdown} ago` : `Time remaining · ${countdown}`}
+                  </p>
+                  {passed && stats.pending > 0 && (
                     <p className="text-sm text-green-600 dark:text-green-400 mt-1">
                       <CheckCircle2 className="h-3 w-3 inline mr-1" />
-                      Deadline has passed. You can now process {stats.pending} pending application(s).
+                      You can now process {stats.pending} pending application(s).
                     </p>
                   )}
                 </div>
                 <div className="flex gap-2 flex-shrink-0">
                   <Button
                     onClick={handleProcessApplications}
-                    disabled={!deadlinePassed || stats.pending === 0 || isProcessing}
+                    disabled={!deadlinePassed || stats.pending === 0 || isProcessing || !checklistComplete}
                     variant={!deadlinePassed ? "outline" : "default"}
-                    title={!deadlinePassed ? "Waiting for application deadline" : undefined}
-                    className={!deadlinePassed
+                    title={
+                      !deadlinePassed ? "Waiting for application deadline"
+                      : !checklistComplete ? "Complete the pre-flight checklist below"
+                      : undefined
+                    }
+                    className={!deadlinePassed || !checklistComplete
                       ? "bg-muted text-muted-foreground border-muted cursor-not-allowed opacity-60"
                       : "bg-green-600 hover:bg-green-700 text-white"}
                   >
                     {isProcessing ? (
                       <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Processing...</>
                     ) : !deadlinePassed ? (
-                      <>
-                        <Clock className="h-4 w-4 mr-2" />
-                        {activeAdvert
-                          ? `Opens after deadline · ${new Date(activeAdvert.deadline).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" })}`
-                          : "Waiting for application deadline"}
-                      </>
+                      <><Clock className="h-4 w-4 mr-2" />Opens in {countdown}</>
                     ) : (
-                      <>
-                        <Play className="h-4 w-4 mr-2" />
-                        {activeAdvert
-                          ? `Process Applications · Deadline passed (${new Date(activeAdvert.deadline).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" })})`
-                          : "Process Applications"}
-                      </>
+                      <><Play className="h-4 w-4 mr-2" />Process Applications</>
                     )}
                   </Button>
                   <Button
@@ -945,6 +948,32 @@ export default function CommissionerDashboard() {
                   </Button>
                 </div>
               </div>
+
+              {/* Pre-flight checklist — must be acknowledged before processing */}
+              <div className="rounded-lg border border-border bg-muted/30 p-3">
+                <p className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1">
+                  <ShieldAlert className="h-3.5 w-3.5" />
+                  Pre-flight checklist (required before Process Applications)
+                </p>
+                <div className="space-y-2">
+                  <label className="flex items-start gap-2 text-sm cursor-pointer">
+                    <Checkbox checked={checkAiPdf} onCheckedChange={(v) => setCheckAiPdf(Boolean(v))} className="mt-0.5" />
+                    <span>I have downloaded and reviewed the <strong>AI PDF Summary</strong>.</span>
+                  </label>
+                  <label className="flex items-start gap-2 text-sm cursor-pointer">
+                    <Checkbox checked={checkTiers} onCheckedChange={(v) => setCheckTiers(Boolean(v))} className="mt-0.5" />
+                    <span>I have confirmed the <strong>poverty tier distribution</strong> looks reasonable.</span>
+                  </label>
+                  <label className="flex items-start gap-2 text-sm cursor-pointer">
+                    <Checkbox checked={checkQuota} onCheckedChange={(v) => setCheckQuota(Boolean(v))} className="mt-0.5" />
+                    <span>I confirm the <strong>budget &amp; slot quota</strong> for this advert are correct.</span>
+                  </label>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          );
+        })()}
             </CardContent>
           </Card>
         )}
