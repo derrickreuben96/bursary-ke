@@ -386,7 +386,7 @@ export default function AdminDashboard() {
           </p>
         </div>
 
-        <DangerZoneResetCard onCompleted={loadData} />
+        <DangerZoneResetCard onCompleted={() => { void fetchDashboardStats().then((d) => d && setDashboardData(d)); }} />
 
         <Dialog open={summaryOpen} onOpenChange={setSummaryOpen}>
           <DialogContent className="max-w-md">
