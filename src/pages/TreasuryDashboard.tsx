@@ -927,6 +927,113 @@ export default function TreasuryDashboard() {
           </CardContent>
         </Card>
 
+        {/* History: fully-disbursed cycles, archived per cycle for retrieval. */}
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <HistoryIcon className="h-5 w-5" />Cycle History
+            </CardTitle>
+            <CardDescription>
+              Past cycles where every applicant has been disbursed. Open a row to review the
+              archived submissions and disbursement totals.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {historyCycles.length === 0 ? (
+              <div className="text-center py-8 text-sm text-muted-foreground">
+                No completed cycles yet. Disbursed cycles will appear here automatically.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Cycle</TableHead>
+                      <TableHead>Ward</TableHead>
+                      <TableHead>Deadline</TableHead>
+                      <TableHead className="text-right">Beneficiaries</TableHead>
+                      <TableHead className="text-right">Disbursed (KES)</TableHead>
+                      <TableHead className="text-right">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {historyCycles.map((c) => (
+                      <TableRow key={c.advertId}>
+                        <TableCell className="font-medium">{c.title}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{c.ward || "County-wide"}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {c.deadline ? new Date(c.deadline).toLocaleDateString() : "—"}
+                        </TableCell>
+                        <TableCell className="text-right">{c.disbursedCount}</TableCell>
+                        <TableCell className="text-right font-medium">
+                          {c.totalAmount.toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button size="sm" variant="outline" onClick={() => setHistoryCycleId(c.advertId)}>
+                            <FileText className="h-3 w-3 mr-1" />View
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* History cycle detail dialog */}
+        <Dialog open={!!historyCycle} onOpenChange={(o) => { if (!o) setHistoryCycleId(null); }}>
+          <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
+            {historyCycle && (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <HistoryIcon className="h-5 w-5" />{historyCycle.title}
+                  </DialogTitle>
+                  <DialogDescription>
+                    {historyCycle.ward || "County-wide"} · {historyCycle.disbursedCount} disbursed · KES {historyCycle.totalAmount.toLocaleString()}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="border rounded-lg p-3 bg-muted/30">
+                  <p className="text-sm font-medium mb-2">Poverty Tier Distribution</p>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(historyCycle.povertyDist).map(([tier, count]) => (
+                      <Badge key={tier} variant="outline" className="text-xs">
+                        {tier}: <span className="ml-1 font-bold">{count}</span>
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Tracking #</TableHead>
+                        <TableHead>Student</TableHead>
+                        <TableHead>Institution</TableHead>
+                        <TableHead>Tier</TableHead>
+                        <TableHead className="text-right">Amount (KES)</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {historyCycle.apps.map((app) => (
+                        <TableRow key={app.id}>
+                          <TableCell className="font-mono text-xs">{app.tracking_number}</TableCell>
+                          <TableCell className="text-sm">{app.student_name_masked}</TableCell>
+                          <TableCell className="text-sm">{app.institution_name}</TableCell>
+                          <TableCell><Badge variant="outline" className="text-xs">{app.poverty_tier || "—"}</Badge></TableCell>
+                          <TableCell className="text-right font-medium">{(app.allocated_amount || 0).toLocaleString()}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
+
         <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg">
           <p className="text-sm text-amber-800 dark:text-amber-200">
             <strong>Security Notice:</strong> This data is for official County Treasury use only.
