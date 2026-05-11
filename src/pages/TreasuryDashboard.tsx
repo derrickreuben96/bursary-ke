@@ -923,12 +923,18 @@ export default function TreasuryDashboard() {
                 </div>
 
                 <DialogFooter className="gap-2 flex-wrap">
-                  <Button variant="outline" onClick={() => downloadCyclePdf(selectedCycle)}>
-                    <FileDown className="h-4 w-4 mr-2" />Download & Acknowledge
+                  <Button variant="outline" onClick={() => openCyclePreview(selectedCycle)}>
+                    <FileDown className="h-4 w-4 mr-2" />Preview & Acknowledge
                   </Button>
                   <Button
                     onClick={() => disburseCycle(selectedCycle)}
-                    disabled={!isAcknowledged(selectedCycle.advertId) || selectedCycle.pendingCount === 0 || disbursingIds.size > 0}
+                    disabled={
+                      !isAcknowledged(selectedCycle.advertId) ||
+                      selectedCycle.pendingCount === 0 ||
+                      disbursingIds.size > 0 ||
+                      cycleHasMissingScores(selectedCycle)
+                    }
+                    title={cycleHasMissingScores(selectedCycle) ? "Some applicants are missing poverty score data" : ""}
                   >
                     {!isAcknowledged(selectedCycle.advertId) ? <Lock className="h-4 w-4 mr-2" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
                     Disburse Cycle ({selectedCycle.pendingCount})
