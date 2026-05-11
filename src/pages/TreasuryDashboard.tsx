@@ -714,6 +714,39 @@ export default function TreasuryDashboard() {
           title={pdfLanguage === "sw" ? "Hakiki Muhtasari wa Chati" : "Preview Chart Summary"}
         />
 
+        {/* Cycle PDF in-site preview (Step 1 of acknowledge flow) */}
+        <AiPdfPreviewDialog
+          open={!!cyclePreviewOpenId}
+          onOpenChange={(o) => {
+            if (!o) {
+              setCyclePreviewOpenId(null);
+              setCyclePreviewPayload(null);
+            }
+          }}
+          buildDoc={cyclePreviewPayload ? () => buildChartSummaryDoc(cyclePreviewPayload) : null}
+          filename={
+            cyclePreviewPayload
+              ? chartSummaryPdfFilename(cyclePreviewPayload, `cycle-${(previewCycle?.title ?? "release").replace(/\s+/g, "_")}`)
+              : "cycle.pdf"
+          }
+          title={pdfLanguage === "sw" ? "Hakiki Mzunguko Kabla ya Saini" : "Review Cycle PDF Before Acknowledgment"}
+          onDownloaded={() => {
+            if (cyclePreviewOpenId) handleCyclePdfDownloaded(cyclePreviewOpenId);
+          }}
+          extraFooterAction={
+            previewCycle && (
+              <Button
+                variant={isAcknowledged(previewCycle.advertId) ? "outline" : "default"}
+                onClick={() => previewCycle && handleCyclePdfDownloaded(previewCycle.advertId)}
+                disabled={isAcknowledged(previewCycle.advertId)}
+              >
+                <ShieldCheck className="h-4 w-4 mr-2" />
+                {isAcknowledged(previewCycle.advertId) ? "Already Acknowledged" : "Proceed to Acknowledge"}
+              </Button>
+            )
+          }
+        />
+
         <div className="flex justify-between items-center mb-2">
           <p className="text-sm font-medium text-muted-foreground">Disbursement Overview</p>
           <Button variant="outline" size="sm" onClick={handleDownloadDisbursementChartPdf}>
