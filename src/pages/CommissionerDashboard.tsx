@@ -707,6 +707,22 @@ export default function CommissionerDashboard() {
   const approvedApps = cycleApps.filter(a => a.status === "approved" && !a.is_duplicate);
   const rejectedApps = cycleApps.filter(a => a.status === "rejected" || a.is_duplicate);
 
+  // Completed cycles (released to Treasury) — surfaced in the History tab.
+  const completedCycles = useMemo(() => {
+    return wardAdverts
+      .filter(adv => isAdvertCycleComplete(adv.id))
+      .map(adv => {
+        const apps = appsByAdvert.get(adv.id) ?? [];
+        const approved = apps.filter(a => a.status === "approved" && !a.is_duplicate);
+        const rejected = apps.filter(a => a.status === "rejected" || a.is_duplicate);
+        const allocated = approved.reduce((s, a) => s + (a.allocated_amount || 0), 0);
+        return { advert: adv, apps, approved, rejected, allocated };
+      })
+      .sort((a, b) => new Date(b.advert.deadline).getTime() - new Date(a.advert.deadline).getTime());
+  }, [wardAdverts, appsByAdvert]);
+
+  const [historyExpanded, setHistoryExpanded] = useState<string | null>(null);
+
   const renderAppTable = (apps: Application[], showAmount = false) => (
     <Table>
       <TableHeader>
