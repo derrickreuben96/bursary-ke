@@ -60,6 +60,8 @@ interface Cycle {
   pendingCount: number;
   disbursedCount: number;
   povertyDist: Record<string, number>;
+  closedAt: string | null;
+  isActive: boolean | null;
 }
 
 const ACK_STORAGE_KEY_PREFIX = "treasury.acknowledgedCycles.v2";
