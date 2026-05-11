@@ -373,12 +373,16 @@ export default function CommissionerDashboard() {
 
     setIsProcessing(true);
     try {
-      // First run fairness evaluation
-      await supabase.functions.invoke("fairness-engine", {
-        body: { action: "evaluate", advertId: activeAdvert.id },
-      });
+      // Fairness evaluation is best-effort — do not block allocation if it fails
+      try {
+        await supabase.functions.invoke("fairness-engine", {
+          body: { action: "evaluate", advertId: activeAdvert.id },
+        });
+      } catch (fairnessErr) {
+        console.warn("Fairness engine non-blocking error:", fairnessErr);
+      }
 
-      // Then trigger allocation
+      // Trigger allocation
       const { data, error } = await supabase.functions.invoke("process-allocations", {
         body: { 
           advertId: activeAdvert.id, 
@@ -388,15 +392,23 @@ export default function CommissionerDashboard() {
       });
 
       if (error) throw error;
+      if (data && data.success === false) throw new Error(data.error || "Allocation failed");
 
       toast({
         title: "Processing Complete",
         description: data?.message || "Applications have been processed successfully.",
       });
-      fetchApplications();
+      // Reset checklist so it cannot be re-run accidentally without a fresh review
+      setCheckAiPdf(false);
+      setCheckTiers(false);
+      setCheckQuota(false);
+      // Switch to a tab that surfaces the new state
+      setActiveTab("approved");
+      await fetchApplications();
     } catch (error) {
       console.error("Processing error:", error);
-      toast({ title: "Processing Failed", description: "Could not process applications. Please try again.", variant: "destructive" });
+      const msg = error instanceof Error ? error.message : "Could not process applications. Please try again.";
+      toast({ title: "Processing Failed", description: msg, variant: "destructive" });
     } finally {
       setIsProcessing(false);
     }

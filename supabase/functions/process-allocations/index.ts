@@ -237,11 +237,18 @@ Deno.serve(async (req) => {
     let totalAllocated = 0;
 
     for (const app of scoredApps) {
+      const failIfErr = (label: string, res: { error: { message: string } | null }) => {
+        if (res.error) {
+          console.error(`[ALLOCATION] ${label} update failed for ${app.tracking_number}:`, res.error.message);
+          throw new Error(`${label} update failed: ${res.error.message}`);
+        }
+      };
+
       // Skip red-flagged
       if (app.isRedFlagged) {
         const reason = "Application excluded due to active red flag in historical records.";
-        await supabaseAdmin.from("bursary_applications")
-          .update({ status: "rejected", ai_decision_reason: reason }).eq("id", app.id);
+        failIfErr("red_flag", await supabaseAdmin.from("bursary_applications")
+          .update({ status: "rejected", ai_decision_reason: reason }).eq("id", app.id));
         await supabaseAdmin.from("fairness_audit_log").insert({
           application_id: app.id, action: "red_flag_exclusion",
           details: { reason, historicalStatus: app.historicalStatus }, performed_by: "allocation_engine",
@@ -253,8 +260,8 @@ Deno.serve(async (req) => {
       // Skip high fraud risk
       if (app.fraudRisk === "high") {
         const reason = "Application flagged for high fraud risk. Manual review required.";
-        await supabaseAdmin.from("bursary_applications")
-          .update({ status: "rejected", ai_decision_reason: reason }).eq("id", app.id);
+        failIfErr("fraud", await supabaseAdmin.from("bursary_applications")
+          .update({ status: "rejected", ai_decision_reason: reason }).eq("id", app.id));
         results.push({ applicationId: app.id, trackingNumber: app.tracking_number, status: "rejected", reason });
         continue;
       }
@@ -292,13 +299,13 @@ Deno.serve(async (req) => {
         approvedCount++;
         totalAllocated += allocationAmount;
 
-        await supabaseAdmin.from("bursary_applications").update({
+        failIfErr("approve", await supabaseAdmin.from("bursary_applications").update({
           status: "approved",
           ai_decision_reason: reason,
           allocated_amount: allocationAmount,
           allocation_date: new Date().toISOString(),
           ecitizen_ref: `ECIT-${advert.county.substring(0, 3).toUpperCase()}-${Date.now()}-${approvedCount}`,
-        }).eq("id", app.id);
+        }).eq("id", app.id));
 
         results.push({ applicationId: app.id, trackingNumber: app.tracking_number, status: "approved", reason, allocatedAmount: allocationAmount });
       } else {
@@ -322,10 +329,10 @@ Deno.serve(async (req) => {
           `• Ensure all information remains consistent across applications`,
         ].filter(l => l !== "").join("\n");
 
-        await supabaseAdmin.from("bursary_applications").update({
+        failIfErr("reject", await supabaseAdmin.from("bursary_applications").update({
           status: "rejected",
           ai_decision_reason: reason,
-        }).eq("id", app.id);
+        }).eq("id", app.id));
 
         results.push({ applicationId: app.id, trackingNumber: app.tracking_number, status: "rejected", reason });
       }

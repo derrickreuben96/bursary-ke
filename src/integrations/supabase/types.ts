@@ -211,29 +211,7 @@ export type Database = {
           notes?: string | null
           to_status?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "application_status_history_application_id_fkey"
-            columns: ["application_id"]
-            isOneToOne: false
-            referencedRelation: "bursary_applications"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "application_status_history_application_id_fkey"
-            columns: ["application_id"]
-            isOneToOne: false
-            referencedRelation: "bursary_applications_commissioner"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "application_status_history_application_id_fkey"
-            columns: ["application_id"]
-            isOneToOne: false
-            referencedRelation: "bursary_applications_treasury"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       audit_runs: {
         Row: {
