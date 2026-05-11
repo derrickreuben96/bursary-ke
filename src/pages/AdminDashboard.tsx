@@ -253,15 +253,11 @@ export default function AdminDashboard() {
             title="Total Applications"
             value={formatNumber(totalApplications)}
             icon={<Users className="h-5 w-5" />}
-            trend="+12% this month"
-            trendUp={true}
           />
           <StatCard
             title="Approved"
             value={formatNumber(approvedApplications)}
             icon={<CheckCircle className="h-5 w-5" />}
-            trend={formatPercentage(approvalRate / 100) + " rate"}
-            trendUp={true}
           />
           <StatCard
             title="Pending Review"
@@ -277,8 +273,6 @@ export default function AdminDashboard() {
             title="Total Disbursed"
             value={formatKES(totalBudgetDisbursed)}
             icon={<Banknote className="h-5 w-5" />}
-            trend="+8% vs last quarter"
-            trendUp={true}
           />
         </div>
 
