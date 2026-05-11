@@ -1040,10 +1040,15 @@ export default function CommissionerDashboard() {
                   </Button>
                   <Button
                     onClick={handleReleaseToTreasury}
-                    disabled={!processingComplete || !hasUnreleasedApproved || isReleasing}
+                    disabled={!canReleaseToTreasury || isReleasing}
                     variant="default"
-                    title={!processingComplete ? "Run Process Applications first" : undefined}
-                    className={!processingComplete || !hasUnreleasedApproved
+                    title={
+                      !deadlinePassed ? "Wait for the bursary deadline first"
+                      : hasUnresolvedPending ? "Resolve pending applications before releasing"
+                      : !hasUnreleasedApproved ? "No approved applications to release"
+                      : undefined
+                    }
+                    className={!canReleaseToTreasury
                       ? "bg-muted text-muted-foreground border-muted cursor-not-allowed opacity-60"
                       : undefined}
                   >
