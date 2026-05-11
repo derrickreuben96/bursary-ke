@@ -307,27 +307,71 @@ export default function CommissionerDashboard() {
   const [checkQuota, setCheckQuota] = useState(false);
   const checklistComplete = checkAiPdf && checkTiers && checkQuota;
 
+  // Group applications by advert (the cycle they belong to)
+  const appsByAdvert = useMemo(() => {
+    const map = new Map<string, Application[]>();
+    for (const a of applications) {
+      const key = a.advert_id || "__legacy__";
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(a);
+    }
+    return map;
+  }, [applications]);
+
+  // A cycle is "complete" when nothing is pending AND every approved row has been released to Treasury.
+  const isAdvertCycleComplete = (advertId: string): boolean => {
+    const apps = appsByAdvert.get(advertId);
+    if (!apps || apps.length === 0) return false;
+    const pending = apps.some(a => ["received", "review", "verification"].includes(a.status) && !a.is_duplicate);
+    if (pending) return false;
+    const approved = apps.filter(a => a.status === "approved" && !a.is_duplicate);
+    if (approved.length === 0) return true; // processed, nothing to release
+    return approved.every(a => a.released_to_treasury);
+  };
+
+  // Active advert = newest ward advert whose cycle is NOT yet released to Treasury.
+  // Once a cycle is fully released, its banner/metrics are cleared from the active view
+  // and it moves into the History tab.
   const activeAdvert = useMemo(() => {
     if (wardAdverts.length === 0) return undefined;
     const orderedAdverts = [...wardAdverts].sort(
       (a, b) => new Date(b.deadline).getTime() - new Date(a.deadline).getTime(),
     );
-    // Prefer the newest currently active advert; otherwise fall back to the
-    // newest elapsed/inactive advert so post-deadline processing remains visible.
-    return orderedAdverts.find(a => a.is_active) ?? orderedAdverts[0];
-  }, [wardAdverts]);
+    const open = orderedAdverts.find(a => !isAdvertCycleComplete(a.id));
+    return open;
+  }, [wardAdverts, appsByAdvert]);
 
-  // Deadline is considered passed when EITHER the currently displayed advert
-  // has elapsed, OR any ward advert has elapsed. Re-evaluated on every tick.
+  // Apps belonging strictly to the active cycle (drives all visible tabs except History).
+  const cycleApps = useMemo(() => {
+    if (!activeAdvert) return [] as Application[];
+    return appsByAdvert.get(activeAdvert.id) ?? [];
+  }, [activeAdvert, appsByAdvert]);
+
+  // Stats reflect the active cycle only.
+  const stats: Stats = useMemo(() => {
+    const fairnessPriorityCandidates = cycleApps.filter(a => fairnessMap.get(a.id)?.isFairnessPriority).length;
+    const redFlagged = cycleApps.filter(a => fairnessMap.get(a.id)?.historicalStatus === "red_flagged").length;
+    return {
+      total: cycleApps.length,
+      approved: cycleApps.filter(a => a.status === "approved").length,
+      rejected: cycleApps.filter(a => a.status === "rejected").length,
+      pending: cycleApps.filter(a => ["received", "review", "verification"].includes(a.status)).length,
+      duplicates: cycleApps.filter(a => a.is_duplicate).length,
+      totalAllocated: cycleApps.reduce((sum, a) => sum + (a.allocated_amount || 0), 0),
+      fairnessPriorityCandidates,
+      redFlagged,
+    };
+  }, [cycleApps, fairnessMap]);
+
+  // Deadline is considered passed when the active advert's deadline has elapsed.
   const deadlinePassed = useMemo(() => {
-    const now = nowTick;
-    if (activeAdvert && new Date(activeAdvert.deadline).getTime() <= now) return true;
-    return wardAdverts.some(a => new Date(a.deadline).getTime() <= now);
-  }, [wardAdverts, activeAdvert, nowTick]);
+    if (!activeAdvert) return false;
+    return new Date(activeAdvert.deadline).getTime() <= nowTick;
+  }, [activeAdvert, nowTick]);
 
   const hasUnreleasedApproved = useMemo(() => {
-    return applications.some(a => a.status === "approved" && !a.released_to_treasury);
-  }, [applications]);
+    return cycleApps.some(a => a.status === "approved" && !a.released_to_treasury);
+  }, [cycleApps]);
 
   // Processing is "complete" once at least one application has been moved out of pending.
   const processingComplete = useMemo(() => {
