@@ -90,6 +90,7 @@ export function AiPdfPreviewDialog({
     try {
       const doc = builder();
       doc.save(filename);
+      onDownloaded?.();
     } catch (e) {
       console.error("PDF download failed:", e);
       setErrorMsg(e instanceof Error ? e.message : "Failed to download PDF.");
