@@ -204,6 +204,7 @@ export default function CommissionerDashboard() {
         parent_county: d.parent_county || '',
         parent_ward: d.parent_ward || null,
         released_to_treasury: d.released_to_treasury || false,
+        advert_id: d.advert_id || null,
       })) as Application[];
 
       // Filter by assigned ward (primary) or county (fallback)
