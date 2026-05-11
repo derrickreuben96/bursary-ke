@@ -343,7 +343,7 @@ export default function CommissionerDashboard() {
   // and no allocation has been processed yet — encourages pre-processing review.
   const shouldGlowAiPdf = deadlinePassed && stats.pending > 0 && !processingComplete;
 
-  // One-time toast when the deadline crosses for an active advert.
+  // Success toast the moment the deadline crosses for an active advert.
   useEffect(() => {
     if (!activeAdvert) return;
     if (!deadlinePassed) return;
@@ -351,8 +351,8 @@ export default function CommissionerDashboard() {
     if (typeof window !== "undefined" && !window.localStorage.getItem(key)) {
       window.localStorage.setItem(key, "1");
       toast({
-        title: "Application deadline has elapsed",
-        description: "AI processing is ready. Please review the AI PDF Summary, then run Process Applications.",
+        title: "✅ Deadline reached — Processing unlocked",
+        description: `Deadline ${new Date(activeAdvert.deadline).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" })} has passed. You can now run Process Applications.`,
       });
     }
   }, [deadlinePassed, activeAdvert, toast]);
