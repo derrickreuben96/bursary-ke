@@ -304,12 +304,18 @@ export default function CommissionerDashboard() {
     () => { void fetchApplications(); },
   );
 
-  // Tick every 15s so the deadline check re-evaluates live (without a refresh)
+  // Tick every 1s so the live countdown and deadline check stay current.
   const [nowTick, setNowTick] = useState(() => Date.now());
   useEffect(() => {
-    const id = setInterval(() => setNowTick(Date.now()), 15000);
+    const id = setInterval(() => setNowTick(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
+
+  // Pre-flight checklist that must be acknowledged before Process Applications.
+  const [checkAiPdf, setCheckAiPdf] = useState(false);
+  const [checkTiers, setCheckTiers] = useState(false);
+  const [checkQuota, setCheckQuota] = useState(false);
+  const checklistComplete = checkAiPdf && checkTiers && checkQuota;
 
   const activeAdvert = useMemo(() => {
     if (wardAdverts.length === 0) return undefined;
