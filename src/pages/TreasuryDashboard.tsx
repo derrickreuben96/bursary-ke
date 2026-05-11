@@ -367,10 +367,138 @@ export default function TreasuryDashboard() {
   const filteredApplications = applications.filter(app =>
     app.tracking_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     app.institution_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    app.county?.toLowerCase().includes(searchTerm.toLowerCase())
+    app.county?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (app.advert_title || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const totalAmount = applications.reduce((sum, app) => sum + (app.allocated_amount || 0), 0);
+
+  // Group applications by cycle (advert_id)
+  const cycles: Cycle[] = useMemo(() => {
+    const map = new Map<string, Cycle>();
+    for (const app of filteredApplications) {
+      const key = app.advert_id || "unassigned";
+      if (!map.has(key)) {
+        map.set(key, {
+          advertId: key,
+          title: app.advert_title || "Unlinked Cycle",
+          ward: app.advert_ward,
+          deadline: app.advert_deadline,
+          budget: app.advert_budget,
+          apps: [],
+          totalAmount: 0,
+          pendingCount: 0,
+          disbursedCount: 0,
+          povertyDist: {},
+        });
+      }
+      const c = map.get(key)!;
+      c.apps.push(app);
+      c.totalAmount += app.allocated_amount || 0;
+      if (app.status === "disbursed") c.disbursedCount++;
+      else if (app.status === "approved") c.pendingCount++;
+      const tier = app.poverty_tier || "Unscored";
+      c.povertyDist[tier] = (c.povertyDist[tier] || 0) + 1;
+    }
+    return Array.from(map.values()).sort((a, b) => a.title.localeCompare(b.title));
+  }, [filteredApplications]);
+
+  const selectedCycle = cycles.find((c) => c.advertId === selectedCycleId) || null;
+  const ackDialogCycle = cycles.find((c) => c.advertId === ackDialogCycleId) || null;
+
+  const isAcknowledged = (cycleId: string) => acknowledgedCycles.has(cycleId);
+
+  const downloadCyclePdf = async (cycle: Cycle) => {
+    const sortedTiers = Object.entries(cycle.povertyDist).sort((a, b) => b[1] - a[1]);
+    const payload: ChartPdfPayload = {
+      title: pdfLanguage === "sw" ? "Mzunguko wa Ufadhili — Muhtasari" : "Bursary Cycle — Submission Summary",
+      subtitle: `${cycle.title}${cycle.ward ? ` · ${cycle.ward}` : ""}${assignedCounty ? ` · ${assignedCounty} County` : ""}`,
+      portalName: "Bursary-KE · Treasury Portal",
+      scopeLabel: pdfLanguage === "sw" ? "Hati ya Kabla ya Malipo" : "Pre-Disbursement Acknowledgment Document",
+      language: pdfLanguage,
+      appliedFilters: [
+        { label: "Cycle", value: cycle.title },
+        { label: "Ward", value: cycle.ward || "—" },
+        { label: "Deadline", value: cycle.deadline ? new Date(cycle.deadline).toLocaleString() : "—" },
+        { label: "Budget (KES)", value: cycle.budget ? cycle.budget.toLocaleString() : "—" },
+      ],
+      sections: [
+        {
+          heading: pdfLanguage === "sw" ? "Muhtasari wa Mzunguko" : "Cycle Summary",
+          rows: [
+            { label: "Total Applicants Released", value: cycle.apps.length },
+            { label: "Pending Disbursement", value: cycle.pendingCount },
+            { label: "Already Disbursed", value: cycle.disbursedCount },
+            { label: "Total Allocated (KES)", value: cycle.totalAmount.toLocaleString() },
+          ],
+        },
+        {
+          heading: pdfLanguage === "sw" ? "Mgawanyo wa Kiwango cha Umaskini" : "Poverty Tier Distribution",
+          rows: sortedTiers.map(([tier, count]) => ({ label: tier, value: count })),
+        },
+        {
+          heading: pdfLanguage === "sw" ? "Walengwa" : "Beneficiaries (masked)",
+          rows: cycle.apps.map((a) => ({
+            label: `${a.tracking_number} · ${a.student_name_masked} · ${a.institution_name}`,
+            value: `KES ${(a.allocated_amount || 0).toLocaleString()}`,
+          })),
+        },
+      ],
+      notes: [
+        pdfLanguage === "sw"
+          ? "Hati hii ni ya matumizi rasmi ya Hazina ya Kaunti pekee. Saini ya kidijitali inahitajika kabla ya malipo."
+          : "This document is for official County Treasury use only. Digital acknowledgment is required before disbursement.",
+      ],
+    };
+    const doc = await buildChartSummaryDoc(payload);
+    doc.save(chartSummaryPdfFilename(payload, `cycle-${cycle.title.replace(/\s+/g, "_")}`));
+    setAckChecked(false);
+    setAckDialogCycleId(cycle.advertId);
+  };
+
+  const confirmAcknowledgment = () => {
+    if (!ackDialogCycleId || !ackChecked) return;
+    const next = new Set(acknowledgedCycles);
+    next.add(ackDialogCycleId);
+    persistAck(next);
+    toast({
+      title: "Acknowledgment recorded",
+      description: "Disbursement is now unlocked for this cycle.",
+    });
+    setAckDialogCycleId(null);
+    setAckChecked(false);
+  };
+
+  const disburseCycle = async (cycle: Cycle) => {
+    if (!isAcknowledged(cycle.advertId)) {
+      toast({
+        title: "Acknowledgment required",
+        description: "Download and acknowledge the cycle PDF first.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const ids = cycle.apps.filter((a) => a.status === "approved").map((a) => a.id);
+    if (ids.length === 0) return;
+    setDisbursingIds(new Set(ids));
+    try {
+      const { data, error } = await supabase
+        .from("bursary_applications")
+        .update({ status: "disbursed" as any })
+        .in("id", ids)
+        .select();
+      if (error) throw error;
+      if (!data || data.length === 0) throw new Error("Update was blocked by access policy.");
+      toast({ title: "✅ Cycle Disbursed", description: `${data.length} application(s) disbursed for ${cycle.title}.` });
+      sendDisbursementNotifications();
+      fetchApprovedApplications();
+    } catch (err) {
+      console.error(err);
+      toast({ title: "Error", description: "Failed to disburse cycle", variant: "destructive" });
+    } finally {
+      setDisbursingIds(new Set());
+    }
+  };
 
   const exportToCSV = async () => {
     const appIds = applications.map(a => a.id).filter(Boolean);
