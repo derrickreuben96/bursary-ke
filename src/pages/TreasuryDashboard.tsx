@@ -408,6 +408,8 @@ export default function TreasuryDashboard() {
           pendingCount: 0,
           disbursedCount: 0,
           povertyDist: {},
+          closedAt: app.advert_closed_at,
+          isActive: app.advert_is_active,
         });
       }
       const c = map.get(key)!;
