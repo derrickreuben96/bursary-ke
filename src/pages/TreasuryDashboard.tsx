@@ -436,6 +436,39 @@ export default function TreasuryDashboard() {
     return cycles.filter((c) => c.ward === wardFilter);
   }, [cycles, wardFilter]);
 
+  // Active cycles still have at least one pending disbursement.
+  // Historical cycles have been fully disbursed (no pending) — moved to the
+  // History section so active metrics only reflect work in progress.
+  const activeCycles = useMemo(
+    () => visibleCycles.filter((c) => c.pendingCount > 0),
+    [visibleCycles],
+  );
+  const historyCycles = useMemo(
+    () =>
+      visibleCycles
+        .filter((c) => c.pendingCount === 0 && c.apps.length > 0)
+        .sort((a, b) => {
+          const ad = a.deadline ? new Date(a.deadline).getTime() : 0;
+          const bd = b.deadline ? new Date(b.deadline).getTime() : 0;
+          return bd - ad;
+        }),
+    [visibleCycles],
+  );
+
+  // Active-only stats power the top summary cards. Once a cycle is fully
+  // disbursed it falls out of these numbers and into History.
+  const activeApps = useMemo(
+    () => activeCycles.flatMap((c) => c.apps),
+    [activeCycles],
+  );
+  const activeTotalAmount = activeApps.reduce(
+    (sum, a) => sum + (a.allocated_amount || 0),
+    0,
+  );
+  const activeDisbursedCount = activeApps.filter(
+    (a) => a.status === "disbursed",
+  ).length;
+
   const selectedCycle = cycles.find((c) => c.advertId === selectedCycleId) || null;
   const ackDialogCycle = cycles.find((c) => c.advertId === ackDialogCycleId) || null;
   const previewCycle = cycles.find((c) => c.advertId === cyclePreviewOpenId) || null;
