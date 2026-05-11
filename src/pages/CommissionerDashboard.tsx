@@ -44,6 +44,7 @@ interface Application {
   household_income: number | null;
   household_dependents: number | null;
   released_to_treasury: boolean;
+  advert_id: string | null;
 }
 
 interface StatusHistoryEntry {
