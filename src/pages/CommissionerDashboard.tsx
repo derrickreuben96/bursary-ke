@@ -703,9 +703,9 @@ export default function CommissionerDashboard() {
     }
   };
 
-  const incomingApps = applications.filter(a => ["received", "review", "verification"].includes(a.status) && !a.is_duplicate);
-  const approvedApps = applications.filter(a => a.status === "approved" && !a.is_duplicate);
-  const rejectedApps = applications.filter(a => a.status === "rejected" || a.is_duplicate);
+  const incomingApps = cycleApps.filter(a => ["received", "review", "verification"].includes(a.status) && !a.is_duplicate);
+  const approvedApps = cycleApps.filter(a => a.status === "approved" && !a.is_duplicate);
+  const rejectedApps = cycleApps.filter(a => a.status === "rejected" || a.is_duplicate);
 
   const renderAppTable = (apps: Application[], showAmount = false) => (
     <Table>
