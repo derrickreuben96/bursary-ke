@@ -727,7 +727,19 @@ export default function TreasuryDashboard() {
                   pre-disbursement PDF, and acknowledge it to unlock disbursement.
                 </CardDescription>
               </div>
-              <div className="flex gap-2 w-full md:w-auto">
+              <div className="flex gap-2 w-full md:w-auto flex-wrap">
+                <Select value={wardFilter} onValueChange={setWardFilter}>
+                  <SelectTrigger className="w-[180px] h-9">
+                    <SelectValue placeholder="All wards" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All wards</SelectItem>
+                    <SelectItem value="__county_wide__">County-wide only</SelectItem>
+                    {wardOptions.map((w) => (
+                      <SelectItem key={w} value={w}>{w}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <div className="relative flex-1 md:w-64">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input placeholder="Search cycles..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
@@ -741,15 +753,29 @@ export default function TreasuryDashboard() {
           <CardContent>
             {isLoading ? (
               <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
-            ) : cycles.length === 0 ? (
+            ) : visibleCycles.length === 0 ? (
               <div className="text-center py-12">
                 <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">No released cycles yet. Awaiting Commissioner release.</p>
+                <p className="text-muted-foreground">
+                  {cycles.length === 0
+                    ? "No released cycles yet. Awaiting Commissioner release."
+                    : "No cycles match the current ward filter."}
+                </p>
               </div>
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
-                {cycles.map((c) => {
+                {visibleCycles.map((c) => {
                   const ack = isAcknowledged(c.advertId);
+                  const ackInfo = ackInfoFor(c.advertId);
+                  const missingScores = cycleHasMissingScores(c);
+                  const disburseDisabled = !ack || c.pendingCount === 0 || disbursingIds.size > 0 || missingScores;
+                  const disabledReason = missingScores
+                    ? "Some applicants are missing poverty score data"
+                    : !ack
+                      ? "Download and acknowledge first"
+                      : c.pendingCount === 0
+                        ? "Nothing pending"
+                        : "";
                   return (
                     <div key={c.advertId} className="border rounded-lg p-4 bg-card hover:shadow-md transition">
                       <div className="flex items-start justify-between gap-3 mb-3">
@@ -760,11 +786,28 @@ export default function TreasuryDashboard() {
                           </p>
                         </div>
                         {ack ? (
-                          <Badge className="bg-emerald-600 shrink-0"><ShieldCheck className="h-3 w-3 mr-1" />Acknowledged</Badge>
+                          <Badge
+                            className="bg-emerald-600 shrink-0"
+                            title={ackInfo?.acknowledgedAt
+                              ? `Acknowledged ${new Date(ackInfo.acknowledgedAt).toLocaleString()}`
+                              : "Acknowledged"}
+                          >
+                            <ShieldCheck className="h-3 w-3 mr-1" />Acknowledged
+                          </Badge>
                         ) : (
                           <Badge variant="outline" className="shrink-0"><Lock className="h-3 w-3 mr-1" />Locked</Badge>
                         )}
                       </div>
+                      {ack && ackInfo?.acknowledgedAt && (
+                        <p className="text-[11px] text-muted-foreground mb-2">
+                          Signed {new Date(ackInfo.acknowledgedAt).toLocaleString()}
+                        </p>
+                      )}
+                      {missingScores && (
+                        <div className="mb-2 p-2 rounded border border-destructive/30 bg-destructive/10 text-[11px] text-destructive">
+                          ⚠ Missing poverty score data on one or more applicants. Disbursement blocked.
+                        </div>
+                      )}
                       <div className="grid grid-cols-3 gap-2 text-center mb-3">
                         <div className="bg-muted/40 rounded p-2">
                           <p className="text-xs text-muted-foreground flex items-center justify-center gap-1"><Users className="h-3 w-3" />Applicants</p>
@@ -786,14 +829,14 @@ export default function TreasuryDashboard() {
                         <Button size="sm" variant="outline" onClick={() => setSelectedCycleId(c.advertId)}>
                           <FileText className="h-3 w-3 mr-1" />View Submissions
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => downloadCyclePdf(c)}>
-                          <FileDown className="h-3 w-3 mr-1" />Download & Acknowledge
+                        <Button size="sm" variant="outline" onClick={() => openCyclePreview(c)}>
+                          <FileDown className="h-3 w-3 mr-1" />Preview & Acknowledge
                         </Button>
                         <Button
                           size="sm"
                           onClick={() => disburseCycle(c)}
-                          disabled={!ack || c.pendingCount === 0 || disbursingIds.size > 0}
-                          title={!ack ? "Download and acknowledge first" : c.pendingCount === 0 ? "Nothing pending" : ""}
+                          disabled={disburseDisabled}
+                          title={disabledReason}
                         >
                           {disbursingIds.size > 0 ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <CheckCircle2 className="h-3 w-3 mr-1" />}
                           Disburse Cycle
