@@ -255,22 +255,8 @@ export default function CommissionerDashboard() {
           });
         });
         setFairnessMap(fMap);
-
-        const fairnessPriorityCandidates = apps.filter(a => fMap.get(a.id)?.isFairnessPriority).length;
-        const redFlagged = apps.filter(a => fMap.get(a.id)?.historicalStatus === "red_flagged").length;
-
-        setStats({
-          total: apps.length,
-          approved: apps.filter(a => a.status === "approved").length,
-          rejected: apps.filter(a => a.status === "rejected").length,
-          pending: apps.filter(a => ["received", "review", "verification"].includes(a.status)).length,
-          duplicates: apps.filter(a => a.is_duplicate).length,
-          totalAllocated: apps.reduce((sum, a) => sum + (a.allocated_amount || 0), 0),
-          fairnessPriorityCandidates,
-          redFlagged,
-        });
       } else {
-        setStats({ total: 0, approved: 0, rejected: 0, pending: 0, duplicates: 0, totalAllocated: 0, fairnessPriorityCandidates: 0, redFlagged: 0 });
+        setFairnessMap(new Map());
       }
     }
     setDataLastFetched(new Date());
