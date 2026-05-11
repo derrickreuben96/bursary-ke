@@ -1104,7 +1104,7 @@ export default function CommissionerDashboard() {
               </div>
 
               {/* Pre-flight checklist — must be acknowledged before processing */}
-              <div className="rounded-lg border border-border bg-muted/30 p-3">
+              <div id="preflight-checklist" className="rounded-lg border border-border bg-muted/30 p-3 transition-all scroll-mt-24">
                 <p className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1">
                   <ShieldAlert className="h-3.5 w-3.5" />
                   Pre-flight checklist (required before Process Applications)
