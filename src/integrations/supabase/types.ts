@@ -1159,6 +1159,11 @@ export type Database = {
       get_treasury_applications: {
         Args: never
         Returns: {
+          advert_budget: number
+          advert_deadline: string
+          advert_id: string
+          advert_title: string
+          advert_ward: string
           allocated_amount: number
           allocation_date: string
           county: string
@@ -1166,6 +1171,8 @@ export type Database = {
           ecitizen_ref: string
           id: string
           institution_name: string
+          poverty_score: number
+          poverty_tier: string
           status: string
           student_name_masked: string
           student_type: string
