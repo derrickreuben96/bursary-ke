@@ -273,8 +273,6 @@ export default function AdminDashboard() {
             title="Total Disbursed"
             value={formatKES(totalBudgetDisbursed)}
             icon={<Banknote className="h-5 w-5" />}
-            trend="+8% vs last quarter"
-            trendUp={true}
           />
         </div>
 
