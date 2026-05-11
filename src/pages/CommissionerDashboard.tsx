@@ -44,6 +44,7 @@ interface Application {
   household_income: number | null;
   household_dependents: number | null;
   released_to_treasury: boolean;
+  advert_id: string | null;
 }
 
 interface StatusHistoryEntry {
@@ -125,7 +126,6 @@ export default function CommissionerDashboard() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [fairnessMap, setFairnessMap] = useState<Map<string, FairnessInfo>>(new Map());
   const [statusHistory, setStatusHistory] = useState<Record<string, StatusHistoryEntry[]>>({});
-  const [stats, setStats] = useState<Stats>({ total: 0, approved: 0, rejected: 0, pending: 0, duplicates: 0, totalAllocated: 0, fairnessPriorityCandidates: 0, redFlagged: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isReleasing, setIsReleasing] = useState(false);
@@ -203,6 +203,7 @@ export default function CommissionerDashboard() {
         parent_county: d.parent_county || '',
         parent_ward: d.parent_ward || null,
         released_to_treasury: d.released_to_treasury || false,
+        advert_id: d.advert_id || null,
       })) as Application[];
 
       // Filter by assigned ward (primary) or county (fallback)
@@ -253,22 +254,8 @@ export default function CommissionerDashboard() {
           });
         });
         setFairnessMap(fMap);
-
-        const fairnessPriorityCandidates = apps.filter(a => fMap.get(a.id)?.isFairnessPriority).length;
-        const redFlagged = apps.filter(a => fMap.get(a.id)?.historicalStatus === "red_flagged").length;
-
-        setStats({
-          total: apps.length,
-          approved: apps.filter(a => a.status === "approved").length,
-          rejected: apps.filter(a => a.status === "rejected").length,
-          pending: apps.filter(a => ["received", "review", "verification"].includes(a.status)).length,
-          duplicates: apps.filter(a => a.is_duplicate).length,
-          totalAllocated: apps.reduce((sum, a) => sum + (a.allocated_amount || 0), 0),
-          fairnessPriorityCandidates,
-          redFlagged,
-        });
       } else {
-        setStats({ total: 0, approved: 0, rejected: 0, pending: 0, duplicates: 0, totalAllocated: 0, fairnessPriorityCandidates: 0, redFlagged: 0 });
+        setFairnessMap(new Map());
       }
     }
     setDataLastFetched(new Date());
@@ -319,27 +306,71 @@ export default function CommissionerDashboard() {
   const [checkQuota, setCheckQuota] = useState(false);
   const checklistComplete = checkAiPdf && checkTiers && checkQuota;
 
+  // Group applications by advert (the cycle they belong to)
+  const appsByAdvert = useMemo(() => {
+    const map = new Map<string, Application[]>();
+    for (const a of applications) {
+      const key = a.advert_id || "__legacy__";
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(a);
+    }
+    return map;
+  }, [applications]);
+
+  // A cycle is "complete" when nothing is pending AND every approved row has been released to Treasury.
+  const isAdvertCycleComplete = (advertId: string): boolean => {
+    const apps = appsByAdvert.get(advertId);
+    if (!apps || apps.length === 0) return false;
+    const pending = apps.some(a => ["received", "review", "verification"].includes(a.status) && !a.is_duplicate);
+    if (pending) return false;
+    const approved = apps.filter(a => a.status === "approved" && !a.is_duplicate);
+    if (approved.length === 0) return true; // processed, nothing to release
+    return approved.every(a => a.released_to_treasury);
+  };
+
+  // Active advert = newest ward advert whose cycle is NOT yet released to Treasury.
+  // Once a cycle is fully released, its banner/metrics are cleared from the active view
+  // and it moves into the History tab.
   const activeAdvert = useMemo(() => {
     if (wardAdverts.length === 0) return undefined;
     const orderedAdverts = [...wardAdverts].sort(
       (a, b) => new Date(b.deadline).getTime() - new Date(a.deadline).getTime(),
     );
-    // Prefer the newest currently active advert; otherwise fall back to the
-    // newest elapsed/inactive advert so post-deadline processing remains visible.
-    return orderedAdverts.find(a => a.is_active) ?? orderedAdverts[0];
-  }, [wardAdverts]);
+    const open = orderedAdverts.find(a => !isAdvertCycleComplete(a.id));
+    return open;
+  }, [wardAdverts, appsByAdvert]);
 
-  // Deadline is considered passed when EITHER the currently displayed advert
-  // has elapsed, OR any ward advert has elapsed. Re-evaluated on every tick.
+  // Apps belonging strictly to the active cycle (drives all visible tabs except History).
+  const cycleApps = useMemo(() => {
+    if (!activeAdvert) return [] as Application[];
+    return appsByAdvert.get(activeAdvert.id) ?? [];
+  }, [activeAdvert, appsByAdvert]);
+
+  // Stats reflect the active cycle only.
+  const stats: Stats = useMemo(() => {
+    const fairnessPriorityCandidates = cycleApps.filter(a => fairnessMap.get(a.id)?.isFairnessPriority).length;
+    const redFlagged = cycleApps.filter(a => fairnessMap.get(a.id)?.historicalStatus === "red_flagged").length;
+    return {
+      total: cycleApps.length,
+      approved: cycleApps.filter(a => a.status === "approved").length,
+      rejected: cycleApps.filter(a => a.status === "rejected").length,
+      pending: cycleApps.filter(a => ["received", "review", "verification"].includes(a.status)).length,
+      duplicates: cycleApps.filter(a => a.is_duplicate).length,
+      totalAllocated: cycleApps.reduce((sum, a) => sum + (a.allocated_amount || 0), 0),
+      fairnessPriorityCandidates,
+      redFlagged,
+    };
+  }, [cycleApps, fairnessMap]);
+
+  // Deadline is considered passed when the active advert's deadline has elapsed.
   const deadlinePassed = useMemo(() => {
-    const now = nowTick;
-    if (activeAdvert && new Date(activeAdvert.deadline).getTime() <= now) return true;
-    return wardAdverts.some(a => new Date(a.deadline).getTime() <= now);
-  }, [wardAdverts, activeAdvert, nowTick]);
+    if (!activeAdvert) return false;
+    return new Date(activeAdvert.deadline).getTime() <= nowTick;
+  }, [activeAdvert, nowTick]);
 
   const hasUnreleasedApproved = useMemo(() => {
-    return applications.some(a => a.status === "approved" && !a.released_to_treasury);
-  }, [applications]);
+    return cycleApps.some(a => a.status === "approved" && !a.released_to_treasury);
+  }, [cycleApps]);
 
   // Processing is "complete" once at least one application has been moved out of pending.
   const processingComplete = useMemo(() => {
@@ -416,7 +447,7 @@ export default function CommissionerDashboard() {
 
   // Release approved applications to treasury
   const handleReleaseToTreasury = async () => {
-    const approvedIds = applications
+    const approvedIds = cycleApps
       .filter(a => a.status === "approved" && !a.released_to_treasury)
       .map(a => a.id);
 
@@ -672,9 +703,25 @@ export default function CommissionerDashboard() {
     }
   };
 
-  const incomingApps = applications.filter(a => ["received", "review", "verification"].includes(a.status) && !a.is_duplicate);
-  const approvedApps = applications.filter(a => a.status === "approved" && !a.is_duplicate);
-  const rejectedApps = applications.filter(a => a.status === "rejected" || a.is_duplicate);
+  const incomingApps = cycleApps.filter(a => ["received", "review", "verification"].includes(a.status) && !a.is_duplicate);
+  const approvedApps = cycleApps.filter(a => a.status === "approved" && !a.is_duplicate);
+  const rejectedApps = cycleApps.filter(a => a.status === "rejected" || a.is_duplicate);
+
+  // Completed cycles (released to Treasury) — surfaced in the History tab.
+  const completedCycles = useMemo(() => {
+    return wardAdverts
+      .filter(adv => isAdvertCycleComplete(adv.id))
+      .map(adv => {
+        const apps = appsByAdvert.get(adv.id) ?? [];
+        const approved = apps.filter(a => a.status === "approved" && !a.is_duplicate);
+        const rejected = apps.filter(a => a.status === "rejected" || a.is_duplicate);
+        const allocated = approved.reduce((s, a) => s + (a.allocated_amount || 0), 0);
+        return { advert: adv, apps, approved, rejected, allocated };
+      })
+      .sort((a, b) => new Date(b.advert.deadline).getTime() - new Date(a.advert.deadline).getTime());
+  }, [wardAdverts, appsByAdvert]);
+
+  const [historyExpanded, setHistoryExpanded] = useState<string | null>(null);
 
   const renderAppTable = (apps: Application[], showAmount = false) => (
     <Table>
@@ -873,9 +920,17 @@ export default function CommissionerDashboard() {
           <Card className="mb-6 border-amber-200 dark:border-amber-800">
             <CardContent className="py-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <div>
-                <h3 className="font-semibold text-foreground">No bursary advert assigned</h3>
+                <h3 className="font-semibold text-foreground">
+                  {wardAdverts.length === 0
+                    ? "No bursary advert assigned"
+                    : completedCycles.length > 0
+                      ? "No active cycle — last cycle released to County Treasury"
+                      : "No active cycle"}
+                </h3>
                 <p className="text-sm text-muted-foreground">
-                  No bursary advert exists for {assignedWard ?? assignedCounty ?? "your jurisdiction"} yet. Governance actions will activate once an advert is published.
+                  {wardAdverts.length === 0
+                    ? `No bursary advert exists for ${assignedWard ?? assignedCounty ?? "your jurisdiction"} yet. Governance actions will activate once an advert is published.`
+                    : `All processed applications for the previous cycle have been released to Treasury. Past cycles are available in the History tab. Governance actions reactivate when a new advert is published.`}
                 </p>
               </div>
               <div className="flex gap-2 flex-shrink-0">
@@ -1026,6 +1081,7 @@ export default function CommissionerDashboard() {
             <TabsTrigger value="summary"><BarChart3 className="h-4 w-4 mr-2" />Summary</TabsTrigger>
             <TabsTrigger value="approved"><CheckCircle2 className="h-4 w-4 mr-2" />Approved ({stats.approved})</TabsTrigger>
             <TabsTrigger value="rejected"><XCircle className="h-4 w-4 mr-2" />Rejected ({stats.rejected + stats.duplicates})</TabsTrigger>
+            <TabsTrigger value="history"><History className="h-4 w-4 mr-2" />History ({completedCycles.length})</TabsTrigger>
             <TabsTrigger value="archive"><Archive className="h-4 w-4 mr-2" />Audit Archive</TabsTrigger>
           </TabsList>
 
@@ -1182,6 +1238,64 @@ export default function CommissionerDashboard() {
                 ) : rejectedApps.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">No rejected applications</div>
                 ) : renderAppTable(rejectedApps)}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* History Tab — past cycles already released to Treasury */}
+          <TabsContent value="history">
+            <Card>
+              <CardHeader>
+                <CardTitle>Cycle History</CardTitle>
+                <CardDescription>
+                  Past bursary cycles for your jurisdiction. Each card represents one advert whose approved
+                  applications were released to County Treasury. Click a cycle to view its applications.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {completedCycles.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No completed cycles yet. Once you release a cycle to Treasury, it will appear here.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {completedCycles.map(({ advert, apps, approved, rejected, allocated }) => {
+                      const isOpen = historyExpanded === advert.id;
+                      return (
+                        <Card key={advert.id} className="border-border">
+                          <CardHeader className="pb-3">
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                              <div>
+                                <CardTitle className="text-lg">{advert.title}</CardTitle>
+                                <CardDescription>
+                                  Deadline: {new Date(advert.deadline).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" })}
+                                  {advert.ward ? ` · Ward: ${advert.ward}` : ""} · County: {advert.county}
+                                </CardDescription>
+                              </div>
+                              <div className="flex flex-wrap gap-2 items-center">
+                                <Badge variant="secondary">Total {apps.length}</Badge>
+                                <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">Approved {approved.length}</Badge>
+                                <Badge variant="destructive">Rejected {rejected.length}</Badge>
+                                <Badge variant="outline">KES {allocated.toLocaleString()}</Badge>
+                                <Button size="sm" variant="outline" onClick={() => setHistoryExpanded(isOpen ? null : advert.id)}>
+                                  {isOpen ? "Hide" : "View"}
+                                </Button>
+                              </div>
+                            </div>
+                          </CardHeader>
+                          {isOpen && (
+                            <CardContent>
+                              {apps.length === 0 ? (
+                                <p className="text-sm text-muted-foreground">No applications recorded for this cycle.</p>
+                              ) : renderAppTable(apps, true)}
+                            </CardContent>
+                          )}
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
