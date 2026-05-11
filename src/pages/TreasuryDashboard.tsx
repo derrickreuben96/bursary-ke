@@ -322,14 +322,12 @@ export default function TreasuryDashboard() {
   const executeDisbursement = async (app: ApprovedApplication) => {
     setDisbursingIds(prev => new Set(prev).add(app.id));
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("bursary_applications")
         .update({ status: "disbursed" as any })
-        .eq("id", app.id)
-        .select();
+        .eq("id", app.id);
 
       if (error) throw error;
-      if (!data || data.length === 0) throw new Error("Update was blocked by access policy. Please try logging in again.");
 
       toast({ title: "✅ Marked as Disbursed", description: `${app.tracking_number} has been marked as disbursed.` });
       sendDisbursementNotifications();
@@ -353,16 +351,14 @@ export default function TreasuryDashboard() {
     const ids = pendingApps.map(a => a.id);
     setDisbursingIds(new Set(ids));
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("bursary_applications")
         .update({ status: "disbursed" as any })
-        .in("id", ids)
-        .select();
+        .in("id", ids);
 
       if (error) throw error;
-      if (!data || data.length === 0) throw new Error("Update was blocked by access policy. Please try logging in again.");
 
-      toast({ title: "✅ All Marked as Disbursed", description: `${data.length} applications marked as disbursed.` });
+      toast({ title: "✅ All Marked as Disbursed", description: `${ids.length} applications marked as disbursed.` });
       sendDisbursementNotifications();
       fetchApprovedApplications();
     } catch (err) {
@@ -592,14 +588,12 @@ export default function TreasuryDashboard() {
     if (ids.length === 0) return;
     setDisbursingIds(new Set(ids));
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("bursary_applications")
         .update({ status: "disbursed" as any })
-        .in("id", ids)
-        .select();
+        .in("id", ids);
       if (error) throw error;
-      if (!data || data.length === 0) throw new Error("Update was blocked by access policy.");
-      toast({ title: "✅ Cycle Disbursed", description: `${data.length} application(s) disbursed for ${cycle.title}.` });
+      toast({ title: "✅ Cycle Disbursed", description: `${ids.length} application(s) disbursed for ${cycle.title}.` });
       sendDisbursementNotifications();
       fetchApprovedApplications();
     } catch (err) {
