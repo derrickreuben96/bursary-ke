@@ -1017,7 +1017,48 @@ export default function CommissionerDashboard() {
                     </p>
                   )}
                 </div>
-                <div className="flex gap-2 flex-shrink-0">
+                <div className="flex gap-2 flex-shrink-0 items-center flex-wrap">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1 text-xs text-primary underline underline-offset-2 hover:text-primary/80"
+                      >
+                        <HelpCircle className="h-3.5 w-3.5" />
+                        Where to find this?
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent align="end" className="w-80 text-sm space-y-2">
+                      <p className="font-semibold text-foreground flex items-center gap-1">
+                        <ShieldAlert className="h-4 w-4" /> Pre-flight checklist
+                      </p>
+                      <p className="text-muted-foreground">
+                        It sits directly below this banner. <strong>Process Applications</strong> stays
+                        disabled until all three items are ticked.
+                      </p>
+                      <p className="text-muted-foreground font-medium">It appears only when:</p>
+                      <ul className="list-disc pl-4 text-muted-foreground space-y-1">
+                        <li>An <strong>active unreleased cycle</strong> exists for your ward.</li>
+                        <li>The advert <strong>deadline has passed</strong>.</li>
+                        <li>There are <strong>pending applications</strong> awaiting review.</li>
+                      </ul>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full mt-1"
+                        onClick={() => {
+                          const el = document.getElementById("preflight-checklist");
+                          if (el) {
+                            el.scrollIntoView({ behavior: "smooth", block: "center" });
+                            el.classList.add("ring-2", "ring-primary");
+                            setTimeout(() => el.classList.remove("ring-2", "ring-primary"), 2000);
+                          }
+                        }}
+                      >
+                        Jump to checklist
+                      </Button>
+                    </PopoverContent>
+                  </Popover>
                   <Button
                     onClick={handleProcessApplications}
                     disabled={!deadlinePassed || stats.pending === 0 || isProcessing || !checklistComplete}
