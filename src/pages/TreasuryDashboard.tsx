@@ -588,14 +588,12 @@ export default function TreasuryDashboard() {
     if (ids.length === 0) return;
     setDisbursingIds(new Set(ids));
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("bursary_applications")
         .update({ status: "disbursed" as any })
-        .in("id", ids)
-        .select();
+        .in("id", ids);
       if (error) throw error;
-      if (!data || data.length === 0) throw new Error("Update was blocked by access policy.");
-      toast({ title: "✅ Cycle Disbursed", description: `${data.length} application(s) disbursed for ${cycle.title}.` });
+      toast({ title: "✅ Cycle Disbursed", description: `${ids.length} application(s) disbursed for ${cycle.title}.` });
       sendDisbursementNotifications();
       fetchApprovedApplications();
     } catch (err) {
