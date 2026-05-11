@@ -15,8 +15,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { 
   GraduationCap, LogOut, CheckCircle2, XCircle, Clock, 
   Loader2, RefreshCw, AlertTriangle, BarChart3, Users, Banknote,
-  ShieldAlert, Star, History, Send, Play, Inbox, Archive, FileDown, Sparkles
+  ShieldAlert, Star, History, Send, Play, Inbox, Archive, FileDown, Sparkles, HelpCircle
 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { generateAiSummaryPdf, aiSummaryPdfFilename, type AiSummaryPayload } from "@/lib/aiSummaryPdf";
 // StudentBeneficiariesPanel intentionally removed — commissioner is oversight-only.
 import { buildChartSummaryDoc, chartSummaryPdfFilename, type ChartPdfPayload } from "@/lib/chartSummaryPdf";
