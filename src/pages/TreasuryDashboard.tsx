@@ -797,10 +797,9 @@ export default function TreasuryDashboard() {
           <CardHeader>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
-                <CardTitle className="flex items-center gap-2"><Layers className="h-5 w-5" />Released Application Cycles</CardTitle>
+                <CardTitle className="flex items-center gap-2"><Layers className="h-5 w-5" />Active Application Cycles</CardTitle>
                 <CardDescription>
-                  Each card is a bursary cycle released by a Commissioner. Open a cycle, download the
-                  pre-disbursement PDF, and acknowledge it to unlock disbursement.
+                  Cycles still pending disbursement. Fully disbursed cycles move to History below.
                 </CardDescription>
               </div>
               <div className="flex gap-2 w-full md:w-auto flex-wrap">
@@ -829,18 +828,20 @@ export default function TreasuryDashboard() {
           <CardContent>
             {isLoading ? (
               <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
-            ) : visibleCycles.length === 0 ? (
+            ) : activeCycles.length === 0 ? (
               <div className="text-center py-12">
                 <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-muted-foreground">
                   {cycles.length === 0
                     ? "No released cycles yet. Awaiting Commissioner release."
-                    : "No cycles match the current ward filter."}
+                    : historyCycles.length > 0
+                      ? "All released cycles have been fully disbursed. See History below."
+                      : "No cycles match the current ward filter."}
                 </p>
               </div>
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
-                {visibleCycles.map((c) => {
+                {activeCycles.map((c) => {
                   const ack = isAcknowledged(c.advertId);
                   const ackInfo = ackInfoFor(c.advertId);
                   const missingScores = cycleHasMissingScores(c);
