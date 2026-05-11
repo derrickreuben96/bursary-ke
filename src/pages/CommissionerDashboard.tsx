@@ -906,9 +906,19 @@ export default function CommissionerDashboard() {
                     {isProcessing ? (
                       <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Processing...</>
                     ) : !deadlinePassed ? (
-                      <><Clock className="h-4 w-4 mr-2" />Waiting for application deadline</>
+                      <>
+                        <Clock className="h-4 w-4 mr-2" />
+                        {activeAdvert
+                          ? `Opens after deadline · ${new Date(activeAdvert.deadline).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" })}`
+                          : "Waiting for application deadline"}
+                      </>
                     ) : (
-                      <><Play className="h-4 w-4 mr-2" />Process Applications</>
+                      <>
+                        <Play className="h-4 w-4 mr-2" />
+                        {activeAdvert
+                          ? `Process Applications · Deadline passed (${new Date(activeAdvert.deadline).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" })})`
+                          : "Process Applications"}
+                      </>
                     )}
                   </Button>
                   <Button
