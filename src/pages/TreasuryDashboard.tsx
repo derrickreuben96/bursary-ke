@@ -87,6 +87,7 @@ export default function TreasuryDashboard() {
   const [chartPayload, setChartPayload] = useState<ChartPdfPayload | null>(null);
   // Cycle-based flow state
   const [selectedCycleId, setSelectedCycleId] = useState<string | null>(null);
+  const [historyCycleId, setHistoryCycleId] = useState<string | null>(null);
   const [acknowledgments, setAcknowledgments] = useState<Record<string, AckRecord>>({});
   const [ackDialogCycleId, setAckDialogCycleId] = useState<string | null>(null);
   const [ackChecked, setAckChecked] = useState(false);
