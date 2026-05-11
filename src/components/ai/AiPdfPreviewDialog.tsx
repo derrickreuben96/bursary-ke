@@ -175,6 +175,7 @@ export function AiPdfPreviewDialog({
             <Download className="h-4 w-4 mr-2" />
             Download PDF
           </Button>
+          {extraFooterAction}
         </DialogFooter>
       </DialogContent>
     </Dialog>
