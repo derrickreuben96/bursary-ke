@@ -468,8 +468,18 @@ export default function CommissionerDashboard() {
 
   // Release approved applications to treasury
   const handleReleaseToTreasury = async () => {
+    // Hard guard: never release while pending rows remain in the active cycle.
+    if (hasUnresolvedPending) {
+      toast({
+        title: "Cannot Release",
+        description: "There are still pending applications in this cycle. Run Process Applications to resolve them first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const approvedIds = cycleApps
-      .filter(a => a.status === "approved" && !a.released_to_treasury)
+      .filter(a => a.status === "approved" && !a.is_duplicate && !a.released_to_treasury)
       .map(a => a.id);
 
     if (approvedIds.length === 0) {
@@ -495,11 +505,20 @@ export default function CommissionerDashboard() {
         console.error("SMS notification error (non-blocking):", smsErr);
       }
 
+      // Optimistic local update so the banner / Approved tab clear immediately
+      // even before the refetch resolves.
+      setApplications(prev =>
+        prev.map(a => (approvedIds.includes(a.id) ? { ...a, released_to_treasury: true } : a)),
+      );
+
       toast({
         title: "Released to Treasury",
-        description: `${approvedIds.length} approved application(s) sent to County Treasury for disbursement. Treasury has been notified.`,
+        description: `${approvedIds.length} approved application(s) sent to County Treasury for disbursement. Cycle archived in History.`,
       });
-      fetchApplications();
+
+      // Move user to History since the active cycle no longer exists.
+      setActiveTab("history");
+      await fetchApplications();
     } catch (error) {
       console.error("Release error:", error);
       toast({ title: "Release Failed", description: "Could not release applications to treasury.", variant: "destructive" });
