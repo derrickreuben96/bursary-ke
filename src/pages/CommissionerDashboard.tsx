@@ -304,10 +304,12 @@ export default function CommissionerDashboard() {
     () => { void fetchApplications(); },
   );
 
-  // Check if any advert deadline has passed
-  const deadlinePassed = useMemo(() => {
-    return wardAdverts.some(a => new Date(a.deadline) <= new Date());
-  }, [wardAdverts]);
+  // Tick every 15s so the deadline check re-evaluates live (without a refresh)
+  const [nowTick, setNowTick] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNowTick(Date.now()), 15000);
+    return () => clearInterval(id);
+  }, []);
 
   const activeAdvert = useMemo(() => {
     if (wardAdverts.length === 0) return undefined;
@@ -319,6 +321,14 @@ export default function CommissionerDashboard() {
       (a, b) => new Date(b.deadline).getTime() - new Date(a.deadline).getTime(),
     )[0];
   }, [wardAdverts]);
+
+  // Deadline is considered passed when EITHER the currently displayed advert
+  // has elapsed, OR any ward advert has elapsed. Re-evaluated on every tick.
+  const deadlinePassed = useMemo(() => {
+    const now = nowTick;
+    if (activeAdvert && new Date(activeAdvert.deadline).getTime() <= now) return true;
+    return wardAdverts.some(a => new Date(a.deadline).getTime() <= now);
+  }, [wardAdverts, activeAdvert, nowTick]);
 
   const hasUnreleasedApproved = useMemo(() => {
     return applications.some(a => a.status === "approved" && !a.released_to_treasury);
