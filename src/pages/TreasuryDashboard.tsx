@@ -326,12 +326,10 @@ export default function TreasuryDashboard() {
   const executeDisbursement = async (app: ApprovedApplication) => {
     setDisbursingIds(prev => new Set(prev).add(app.id));
     try {
-      const { error } = await supabase
-        .from("bursary_applications")
-        .update({ status: "disbursed" as any })
-        .eq("id", app.id);
-
+      const { data, error } = await supabase.rpc("treasury_disburse_applications", { _ids: [app.id] });
       if (error) throw error;
+      const updated = (data as { updated?: number } | null)?.updated ?? 0;
+      if (updated === 0) throw new Error("No rows updated — application may already be disbursed or outside your jurisdiction.");
 
       toast({ title: "✅ Marked as Disbursed", description: `${app.tracking_number} has been marked as disbursed.` });
       sendDisbursementNotifications();
