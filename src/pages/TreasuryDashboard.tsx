@@ -353,14 +353,12 @@ export default function TreasuryDashboard() {
     const ids = pendingApps.map(a => a.id);
     setDisbursingIds(new Set(ids));
     try {
-      const { error } = await supabase
-        .from("bursary_applications")
-        .update({ status: "disbursed" as any })
-        .in("id", ids);
-
+      const { data, error } = await supabase.rpc("treasury_disburse_applications", { _ids: ids });
       if (error) throw error;
+      const updated = (data as { updated?: number } | null)?.updated ?? 0;
+      if (updated === 0) throw new Error("No rows updated — applications may already be disbursed or outside your jurisdiction.");
 
-      toast({ title: "✅ All Marked as Disbursed", description: `${ids.length} applications marked as disbursed.` });
+      toast({ title: "✅ All Marked as Disbursed", description: `${updated} application(s) marked as disbursed.` });
       sendDisbursementNotifications();
       fetchApprovedApplications();
     } catch (err) {
