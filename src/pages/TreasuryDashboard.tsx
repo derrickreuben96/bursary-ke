@@ -590,12 +590,16 @@ export default function TreasuryDashboard() {
     if (ids.length === 0) return;
     setDisbursingIds(new Set(ids));
     try {
-      const { error } = await supabase
-        .from("bursary_applications")
-        .update({ status: "disbursed" as any })
-        .in("id", ids);
+      const { data, error } = await supabase.rpc("treasury_disburse_applications", { _ids: ids });
       if (error) throw error;
-      toast({ title: "✅ Cycle Disbursed", description: `${ids.length} application(s) disbursed for ${cycle.title}.` });
+      const updated = (data as { updated?: number; closed_advert_ids?: string[] } | null)?.updated ?? 0;
+      const closed = (data as { closed_advert_ids?: string[] } | null)?.closed_advert_ids ?? [];
+      if (updated === 0) throw new Error("No rows updated — cycle may already be disbursed or outside your jurisdiction.");
+      const wasClosed = closed.includes(cycle.advertId);
+      toast({
+        title: wasClosed ? "✅ Cycle Disbursed & Closed" : "✅ Cycle Disbursed",
+        description: `${updated} application(s) disbursed for ${cycle.title}${wasClosed ? " — cycle archived to History." : "."}`,
+      });
       sendDisbursementNotifications();
       fetchApprovedApplications();
     } catch (err) {
