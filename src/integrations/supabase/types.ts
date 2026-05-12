@@ -1236,6 +1236,10 @@ export type Database = {
       }
       sweep_expired_adverts: { Args: never; Returns: number }
       tracking_number_exists: { Args: { _tn: string }; Returns: boolean }
+      treasury_disburse_applications: {
+        Args: { _ids: string[] }
+        Returns: Json
+      }
       workflow_backlog_snapshot: {
         Args: never
         Returns: {

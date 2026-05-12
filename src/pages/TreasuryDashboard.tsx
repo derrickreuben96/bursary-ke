@@ -326,12 +326,10 @@ export default function TreasuryDashboard() {
   const executeDisbursement = async (app: ApprovedApplication) => {
     setDisbursingIds(prev => new Set(prev).add(app.id));
     try {
-      const { error } = await supabase
-        .from("bursary_applications")
-        .update({ status: "disbursed" as any })
-        .eq("id", app.id);
-
+      const { data, error } = await supabase.rpc("treasury_disburse_applications", { _ids: [app.id] });
       if (error) throw error;
+      const updated = (data as { updated?: number } | null)?.updated ?? 0;
+      if (updated === 0) throw new Error("No rows updated — application may already be disbursed or outside your jurisdiction.");
 
       toast({ title: "✅ Marked as Disbursed", description: `${app.tracking_number} has been marked as disbursed.` });
       sendDisbursementNotifications();
@@ -355,14 +353,12 @@ export default function TreasuryDashboard() {
     const ids = pendingApps.map(a => a.id);
     setDisbursingIds(new Set(ids));
     try {
-      const { error } = await supabase
-        .from("bursary_applications")
-        .update({ status: "disbursed" as any })
-        .in("id", ids);
-
+      const { data, error } = await supabase.rpc("treasury_disburse_applications", { _ids: ids });
       if (error) throw error;
+      const updated = (data as { updated?: number } | null)?.updated ?? 0;
+      if (updated === 0) throw new Error("No rows updated — applications may already be disbursed or outside your jurisdiction.");
 
-      toast({ title: "✅ All Marked as Disbursed", description: `${ids.length} applications marked as disbursed.` });
+      toast({ title: "✅ All Marked as Disbursed", description: `${updated} application(s) marked as disbursed.` });
       sendDisbursementNotifications();
       fetchApprovedApplications();
     } catch (err) {
@@ -594,12 +590,16 @@ export default function TreasuryDashboard() {
     if (ids.length === 0) return;
     setDisbursingIds(new Set(ids));
     try {
-      const { error } = await supabase
-        .from("bursary_applications")
-        .update({ status: "disbursed" as any })
-        .in("id", ids);
+      const { data, error } = await supabase.rpc("treasury_disburse_applications", { _ids: ids });
       if (error) throw error;
-      toast({ title: "✅ Cycle Disbursed", description: `${ids.length} application(s) disbursed for ${cycle.title}.` });
+      const updated = (data as { updated?: number; closed_advert_ids?: string[] } | null)?.updated ?? 0;
+      const closed = (data as { closed_advert_ids?: string[] } | null)?.closed_advert_ids ?? [];
+      if (updated === 0) throw new Error("No rows updated — cycle may already be disbursed or outside your jurisdiction.");
+      const wasClosed = closed.includes(cycle.advertId);
+      toast({
+        title: wasClosed ? "✅ Cycle Disbursed & Closed" : "✅ Cycle Disbursed",
+        description: `${updated} application(s) disbursed for ${cycle.title}${wasClosed ? " — cycle archived to History." : "."}`,
+      });
       sendDisbursementNotifications();
       fetchApprovedApplications();
     } catch (err) {
