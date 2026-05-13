@@ -39,7 +39,7 @@ function TickerItem({ advert }: { advert: TickerAdvert }) {
     >
       <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center overflow-hidden flex-shrink-0">
         {emblem ? (
-          <img src={emblem} alt={advert.county} className="w-8 h-8 object-contain" />
+          <img src={emblem} alt={`${advert.county} County emblem`} className="w-8 h-8 object-contain" />
         ) : (
           <MapPin className="h-4 w-4 text-white/70" />
         )}

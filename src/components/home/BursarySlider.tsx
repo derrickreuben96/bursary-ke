@@ -226,7 +226,7 @@ export function BursarySlider() {
               <span className="font-medium text-sm text-foreground">{t("bursary.quick_search")}</span>
             </div>
             <Select value={filterCounty} onValueChange={(val) => { setFilterCounty(val); setFilterWard(""); }}>
-              <SelectTrigger className="w-full sm:w-[200px]">
+              <SelectTrigger aria-label={t("bursary.select_county")} className="w-full sm:w-[200px]">
                 <SelectValue placeholder={t("bursary.select_county")} />
               </SelectTrigger>
               <SelectContent>
@@ -236,7 +236,7 @@ export function BursarySlider() {
               </SelectContent>
             </Select>
             <Select value={filterWard} onValueChange={setFilterWard} disabled={!filterCounty}>
-              <SelectTrigger className="w-full sm:w-[200px]">
+              <SelectTrigger aria-label={t("bursary.select_ward")} className="w-full sm:w-[200px]">
                 <SelectValue placeholder={t("bursary.select_ward")} />
               </SelectTrigger>
               <SelectContent>
