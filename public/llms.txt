@@ -1,0 +1,12 @@
+# Bursary-KE
+
+> Bursary-KE is a government-supported platform that helps Kenyan students apply for secondary school and university bursaries across all 47 counties, with transparent tracking and AI-assisted fairness scoring.
+
+## Pages
+
+- [Home](/): Overview, live county bursary programs, and application tracking.
+- [Browse Bursaries](/bursaries): All currently open bursary opportunities, filterable by county and ward.
+- [Apply (Secondary)](/apply/secondary): Application form for secondary school students using NEMIS ID.
+- [Apply (University)](/apply/university): Application form for university and college students.
+- [Track Application](/track): Real-time status lookup for a submitted application using a tracking number (BKE-XXXXXX).
+- [FAQ](/faq): Common questions on eligibility, documents, disbursement, and data privacy.
