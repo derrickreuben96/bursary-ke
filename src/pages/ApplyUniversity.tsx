@@ -136,6 +136,11 @@ function ApplicationFormContent() {
 export default function ApplyUniversity() {
   return (
     <ApplicationProvider>
+      <Seo
+        title="Apply for a University Bursary | Bursary-KE"
+        description="Apply for a university or college bursary in Kenya. Use your Student ID and household details — fully online and tracked in real time."
+        path="/apply/university"
+      />
       <ApplicationFormContent />
     </ApplicationProvider>
   );

@@ -29,6 +29,20 @@ export default function FAQ() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <Seo
+        title="Frequently Asked Questions — Bursary-KE"
+        description="Answers to common questions about eligibility, required documents, processing time, fund disbursement, and data privacy on Bursary-KE."
+        path="/faq"
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: faqItems.map((f) => ({
+            "@type": "Question",
+            name: f.question.en,
+            acceptedAnswer: { "@type": "Answer", text: f.answer.en },
+          })),
+        }}
+      />
       <Header />
       <main className="flex-1">
         {/* Hero Section */}

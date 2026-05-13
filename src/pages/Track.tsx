@@ -162,6 +162,11 @@ export default function Track() {
 
   return (
     <div className="min-h-screen flex flex-col bg-secondary/30">
+      <Seo
+        title="Track Your Bursary Application | Bursary-KE"
+        description="Look up the real-time status of your Bursary-KE application using your tracking number (BKE-XXXXXX) and verification details."
+        path="/track"
+      />
       <Header />
       
       <main className="flex-1 py-12">
