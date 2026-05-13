@@ -13,6 +13,7 @@ import { isValidTrackingNumber } from "@/lib/maskData";
 import { sampleTrackingData, type TrackingInfo } from "@/lib/mockData";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
+import { Seo } from "@/components/seo/Seo";
 
 export default function Track() {
   const [searchParams] = useSearchParams();
