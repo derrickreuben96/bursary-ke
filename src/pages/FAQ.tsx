@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { AIChatWidget } from "@/components/chat/AIChatWidget";
 import { useI18n } from "@/lib/i18n";
+import { Seo } from "@/components/seo/Seo";
 
 export default function FAQ() {
   const [showAIChat, setShowAIChat] = useState(false);

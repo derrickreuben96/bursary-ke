@@ -14,6 +14,7 @@ import { ApplicationProvider, useApplication } from "@/context/ApplicationContex
 import { FormAssistant } from "@/components/chat/FormAssistant";
 import { GraduationCap, ArrowLeft, ArrowRight } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
+import { Seo } from "@/components/seo/Seo";
 
 const DEFAULT_DOCS = [
   "National ID (Parent/Guardian)",

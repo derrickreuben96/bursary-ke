@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { GraduationCap, Shield, Lock, ArrowLeft, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
+import { Seo } from "@/components/seo/Seo";
 
 const DEFAULT_DOCS = [
   "National ID (Parent/Guardian)",
