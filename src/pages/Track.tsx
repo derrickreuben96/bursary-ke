@@ -13,6 +13,7 @@ import { isValidTrackingNumber } from "@/lib/maskData";
 import { sampleTrackingData, type TrackingInfo } from "@/lib/mockData";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
+import { Seo } from "@/components/seo/Seo";
 
 export default function Track() {
   const [searchParams] = useSearchParams();
@@ -161,6 +162,11 @@ export default function Track() {
 
   return (
     <div className="min-h-screen flex flex-col bg-secondary/30">
+      <Seo
+        title="Track Your Bursary Application | Bursary-KE"
+        description="Look up the real-time status of your Bursary-KE application using your tracking number (BKE-XXXXXX) and verification details."
+        path="/track"
+      />
       <Header />
       
       <main className="flex-1 py-12">

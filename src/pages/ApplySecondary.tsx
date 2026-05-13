@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { GraduationCap, Shield, Lock, ArrowLeft, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
+import { Seo } from "@/components/seo/Seo";
 
 const DEFAULT_DOCS = [
   "National ID (Parent/Guardian)",
@@ -157,6 +158,11 @@ function ApplicationFormContent() {
 export default function ApplySecondary() {
   return (
     <ApplicationProvider>
+      <Seo
+        title="Apply for a Secondary School Bursary | Bursary-KE"
+        description="Submit a secondary school bursary application using your NEMIS ID. Free, secure, and processed within 2–4 weeks."
+        path="/apply/secondary"
+      />
       <ApplicationFormContent />
     </ApplicationProvider>
   );

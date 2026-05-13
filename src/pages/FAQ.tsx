@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { AIChatWidget } from "@/components/chat/AIChatWidget";
 import { useI18n } from "@/lib/i18n";
+import { Seo } from "@/components/seo/Seo";
 
 export default function FAQ() {
   const [showAIChat, setShowAIChat] = useState(false);
@@ -29,6 +30,20 @@ export default function FAQ() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <Seo
+        title="Frequently Asked Questions — Bursary-KE"
+        description="Answers to common questions about eligibility, required documents, processing time, fund disbursement, and data privacy on Bursary-KE."
+        path="/faq"
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: faqItems.map((f) => ({
+            "@type": "Question",
+            name: f.question.en,
+            acceptedAnswer: { "@type": "Answer", text: f.answer.en },
+          })),
+        }}
+      />
       <Header />
       <main className="flex-1">
         {/* Hero Section */}

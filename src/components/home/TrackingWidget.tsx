@@ -95,6 +95,7 @@ export function TrackingWidget() {
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex-1">
               <Input
+                aria-label={t("tracking.title")}
                 placeholder={t("tracking.placeholder")}
                 value={trackingNumber}
                 onChange={(e) => {

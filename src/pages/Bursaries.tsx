@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { Seo } from "@/components/seo/Seo";
 import { format, differenceInDays } from "date-fns";
 import { Link } from "react-router-dom";
 import { useI18n, translateDocument } from "@/lib/i18n";
@@ -176,6 +177,17 @@ export default function Bursaries() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      <Seo
+        title="Browse Bursaries — Open Opportunities Across Kenya | Bursary-KE"
+        description="Discover currently open county and ward bursary programs across Kenya. Filter by county, ward, and deadline to find the right opportunity."
+        path="/bursaries"
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          name: "Open Bursary Opportunities in Kenya",
+          url: "https://www.bursaryke.xyz/bursaries",
+        }}
+      />
       <Header />
       <main className="flex-1">
         {/* Hero Section */}
