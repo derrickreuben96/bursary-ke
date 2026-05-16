@@ -845,6 +845,51 @@ export type Database = {
         }
         Relationships: []
       }
+      seo_audit_results: {
+        Row: {
+          accessibility_score: number | null
+          best_practices_score: number | null
+          created_at: string
+          id: string
+          is_regression: boolean
+          notes: string | null
+          performance_score: number | null
+          regression_reasons: Json
+          rich_results_errors: Json
+          seo_score: number | null
+          source: string
+          url: string
+        }
+        Insert: {
+          accessibility_score?: number | null
+          best_practices_score?: number | null
+          created_at?: string
+          id?: string
+          is_regression?: boolean
+          notes?: string | null
+          performance_score?: number | null
+          regression_reasons?: Json
+          rich_results_errors?: Json
+          seo_score?: number | null
+          source?: string
+          url: string
+        }
+        Update: {
+          accessibility_score?: number | null
+          best_practices_score?: number | null
+          created_at?: string
+          id?: string
+          is_regression?: boolean
+          notes?: string | null
+          performance_score?: number | null
+          regression_reasons?: Json
+          rich_results_errors?: Json
+          seo_score?: number | null
+          source?: string
+          url?: string
+        }
+        Relationships: []
+      }
       student_beneficiaries: {
         Row: {
           admission_number: string | null
