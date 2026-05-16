@@ -1,0 +1,39 @@
+name: SEO Audit
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for deploy to propagate
+        run: sleep 45
+
+      - name: Run SEO audit (Lighthouse + Rich Results)
+        env:
+          SUPABASE_URL: https://adhoebapzgtjrexhwame.supabase.co
+          SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkaG9lYmFwemd0anJleGh3YW1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkxNjk5NDgsImV4cCI6MjA4NDc0NTk0OH0.g_sFtlgW3DM6KcKqCVf1YjTWR1vzPxfLjIzt1CsNxoo
+        run: |
+          set -e
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+            "$SUPABASE_URL/functions/v1/seo-audit" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{"url":"https://www.bursaryke.xyz/","source":"github_actions"}')
+          BODY=$(echo "$RESPONSE" | sed '$d')
+          STATUS=$(echo "$RESPONSE" | tail -n1)
+          echo "Status: $STATUS"
+          echo "$BODY" | python3 -m json.tool || echo "$BODY"
+          echo "::notice title=SEO Audit::Status $STATUS"
+          if [ "$STATUS" = "409" ]; then
+            echo "::error title=SEO Regression::Lighthouse/Rich Results regression detected. See body above."
+            exit 1
+          fi
+          if [ "$STATUS" != "200" ]; then
+            echo "::error title=Audit failed::Edge function returned $STATUS"
+            exit 1
+          fi
