@@ -12,6 +12,7 @@ import ApplySecondary from "./pages/ApplySecondary";
 import Bursaries from "./pages/Bursaries";
 import FAQ from "./pages/FAQ";
 import Unsubscribe from "./pages/Unsubscribe";
+import EmailUnsubscribe from "./pages/EmailUnsubscribe";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminLogin from "./pages/AdminLogin";
 import AdminAllocation from "./pages/AdminAllocation";
@@ -40,6 +41,7 @@ const App = () => (
             <Route path="/apply/secondary" element={<ApplySecondary />} />
             <Route path="/faq" element={<FAQ />} />
             <Route path="/unsubscribe" element={<Unsubscribe />} />
+            <Route path="/email-unsubscribe" element={<EmailUnsubscribe />} />
             <Route path="/admin/login" element={<AdminLogin />} />
 <Route path="/treasury/login" element={<TreasuryLogin />} />
             <Route
