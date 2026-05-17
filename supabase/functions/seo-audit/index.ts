@@ -180,20 +180,20 @@ Deno.serve(async (req) => {
     });
     if (insertErr) console.error("insert failed:", insertErr);
 
-    // EMAIL NOTIFICATION — enable once a Lovable sender domain is verified
-    // OR a Resend API key is added. Currently disabled; regressions surface
-    // via GitHub Actions failure + the seo_audit_results table.
-    //
-    // if (isRegression) {
-    //   await supabase.functions.invoke("send-transactional-email", {
-    //     body: {
-    //       templateName: "seo-regression-alert",
-    //       recipientEmail: "derrickreuben96@gmail.com",
-    //       idempotencyKey: `seo-regression-${new Date().toISOString()}`,
-    //       templateData: { url, scores, reasons, richIssues },
-    //     },
-    //   });
-    // }
+    if (isRegression) {
+      try {
+        await supabase.functions.invoke("send-transactional-email", {
+          body: {
+            templateName: "seo-regression-alert",
+            recipientEmail: "derrickreuben96@gmail.com",
+            idempotencyKey: `seo-regression-${new Date().toISOString().slice(0, 16)}`,
+            templateData: { url, scores, reasons, richIssues },
+          },
+        });
+      } catch (e) {
+        console.error("alert email failed:", e);
+      }
+    }
 
     return new Response(
       JSON.stringify({ url, scores, richIssues, isRegression, reasons }),
