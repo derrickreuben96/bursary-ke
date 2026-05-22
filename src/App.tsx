@@ -17,6 +17,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminLogin from "./pages/AdminLogin";
 import AdminAllocation from "./pages/AdminAllocation";
 import AdminAdverts from "./pages/AdminAdverts";
+import AdminDisbursements from "./pages/AdminDisbursements";
 import AdminUserManagement from "./pages/AdminUserManagement";
 import TreasuryLogin from "./pages/TreasuryLogin";
 import TreasuryDashboard from "./pages/TreasuryDashboard";
@@ -93,6 +94,15 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/admin/disbursements"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <AdminDisbursements />
+                </ProtectedRoute>
+              }
+            />
+
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

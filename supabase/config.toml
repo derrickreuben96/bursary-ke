@@ -40,3 +40,10 @@ verify_jwt = false
 
 [functions.handle-email-suppression]
 verify_jwt = false
+
+[functions.disbursement-trigger]
+verify_jwt = false
+
+[functions.disbursement-webhook]
+verify_jwt = false
+

@@ -224,6 +224,14 @@ export default function AdminDashboard() {
               Manage Adverts
             </Button>
             <Button
+              onClick={() => navigate("/admin/disbursements")}
+              variant="secondary"
+              className="hover:scale-105 transition-transform"
+            >
+              <Banknote className="mr-2 h-4 w-4" />
+              Disbursements (IPN)
+            </Button>
+            <Button
               onClick={() => navigate("/admin/users")}
               className="hover:scale-105 transition-transform"
             >

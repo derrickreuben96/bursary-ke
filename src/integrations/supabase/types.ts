@@ -491,6 +491,66 @@ export type Database = {
         }
         Relationships: []
       }
+      disbursements: {
+        Row: {
+          amount: number
+          application_id: string | null
+          completed_at: string | null
+          county: string | null
+          created_at: string
+          id: string
+          last_error: string | null
+          parent_application_id: string | null
+          payment_reference: string | null
+          provider: string | null
+          retry_count: number
+          school_name: string | null
+          status: string
+          student_id: string | null
+          triggered_at: string
+          triggered_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          application_id?: string | null
+          completed_at?: string | null
+          county?: string | null
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          parent_application_id?: string | null
+          payment_reference?: string | null
+          provider?: string | null
+          retry_count?: number
+          school_name?: string | null
+          status?: string
+          student_id?: string | null
+          triggered_at?: string
+          triggered_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          application_id?: string | null
+          completed_at?: string | null
+          county?: string | null
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          parent_application_id?: string | null
+          payment_reference?: string | null
+          provider?: string | null
+          retry_count?: number
+          school_name?: string | null
+          status?: string
+          student_id?: string | null
+          triggered_at?: string
+          triggered_by?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -577,6 +637,56 @@ export type Database = {
           used_at?: string | null
         }
         Relationships: []
+      }
+      erp_notifications: {
+        Row: {
+          ack_timestamp: string | null
+          created_at: string
+          delivery_status: string
+          disbursement_id: string
+          id: string
+          last_error: string | null
+          payload_json: Json
+          retry_count: number
+          school_name: string | null
+          student_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          ack_timestamp?: string | null
+          created_at?: string
+          delivery_status?: string
+          disbursement_id: string
+          id?: string
+          last_error?: string | null
+          payload_json?: Json
+          retry_count?: number
+          school_name?: string | null
+          student_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ack_timestamp?: string | null
+          created_at?: string
+          delivery_status?: string
+          disbursement_id?: string
+          id?: string
+          last_error?: string | null
+          payload_json?: Json
+          retry_count?: number
+          school_name?: string | null
+          student_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "erp_notifications_disbursement_id_fkey"
+            columns: ["disbursement_id"]
+            isOneToOne: false
+            referencedRelation: "disbursements"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       fairness_audit_log: {
         Row: {
@@ -823,6 +933,47 @@ export type Database = {
           workflow_stage?: string
         }
         Relationships: []
+      }
+      payment_transactions: {
+        Row: {
+          created_at: string
+          disbursement_id: string
+          id: string
+          provider: string
+          provider_reference: string | null
+          request_payload: Json
+          response_payload: Json
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          disbursement_id: string
+          id?: string
+          provider: string
+          provider_reference?: string | null
+          request_payload?: Json
+          response_payload?: Json
+          status: string
+        }
+        Update: {
+          created_at?: string
+          disbursement_id?: string
+          id?: string
+          provider?: string
+          provider_reference?: string | null
+          request_payload?: Json
+          response_payload?: Json
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_transactions_disbursement_id_fkey"
+            columns: ["disbursement_id"]
+            isOneToOne: false
+            referencedRelation: "disbursements"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
