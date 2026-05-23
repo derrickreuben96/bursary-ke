@@ -162,19 +162,17 @@ describe.skipIf(!hasEnv)("RLS — anon access control", () => {
     expect([200, 201]).toContain(status);
   }, 15_000);
 
-  it("storage upload under an EXISTING tracking_number folder is allowed (post-submission)", async () => {
-    // Look up a real tracking number from the public-readable adverts? No — applications are RLS-protected.
-    // Instead, use the public bursary_adverts surface to confirm anon connectivity, then attempt upload
-    // using a known-existing tracking number passed via env, falling back to skip.
-    const sb = anonClient();
-    // We can't read tracking numbers as anon (correctly RLS-blocked), so we rely on the
-    // policy: upload should succeed when folder == any tracking_number in bursary_applications.
-    // Use a tracking number provided at test-time via VITE_TEST_TRACKING_NUMBER.
-    const tn = (import.meta.env.VITE_TEST_TRACKING_NUMBER as string | undefined) ?? "BKE-2B1286";
-    const status = await uploadViaRest(`${tn}/post-submit-${Date.now()}.txt`);
-    expect([200, 201]).toContain(status);
-    void sb;
-  }, 15_000);
+  it.skipIf(!import.meta.env.VITE_TEST_TRACKING_NUMBER)(
+    "storage upload under an EXISTING tracking_number folder is allowed (post-submission)",
+    async () => {
+      const sb = anonClient();
+      const tn = import.meta.env.VITE_TEST_TRACKING_NUMBER as string;
+      const status = await uploadViaRest(`${tn}/post-submit-${Date.now()}.txt`);
+      expect([200, 201]).toContain(status);
+      void sb;
+    },
+    15_000,
+  );
 
   it("storage upload under a malformed/lowercase tracking_number is blocked", async () => {
     const status = await uploadViaRest(`bke-aaaaaa/test.txt`);
@@ -237,8 +235,12 @@ describe.skipIf(!hasEnv)("RLS — anon access control", () => {
     expect([400, 401, 403]).toContain(status);
   }, 15_000);
 
-  it("upload to EXACT tracking_number folder still succeeds (control)", async () => {
-    const status = await uploadViaRest(`${tn}/edge-control-${Date.now()}.txt`);
-    expect([200, 201]).toContain(status);
-  }, 15_000);
+  it.skipIf(!import.meta.env.VITE_TEST_TRACKING_NUMBER)(
+    "upload to EXACT tracking_number folder still succeeds (control)",
+    async () => {
+      const status = await uploadViaRest(`${tn}/edge-control-${Date.now()}.txt`);
+      expect([200, 201]).toContain(status);
+    },
+    15_000,
+  );
 });
