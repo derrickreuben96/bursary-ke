@@ -4,13 +4,22 @@ import { screen, within } from "@testing-library/dom";
 import { MemoryRouter } from "react-router-dom";
 
 // Stub Supabase + auth + service hooks BEFORE importing the dashboard.
-vi.mock("@/integrations/supabase/client", () => ({
-  supabase: {
-    from: () => ({ select: () => ({ eq: () => ({ order: () => Promise.resolve({ data: [], error: null }) }) }) }),
-    auth: { getSession: () => Promise.resolve({ data: { session: null } }) },
-    functions: { invoke: () => Promise.resolve({ data: null, error: null }) },
-  },
-}));
+vi.mock("@/integrations/supabase/client", () => {
+  const channel = {
+    on: () => channel,
+    subscribe: () => channel,
+    unsubscribe: () => Promise.resolve("ok"),
+  };
+  return {
+    supabase: {
+      from: () => ({ select: () => ({ eq: () => ({ order: () => Promise.resolve({ data: [], error: null }) }) }) }),
+      auth: { getSession: () => Promise.resolve({ data: { session: null } }) },
+      functions: { invoke: () => Promise.resolve({ data: null, error: null }) },
+      channel: () => channel,
+      removeChannel: () => Promise.resolve("ok"),
+    },
+  };
+});
 
 vi.mock("@/hooks/useAuth", () => ({
   useAuth: () => ({
