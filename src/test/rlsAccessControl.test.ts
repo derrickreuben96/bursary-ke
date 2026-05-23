@@ -235,8 +235,12 @@ describe.skipIf(!hasEnv)("RLS — anon access control", () => {
     expect([400, 401, 403]).toContain(status);
   }, 15_000);
 
-  it("upload to EXACT tracking_number folder still succeeds (control)", async () => {
-    const status = await uploadViaRest(`${tn}/edge-control-${Date.now()}.txt`);
-    expect([200, 201]).toContain(status);
-  }, 15_000);
+  it.skipIf(!import.meta.env.VITE_TEST_TRACKING_NUMBER)(
+    "upload to EXACT tracking_number folder still succeeds (control)",
+    async () => {
+      const status = await uploadViaRest(`${tn}/edge-control-${Date.now()}.txt`);
+      expect([200, 201]).toContain(status);
+    },
+    15_000,
+  );
 });
