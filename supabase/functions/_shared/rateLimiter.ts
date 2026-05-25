@@ -60,24 +60,29 @@ export function checkRateLimit(
  * Handles various proxy headers commonly used
  */
 export function getClientIp(req: Request): string {
-  // Check common headers for real IP behind proxies
-  const forwarded = req.headers.get("x-forwarded-for");
-  if (forwarded) {
-    // x-forwarded-for can be comma-separated list, get first IP
-    return forwarded.split(",")[0].trim();
-  }
-
-  const realIp = req.headers.get("x-real-ip");
-  if (realIp) {
-    return realIp;
-  }
-
+  // Prefer cf-connecting-ip — set by Cloudflare edge, not user-overridable
   const cfConnectingIp = req.headers.get("cf-connecting-ip");
   if (cfConnectingIp) {
     return cfConnectingIp;
   }
 
-  // Fallback - use a hash of user agent + other headers as identifier
+  // x-real-ip is typically set by the platform's reverse proxy
+  const realIp = req.headers.get("x-real-ip");
+  if (realIp) {
+    return realIp;
+  }
+
+  // x-forwarded-for is client-spoofable; use only as last resort.
+  // Take the LAST entry, which is closer to the platform's view of the caller.
+  const forwarded = req.headers.get("x-forwarded-for");
+  if (forwarded) {
+    const parts = forwarded.split(",").map((p) => p.trim()).filter(Boolean);
+    if (parts.length > 0) {
+      return parts[parts.length - 1];
+    }
+  }
+
+  // Fallback - use a hash of user agent as identifier
   const userAgent = req.headers.get("user-agent") || "unknown";
   return `ua-${hashString(userAgent)}`;
 }
