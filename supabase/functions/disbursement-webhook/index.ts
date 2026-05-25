@@ -11,13 +11,15 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    // Optional shared-secret check
+    // Mandatory shared-secret check
     const expected = Deno.env.get('DISBURSEMENT_WEBHOOK_SECRET');
-    if (expected) {
-      const provided = req.headers.get('x-webhook-secret');
-      if (provided !== expected) {
-        return new Response(JSON.stringify({ error: 'forbidden' }), { status: 403, headers: corsHeaders });
-      }
+    if (!expected) {
+      console.error('DISBURSEMENT_WEBHOOK_SECRET is not configured');
+      return new Response(JSON.stringify({ error: 'server misconfigured' }), { status: 500, headers: corsHeaders });
+    }
+    const provided = req.headers.get('x-webhook-secret');
+    if (provided !== expected) {
+      return new Response(JSON.stringify({ error: 'forbidden' }), { status: 403, headers: corsHeaders });
     }
 
     const body = await req.json();
