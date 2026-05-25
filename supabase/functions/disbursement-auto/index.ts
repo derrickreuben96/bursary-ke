@@ -13,11 +13,13 @@ Deno.serve(async (req) => {
 
   try {
     const expected = Deno.env.get('IPN_INTERNAL_SECRET');
-    if (expected) {
-      const provided = req.headers.get('x-internal-secret');
-      if (provided !== expected) {
-        return new Response(JSON.stringify({ error: 'forbidden' }), { status: 403, headers: corsHeaders });
-      }
+    if (!expected) {
+      console.error('IPN_INTERNAL_SECRET is not configured');
+      return new Response(JSON.stringify({ error: 'server misconfigured' }), { status: 500, headers: corsHeaders });
+    }
+    const provided = req.headers.get('x-internal-secret');
+    if (provided !== expected) {
+      return new Response(JSON.stringify({ error: 'forbidden' }), { status: 403, headers: corsHeaders });
     }
 
     const body = await req.json().catch(() => ({}));
