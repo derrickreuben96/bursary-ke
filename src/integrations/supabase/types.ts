@@ -1447,6 +1447,7 @@ export type Database = {
           year_of_study: string
         }[]
       }
+      get_internal_config: { Args: { _key: string }; Returns: string }
       get_parent_application_by_tracking: {
         Args: { _tracking: string; _verifier: string }
         Returns: Json
