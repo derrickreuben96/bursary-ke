@@ -8,17 +8,33 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-internal-secret',
 };
 
+let cachedInternalSecret: string | null = null;
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    const expected = Deno.env.get('IPN_INTERNAL_SECRET');
-    if (!expected) {
-      console.error('IPN_INTERNAL_SECRET is not configured');
+    const admin = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
+
+    // Fetch shared internal secret from private DB config (canonical),
+    // fall back to env var. Authentication is mandatory.
+    if (!cachedInternalSecret) {
+      const { data, error } = await admin.rpc('get_internal_config', { _key: 'ipn_internal_secret' });
+      if (!error && typeof data === 'string' && data.length > 0) {
+        cachedInternalSecret = data;
+      } else {
+        cachedInternalSecret = Deno.env.get('IPN_INTERNAL_SECRET') || null;
+      }
+    }
+    if (!cachedInternalSecret) {
+      console.error('Internal secret not configured (DB or env)');
       return new Response(JSON.stringify({ error: 'server misconfigured' }), { status: 500, headers: corsHeaders });
     }
     const provided = req.headers.get('x-internal-secret');
-    if (provided !== expected) {
+    if (provided !== cachedInternalSecret) {
       return new Response(JSON.stringify({ error: 'forbidden' }), { status: 403, headers: corsHeaders });
     }
 
@@ -28,10 +44,6 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'student_id required' }), { status: 400, headers: corsHeaders });
     }
 
-    const admin = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
 
     const { data: student, error: stuErr } = await admin
       .from('student_beneficiaries')
