@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { ApplicationData } from "@/context/ApplicationContext";
-import { calculatePovertyScore, getPovertyTier } from "@/lib/validationSchemas";
+// Poverty score & tier are computed server-side in submit_parent_application RPC.
 
 export interface SubmitApplicationParams {
   data: ApplicationData;
