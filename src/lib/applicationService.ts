@@ -105,8 +105,9 @@ export async function submitApplication(
           sms_consent: data.parentGuardian?.consentNotifications || false,
           household_income: data.povertyQuestionnaire?.householdIncome || 0,
           household_dependents: data.povertyQuestionnaire?.numberOfDependents || 0,
-          poverty_score: povertyScore,
-          poverty_tier: povertyTier,
+          // Raw questionnaire answers — server recomputes score & tier authoritatively
+          poverty_answers: povertyAnswers,
+
         },
         _students: repeaterStudents.map((s) => ({
           student_full_name: s.studentName,
