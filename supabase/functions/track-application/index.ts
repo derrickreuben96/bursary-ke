@@ -19,13 +19,11 @@ const RATE_LIMIT_CONFIG = {
 };
 
 const TrackingSchema = z.object({
-  trackingNumber: z.string().regex(/^BKE-[A-Z0-9]{6}$/i, "Invalid tracking number format").optional(),
-  verificationValue: z.string().min(1).optional(),
-  verificationType: z.enum(["phone", "national_id"]).optional(),
-}).refine(
-  (v) => !!v.trackingNumber || (!!v.verificationValue && !!v.verificationType),
-  { message: "Provide a tracking number, or a phone/national ID to search by" }
-);
+  trackingNumber: z.string().regex(/^BKE-[A-Z0-9]{6}$/i, "Invalid tracking number format"),
+  verificationValue: z.string().min(1, "Verification value is required"),
+  verificationType: z.enum(["phone", "national_id"]),
+});
+
 
 function phoneVariants(phone: string): string[] {
   const cleaned = phone.replace(/\s+/g, "").replace(/-/g, "");
