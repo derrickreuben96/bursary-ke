@@ -139,38 +139,11 @@ export async function submitApplication(
         throw new Error(msg || "Failed to submit application");
       }
 
-      // 3b. LEGACY mirror — keep one row in bursary_applications so existing
-      //     commissioner/admin/treasury views continue to function until they
-      //     migrate to the parent_applications schema.
-      const firstStudent = repeaterStudents[0];
-      const { error: legacyInsertError } = await supabase
-        .from("bursary_applications")
-        .insert({
-          tracking_number: trackingNumber,
-          student_type: firstStudent.studentType,
-          status: "received",
-          advert_id: advertId || null,
-          parent_national_id: nationalId,
-          parent_full_name: data.parentGuardian?.fullName || "Guardian",
-          parent_phone: data.parentGuardian?.phoneNumber || "",
-          parent_email: data.parentGuardian?.email || null,
-          parent_county: data.parentGuardian?.county || "Not Specified",
-          parent_ward: data.parentGuardian?.ward || null,
-          sms_consent: data.parentGuardian?.consentNotifications || false,
-          student_full_name: firstStudent.studentName,
-          student_id: firstStudent.identifier,
-          institution_name: firstStudent.institution,
-          year_of_study: firstStudent.yearOfStudy || null,
-          class_form: firstStudent.classForm || null,
-          household_income: data.povertyQuestionnaire?.householdIncome || 0,
-          household_dependents: data.povertyQuestionnaire?.numberOfDependents || 0,
-          poverty_score: povertyScore,
-          poverty_tier: povertyTier,
-        });
-      if (legacyInsertError) {
-        // Non-fatal — parent_applications row already saved. Just log.
-        console.warn("Legacy mirror insert failed (non-fatal):", legacyInsertError);
-      }
+      // Legacy mirror row in bursary_applications is now written inside the
+      // submit_parent_application RPC (SECURITY DEFINER). The public INSERT
+      // policy was removed to force all submissions through the vetted RPC,
+      // so the client no longer inserts directly here.
+
 
       return { trackingNumber, error: null };
     } catch (error) {
