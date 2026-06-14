@@ -54,11 +54,12 @@ export async function submitApplication(
       }
       const trackingNumber = trackingData as string;
 
-      const povertyScore = data.povertyQuestionnaire
-        ? calculatePovertyScore(data.povertyQuestionnaire)
-        : 0;
-      const povertyTier = getPovertyTier(povertyScore);
+      // Poverty score & tier are computed authoritatively server-side inside
+      // the submit_parent_application RPC from the raw questionnaire answers.
+      // We pass the answers (not a pre-computed score) so clients can't fake priority.
+      const povertyAnswers = data.povertyQuestionnaire ?? null;
       const studentType = params.studentType;
+
 
       // Build students array. Prefer multi-student repeater data when present.
       const repeaterStudents = (data.students && data.students.length > 0)
