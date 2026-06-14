@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { ApplicationData } from "@/context/ApplicationContext";
-import { calculatePovertyScore, getPovertyTier } from "@/lib/validationSchemas";
+// Poverty score & tier are computed server-side in submit_parent_application RPC.
 
 export interface SubmitApplicationParams {
   data: ApplicationData;
@@ -54,11 +54,12 @@ export async function submitApplication(
       }
       const trackingNumber = trackingData as string;
 
-      const povertyScore = data.povertyQuestionnaire
-        ? calculatePovertyScore(data.povertyQuestionnaire)
-        : 0;
-      const povertyTier = getPovertyTier(povertyScore);
+      // Poverty score & tier are computed authoritatively server-side inside
+      // the submit_parent_application RPC from the raw questionnaire answers.
+      // We pass the answers (not a pre-computed score) so clients can't fake priority.
+      const povertyAnswers = data.povertyQuestionnaire ?? null;
       const studentType = params.studentType;
+
 
       // Build students array. Prefer multi-student repeater data when present.
       const repeaterStudents = (data.students && data.students.length > 0)
@@ -104,8 +105,9 @@ export async function submitApplication(
           sms_consent: data.parentGuardian?.consentNotifications || false,
           household_income: data.povertyQuestionnaire?.householdIncome || 0,
           household_dependents: data.povertyQuestionnaire?.numberOfDependents || 0,
-          poverty_score: povertyScore,
-          poverty_tier: povertyTier,
+          // Raw questionnaire answers — server recomputes score & tier authoritatively
+          poverty_answers: povertyAnswers,
+
         },
         _students: repeaterStudents.map((s) => ({
           student_full_name: s.studentName,

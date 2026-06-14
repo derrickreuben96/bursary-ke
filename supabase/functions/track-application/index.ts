@@ -19,13 +19,11 @@ const RATE_LIMIT_CONFIG = {
 };
 
 const TrackingSchema = z.object({
-  trackingNumber: z.string().regex(/^BKE-[A-Z0-9]{6}$/i, "Invalid tracking number format").optional(),
-  verificationValue: z.string().min(1).optional(),
-  verificationType: z.enum(["phone", "national_id"]).optional(),
-}).refine(
-  (v) => !!v.trackingNumber || (!!v.verificationValue && !!v.verificationType),
-  { message: "Provide a tracking number, or a phone/national ID to search by" }
-);
+  trackingNumber: z.string().regex(/^BKE-[A-Z0-9]{6}$/i, "Invalid tracking number format"),
+  verificationValue: z.string().min(1, "Verification value is required"),
+  verificationType: z.enum(["phone", "national_id"]),
+});
+
 
 function phoneVariants(phone: string): string[] {
   const cleaned = phone.replace(/\s+/g, "").replace(/-/g, "");
@@ -74,22 +72,15 @@ Deno.serve(async (req) => {
       .from("bursary_applications")
       .select("tracking_number, student_type, status, created_at, updated_at, allocated_amount, institution_name, released_to_treasury");
 
-    if (trackingNumber) {
-      query = query.eq("tracking_number", trackingNumber.toUpperCase());
-      if (verificationValue && verificationType === "phone") {
-        const variants = phoneVariants(verificationValue);
-        query = query.or(variants.map((v) => `parent_phone.eq.${v}`).join(","));
-      } else if (verificationValue && verificationType === "national_id") {
-        query = query.eq("parent_national_id", verificationValue);
-      }
-    } else if (verificationType === "phone" && verificationValue) {
+    query = query.eq("tracking_number", trackingNumber.toUpperCase());
+    if (verificationType === "phone") {
       const variants = phoneVariants(verificationValue);
       query = query.or(variants.map((v) => `parent_phone.eq.${v}`).join(","));
-    } else if (verificationType === "national_id" && verificationValue) {
+    } else {
       query = query.eq("parent_national_id", verificationValue);
     }
-    // Most-recent first when searching by ID/phone alone
-    query = query.order("created_at", { ascending: false }).limit(1);
+    query = query.limit(1);
+
 
     const { data: rows, error } = await query;
     const data = rows && rows.length > 0 ? rows[0] : null;
