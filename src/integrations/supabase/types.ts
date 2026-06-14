@@ -1409,6 +1409,13 @@ export type Database = {
       }
     }
     Functions: {
+      compute_poverty_score: {
+        Args: { _answers: Json }
+        Returns: {
+          score: number
+          tier: string
+        }[]
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
