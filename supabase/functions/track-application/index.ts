@@ -72,22 +72,15 @@ Deno.serve(async (req) => {
       .from("bursary_applications")
       .select("tracking_number, student_type, status, created_at, updated_at, allocated_amount, institution_name, released_to_treasury");
 
-    if (trackingNumber) {
-      query = query.eq("tracking_number", trackingNumber.toUpperCase());
-      if (verificationValue && verificationType === "phone") {
-        const variants = phoneVariants(verificationValue);
-        query = query.or(variants.map((v) => `parent_phone.eq.${v}`).join(","));
-      } else if (verificationValue && verificationType === "national_id") {
-        query = query.eq("parent_national_id", verificationValue);
-      }
-    } else if (verificationType === "phone" && verificationValue) {
+    query = query.eq("tracking_number", trackingNumber.toUpperCase());
+    if (verificationType === "phone") {
       const variants = phoneVariants(verificationValue);
       query = query.or(variants.map((v) => `parent_phone.eq.${v}`).join(","));
-    } else if (verificationType === "national_id" && verificationValue) {
+    } else {
       query = query.eq("parent_national_id", verificationValue);
     }
-    // Most-recent first when searching by ID/phone alone
-    query = query.order("created_at", { ascending: false }).limit(1);
+    query = query.limit(1);
+
 
     const { data: rows, error } = await query;
     const data = rows && rows.length > 0 ? rows[0] : null;
