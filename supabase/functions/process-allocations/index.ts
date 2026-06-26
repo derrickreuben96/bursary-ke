@@ -126,6 +126,26 @@ Deno.serve(async (req) => {
 
     if (advertError || !advert) throw new Error("Advert not found");
 
+    // Jurisdiction enforcement: non-admin, non-service callers must match advert's ward/county
+    if (!authResult.isServiceRole && authResult.role !== 'admin' && authResult.user) {
+      const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('assigned_county, assigned_ward')
+        .eq('user_id', authResult.user.id)
+        .single();
+      const wardMatches = advert.ward && profile?.assigned_ward && advert.ward === profile.assigned_ward;
+      const countyMatches = advert.county && profile?.assigned_county && advert.county === profile.assigned_county;
+      // If advert is ward-specific, require ward match; else require county match
+      const allowed = advert.ward ? wardMatches : countyMatches;
+      if (!allowed) {
+        return new Response(
+          JSON.stringify({ error: 'Forbidden – outside your jurisdiction' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+
     const deadline = new Date(advert.deadline);
     if (new Date() < deadline) {
       return new Response(
