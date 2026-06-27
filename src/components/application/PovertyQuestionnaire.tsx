@@ -33,31 +33,54 @@ interface PovertyQuestionnaireProps {
 
 export function PovertyQuestionnaire({ onNext, onBack }: PovertyQuestionnaireProps) {
   const { data, updateData } = useApplication();
-  
+
   // Generate randomized questions once per session
   const questions = useMemo(() => getRandomizedQuestions(10), []);
-  
-  // Build dynamic schema based on questions
+
+  // How many students are on this application (1-3). Per-student questions
+  // expand into one field per student.
+  const studentList = (data.students && data.students.length > 0) ? data.students : [];
+  const studentCount = Math.max(1, studentList.length);
+  const studentLabel = (idx: number) => {
+    const s = studentList[idx];
+    return s?.studentName?.trim() || `Student ${idx + 1}`;
+  };
+
+  // Build dynamic schema based on questions (per-student questions get one
+  // field per student, e.g. `disability_student::s0`).
   const dynamicSchema = useMemo(() => {
     const schemaFields: Record<string, z.ZodTypeAny> = {};
-    questions.forEach(q => {
-      schemaFields[q.id] = z.string().min(1, "Please select an option");
+    questions.forEach((q) => {
+      if (q.perStudent && studentCount > 1) {
+        for (let i = 0; i < studentCount; i++) {
+          schemaFields[`${q.id}::s${i}`] = z.string().min(1, "Please select an option");
+        }
+      } else {
+        schemaFields[q.id] = z.string().min(1, "Please select an option");
+      }
     });
     schemaFields.additionalCircumstances = z.string().max(500).optional();
     return z.object(schemaFields);
-  }, [questions]);
+  }, [questions, studentCount]);
 
   type DynamicFormData = z.infer<typeof dynamicSchema>;
 
-  // Build default values
   const defaultValues = useMemo(() => {
     const values: Record<string, string> = {};
-    questions.forEach(q => {
-      values[q.id] = (data.povertyQuestionnaire as any)?.[q.id] || "";
+    const prev = (data.povertyQuestionnaire || {}) as Record<string, unknown>;
+    questions.forEach((q) => {
+      if (q.perStudent && studentCount > 1) {
+        for (let i = 0; i < studentCount; i++) {
+          const key = `${q.id}::s${i}`;
+          values[key] = (prev[key] as string) || "";
+        }
+      } else {
+        values[q.id] = (prev[q.id] as string) || "";
+      }
     });
-    values.additionalCircumstances = (data.povertyQuestionnaire as any)?.additionalCircumstances || "";
+    values.additionalCircumstances = (prev.additionalCircumstances as string) || "";
     return values;
-  }, [questions, data.povertyQuestionnaire]);
+  }, [questions, data.povertyQuestionnaire, studentCount]);
 
   const form = useForm<DynamicFormData>({
     resolver: zodResolver(dynamicSchema),
@@ -65,32 +88,33 @@ export function PovertyQuestionnaire({ onNext, onBack }: PovertyQuestionnairePro
   });
 
   const onSubmit = (formData: DynamicFormData) => {
-    // Calculate poverty score from answers
-    const { percentage } = calculatePovertyScoreFromAnswers(formData, questions);
-    
-    // Store the raw answers plus calculated metrics
-    updateData({ 
+    const { percentage } = calculatePovertyScoreFromAnswers(
+      formData as Record<string, string>,
+      questions,
+      studentCount,
+    );
+
+    updateData({
       povertyQuestionnaire: {
         ...formData,
-        householdIncome: percentage, // Store as percentage for backward compatibility
-        numberOfDependents: 4, // Default for backward compatibility
+        householdIncome: percentage,
+        numberOfDependents: 4,
         housingType: "Other" as const,
         accessToUtilities: { electricity: true, water: true, internet: false },
         parentalEmployment: "One Employed" as const,
         otherChildrenInSchool: 2,
         receivesOtherAid: false,
         _rawAnswers: formData,
-        _questions: questions.map(q => q.id),
+        _questions: questions.map((q) => q.id),
         _calculatedScore: percentage,
-      } as any
+      } as never,
     });
     onNext();
   };
 
-  // Group questions by category for better UX
   const groupedQuestions = useMemo(() => {
     const groups: Record<string, PovertyQuestion[]> = {};
-    questions.forEach(q => {
+    questions.forEach((q) => {
       if (!groups[q.category]) groups[q.category] = [];
       groups[q.category].push(q);
     });
@@ -107,65 +131,111 @@ export function PovertyQuestionnaire({ onNext, onBack }: PovertyQuestionnairePro
     vulnerability: "🛡️ Vulnerability Factors",
   };
 
+  const renderQuestion = (question: PovertyQuestion) => {
+    const isPerStudent = question.perStudent && studentCount > 1;
+    if (!isPerStudent) {
+      return (
+        <FormField
+          key={question.id}
+          control={form.control}
+          name={question.id as keyof DynamicFormData}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-foreground">{question.question}</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value as string}>
+                <FormControl>
+                  <SelectTrigger className="bg-background">
+                    <SelectValue placeholder="Select an option" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent className="bg-background z-50">
+                  {question.options?.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      );
+    }
+
+    // Per-student: render one Select per student under a single grouped block
+    return (
+      <div key={question.id} className="rounded-lg border bg-secondary/30 p-3 space-y-3">
+        <p className="text-sm font-medium text-foreground">{question.question}</p>
+        <p className="text-xs text-muted-foreground">
+          Answer this for each student on the application.
+        </p>
+        {Array.from({ length: studentCount }).map((_, idx) => {
+          const fieldName = `${question.id}::s${idx}`;
+          return (
+            <FormField
+              key={fieldName}
+              control={form.control}
+              name={fieldName as keyof DynamicFormData}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-xs text-muted-foreground">
+                    {studentLabel(idx)}
+                  </FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value as string}>
+                    <FormControl>
+                      <SelectTrigger className="bg-background">
+                        <SelectValue placeholder="Select for this student" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent className="bg-background z-50">
+                      {question.options?.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        {/* Info Card */}
         <Card className="p-4 bg-primary/5 border-primary/20">
           <div className="flex gap-3">
             <ClipboardCheck className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
             <div>
               <p className="font-medium text-foreground">Poverty Assessment</p>
               <p className="text-sm text-muted-foreground">
-                Answer honestly—this helps us prioritize those with the greatest need. 
+                Answer honestly—this helps us prioritize those with the greatest need.
                 Your responses are confidential and used only for allocation purposes.
               </p>
             </div>
           </div>
         </Card>
 
-        {/* Randomization Notice */}
         <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
           <Shuffle className="h-4 w-4" />
           <span>Questions are randomized for each applicant to ensure fair assessment</span>
         </div>
 
-        {/* Dynamic Questions grouped by category */}
         {Object.entries(groupedQuestions).map(([category, categoryQuestions]) => (
           <div key={category} className="space-y-4">
             <h3 className="text-sm font-semibold text-muted-foreground border-b pb-2">
               {categoryLabels[category] || category}
             </h3>
-            
-            {categoryQuestions.map((question) => (
-              <FormField
-                key={question.id}
-                control={form.control}
-                name={question.id as keyof DynamicFormData}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-foreground">{question.question}</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value as string}>
-                      <FormControl>
-                        <SelectTrigger className="bg-background">
-                          <SelectValue placeholder="Select an option" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent className="bg-background z-50">
-                        {question.options?.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            ))}
+            {categoryQuestions.map(renderQuestion)}
           </div>
         ))}
+
 
         {/* Additional Circumstances */}
         <FormField
