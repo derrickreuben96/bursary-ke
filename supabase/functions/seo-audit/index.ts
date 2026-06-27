@@ -138,6 +138,27 @@ function evaluateRegression(
   return { isRegression: reasons.length > 0, reasons };
 }
 
+// Strict allowlist of URLs this auditor is permitted to fetch.
+// Prevents SSRF: any caller-supplied URL outside this list is rejected,
+// regardless of scheme, host, or IP.
+const ALLOWED_URLS = new Set<string>([
+  "https://www.bursaryke.xyz/",
+  "https://bursaryke.xyz/",
+  "https://bursary-kenya-connect.lovable.app/",
+]);
+
+function isAllowedUrl(raw: string): boolean {
+  try {
+    const u = new URL(raw);
+    if (u.protocol !== "https:") return false;
+    // Normalize trailing slash for comparison
+    const normalized = u.origin + (u.pathname === "" ? "/" : u.pathname) + u.search;
+    return ALLOWED_URLS.has(normalized) || ALLOWED_URLS.has(u.origin + "/");
+  } catch {
+    return false;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -146,6 +167,13 @@ Deno.serve(async (req) => {
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
     const url: string = body.url ?? DEFAULT_URL;
     const source: string = body.source ?? "manual";
+
+    if (!isAllowedUrl(url)) {
+      return new Response(
+        JSON.stringify({ error: "URL not permitted. Only known application domains may be audited." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -156,6 +184,8 @@ Deno.serve(async (req) => {
       runLighthouse(url),
       validateRichResults(url),
     ]);
+
+
 
     const { data: prev } = await supabase
       .from("seo_audit_results")

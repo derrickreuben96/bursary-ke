@@ -673,20 +673,29 @@ export default function CommissionerDashboard() {
       return;
     }
 
+    // HTML-escape helper to prevent XSS from DB-sourced values
+    const esc = (v: unknown) =>
+      String(v ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+
     // Build HTML for print-to-PDF
     const rows = appsToExport.map((app, i) => {
       const f = fairnessMap.get(app.id);
       return `<tr>
         <td>${i + 1}</td>
-        <td>${app.tracking_number}</td>
-        <td>${app.student_name_masked}</td>
-        <td>${app.student_type}</td>
-        <td>${app.parent_ward || app.parent_county}</td>
-        <td>${app.poverty_tier} (${app.poverty_score || 0}/100)</td>
-        <td>${f?.fraudRiskLevel || "low"}</td>
-        <td>KES ${(app.allocated_amount || 0).toLocaleString()}</td>
-        <td>${app.status}</td>
-        <td style="white-space:pre-line;max-width:300px;font-size:10px">${(app.ai_decision_reason || "—").replace(/</g, "&lt;")}</td>
+        <td>${esc(app.tracking_number)}</td>
+        <td>${esc(app.student_name_masked)}</td>
+        <td>${esc(app.student_type)}</td>
+        <td>${esc(app.parent_ward || app.parent_county)}</td>
+        <td>${esc(app.poverty_tier)} (${esc(app.poverty_score || 0)}/100)</td>
+        <td>${esc(f?.fraudRiskLevel || "low")}</td>
+        <td>KES ${esc((app.allocated_amount || 0).toLocaleString())}</td>
+        <td>${esc(app.status)}</td>
+        <td style="white-space:pre-line;max-width:300px;font-size:10px">${esc(app.ai_decision_reason || "—")}</td>
       </tr>`;
     }).join("");
 
@@ -704,8 +713,8 @@ export default function CommissionerDashboard() {
       .summary div{background:#f9f9f9;padding:8px 12px;border-radius:4px}
       @media print{body{margin:10px}th{background:#eee!important;-webkit-print-color-adjust:exact}}
     </style></head><body>
-    <h1>Bursary Allocation Report — ${filterLabel}</h1>
-    <p class="meta">Ward: ${assignedWard || "N/A"} | County: ${assignedCounty || "N/A"} | Generated: ${new Date().toLocaleDateString("en-KE", { day: "numeric", month: "long", year: "numeric" })}</p>
+    <h1>Bursary Allocation Report — ${esc(filterLabel)}</h1>
+    <p class="meta">Ward: ${esc(assignedWard || "N/A")} | County: ${esc(assignedCounty || "N/A")} | Generated: ${esc(new Date().toLocaleDateString("en-KE", { day: "numeric", month: "long", year: "numeric" }))}</p>
     <div class="summary">
       <div><strong>Total:</strong> ${appsToExport.length}</div>
       <div><strong>Approved:</strong> ${appsToExport.filter(a => a.status === "approved").length}</div>
@@ -717,6 +726,7 @@ export default function CommissionerDashboard() {
     </tr></thead><tbody>${rows}</tbody></table>
     <p style="margin-top:16px;font-size:10px;color:#888">This report contains masked data. Compliant with the Kenya Data Protection Act, 2019.</p>
     </body></html>`;
+
 
     const printWindow = window.open("", "_blank");
     if (printWindow) {
