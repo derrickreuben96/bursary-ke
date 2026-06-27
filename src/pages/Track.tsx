@@ -52,25 +52,29 @@ export default function Track() {
     const normalizedNumber = trackingNumber.toUpperCase().trim();
     const verVal = verificationValue.trim();
 
-    if (!normalizedNumber && !verVal) {
+    if (!normalizedNumber) {
       setError(t("track.error_enter_tracking"));
       return;
     }
 
-    if (normalizedNumber && !isValidTrackingNumber(normalizedNumber)) {
+    if (!isValidTrackingNumber(normalizedNumber)) {
       setError(t("track.error_invalid_format"));
+      return;
+    }
+
+    if (!verVal) {
+      setError("Please enter your phone number or National ID to verify your identity.");
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const body: Record<string, string> = {};
-      if (normalizedNumber) body.trackingNumber = normalizedNumber;
-      if (verVal) {
-        body.verificationValue = verVal;
-        body.verificationType = verificationType;
-      }
+      const body: Record<string, string> = {
+        trackingNumber: normalizedNumber,
+        verificationValue: verVal,
+        verificationType,
+      };
 
       const { data: funcData, error: funcError } = await supabase.functions.invoke(
         "track-application",
