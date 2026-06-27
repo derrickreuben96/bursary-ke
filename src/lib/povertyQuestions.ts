@@ -367,38 +367,49 @@ export function getRandomizedQuestions(count: number = 10): PovertyQuestion[] {
 // Calculate score from answers
 export function calculatePovertyScoreFromAnswers(
   answers: Record<string, string>,
-  questions: PovertyQuestion[]
+  questions: PovertyQuestion[],
+  studentCount: number = 1,
 ): { score: number; maxPossible: number; percentage: number } {
   // Each question contributes equally to the final score regardless of weight.
-  // Weight is used only for within-question scoring granularity, not cross-question comparison.
-  // This ensures applicants with different question sets are scored on the same 0-100 scale.
-  
+  // For perStudent questions, we read `${id}::s${idx}` for each student and
+  // take the MAX score (the most-needy student drives household priority).
   let totalNormalizedScore = 0;
   let answeredQuestions = 0;
 
-  questions.forEach(question => {
-    const answer = answers[question.id];
-    if (answer && question.options) {
-      const option = question.options.find(o => o.value === answer);
-      if (option) {
-        // Each question contributes its answer score (0-100) equally
-        totalNormalizedScore += option.score;
+  questions.forEach((question) => {
+    if (!question.options) return;
+    const scoreOf = (val?: string) => {
+      if (!val) return null;
+      const opt = question.options!.find((o) => o.value === val);
+      return opt ? opt.score : null;
+    };
+
+    if (question.perStudent && studentCount > 1) {
+      let best: number | null = null;
+      for (let i = 0; i < studentCount; i++) {
+        const s = scoreOf(answers[`${question.id}::s${i}`]);
+        if (s !== null) best = best === null ? s : Math.max(best, s);
+      }
+      if (best !== null) {
+        totalNormalizedScore += best;
         answeredQuestions++;
       }
+      return;
+    }
+
+    const s = scoreOf(answers[question.id]);
+    if (s !== null) {
+      totalNormalizedScore += s;
+      answeredQuestions++;
     }
   });
 
-  // Average across all answered questions = final 0-100 percentage
-  const percentage = answeredQuestions > 0
-    ? Math.round(totalNormalizedScore / answeredQuestions)
-    : 0;
+  const percentage =
+    answeredQuestions > 0 ? Math.round(totalNormalizedScore / answeredQuestions) : 0;
 
-  return {
-    score: totalNormalizedScore,
-    maxPossible: answeredQuestions * 100,
-    percentage,
-  };
+  return { score: totalNormalizedScore, maxPossible: answeredQuestions * 100, percentage };
 }
+
 
 // Get poverty tier from percentage
 export function getPovertyTierFromPercentage(percentage: number): "Low" | "Medium" | "High" {
