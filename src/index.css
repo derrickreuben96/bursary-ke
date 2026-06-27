@@ -234,6 +234,33 @@
   }
 }
 
+@keyframes alarm-shake {
+  0%, 100% { transform: rotate(0deg); }
+  10%, 30%, 50%, 70%, 90% { transform: rotate(-15deg); }
+  20%, 40%, 60%, 80% { transform: rotate(15deg); }
+}
+
+@keyframes deadline-pulse-move {
+  0%, 100% { transform: translateX(0); opacity: 1; }
+  25% { transform: translateX(-6px); opacity: 0.85; }
+  50% { transform: translateX(0); opacity: 1; }
+  75% { transform: translateX(6px); opacity: 0.85; }
+}
+
+.animate-alarm-shake {
+  animation: alarm-shake 0.9s ease-in-out infinite;
+  transform-origin: center;
+}
+
+.animate-deadline-pulse-move {
+  animation: deadline-pulse-move 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-alarm-shake,
+  .animate-deadline-pulse-move { animation: none; }
+}
+
 .animate-attention-glow {
   animation: attention-glow 2.2s ease-in-out infinite;
 }
