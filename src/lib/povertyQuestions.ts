@@ -11,7 +11,16 @@ export interface PovertyQuestion {
   options?: { value: string; label: string; score: number }[];
   category: "income" | "housing" | "employment" | "health" | "education" | "assets" | "vulnerability";
   weight: number; // Weight in scoring (1-10)
+  /**
+   * If true, this question is asked once PER student when there are 2-3
+   * students in the same application (disability / chronic illness etc.).
+   * Per-student answers are stored under keys like `${id}::s0`, `${id}::s1`.
+   * Scoring takes the MAX (most-needy student) so one severely impaired
+   * student still drives the household priority upward.
+   */
+  perStudent?: boolean;
 }
+
 
 // All possible questions - system randomly selects from these
 const allQuestions: PovertyQuestion[] = [
@@ -138,12 +147,15 @@ const allQuestions: PovertyQuestion[] = [
   },
 
   // Health/Disability questions (pick 1-2) - CRITICAL
+  // disability_student & health_challenges are asked PER STUDENT because the
+  // answer can legitimately differ between siblings on the same application.
   {
     id: "disability_student",
     question: "Does the student have any form of disability?",
     type: "dropdown",
     category: "health",
     weight: 10,
+    perStudent: true,
     options: [
       { value: "severe_physical", label: "Yes - Severe physical disability", score: 100 },
       { value: "visual_impairment", label: "Yes - Visual impairment/Blind", score: 95 },
@@ -170,10 +182,11 @@ const allQuestions: PovertyQuestion[] = [
   },
   {
     id: "health_challenges",
-    question: "Does your household face any ongoing health challenges?",
+    question: "Does the student face any ongoing health challenges?",
     type: "dropdown",
     category: "health",
     weight: 7,
+    perStudent: true,
     options: [
       { value: "hiv_aids", label: "Living with HIV/AIDS", score: 85 },
       { value: "chronic_illness", label: "Chronic illness (diabetes, cancer, etc.)", score: 80 },
@@ -183,6 +196,7 @@ const allQuestions: PovertyQuestion[] = [
       { value: "no_issues", label: "No significant health challenges", score: 0 },
     ],
   },
+
 
   // Education questions (pick 1)
   {
@@ -353,38 +367,49 @@ export function getRandomizedQuestions(count: number = 10): PovertyQuestion[] {
 // Calculate score from answers
 export function calculatePovertyScoreFromAnswers(
   answers: Record<string, string>,
-  questions: PovertyQuestion[]
+  questions: PovertyQuestion[],
+  studentCount: number = 1,
 ): { score: number; maxPossible: number; percentage: number } {
   // Each question contributes equally to the final score regardless of weight.
-  // Weight is used only for within-question scoring granularity, not cross-question comparison.
-  // This ensures applicants with different question sets are scored on the same 0-100 scale.
-  
+  // For perStudent questions, we read `${id}::s${idx}` for each student and
+  // take the MAX score (the most-needy student drives household priority).
   let totalNormalizedScore = 0;
   let answeredQuestions = 0;
 
-  questions.forEach(question => {
-    const answer = answers[question.id];
-    if (answer && question.options) {
-      const option = question.options.find(o => o.value === answer);
-      if (option) {
-        // Each question contributes its answer score (0-100) equally
-        totalNormalizedScore += option.score;
+  questions.forEach((question) => {
+    if (!question.options) return;
+    const scoreOf = (val?: string) => {
+      if (!val) return null;
+      const opt = question.options!.find((o) => o.value === val);
+      return opt ? opt.score : null;
+    };
+
+    if (question.perStudent && studentCount > 1) {
+      let best: number | null = null;
+      for (let i = 0; i < studentCount; i++) {
+        const s = scoreOf(answers[`${question.id}::s${i}`]);
+        if (s !== null) best = best === null ? s : Math.max(best, s);
+      }
+      if (best !== null) {
+        totalNormalizedScore += best;
         answeredQuestions++;
       }
+      return;
+    }
+
+    const s = scoreOf(answers[question.id]);
+    if (s !== null) {
+      totalNormalizedScore += s;
+      answeredQuestions++;
     }
   });
 
-  // Average across all answered questions = final 0-100 percentage
-  const percentage = answeredQuestions > 0
-    ? Math.round(totalNormalizedScore / answeredQuestions)
-    : 0;
+  const percentage =
+    answeredQuestions > 0 ? Math.round(totalNormalizedScore / answeredQuestions) : 0;
 
-  return {
-    score: totalNormalizedScore,
-    maxPossible: answeredQuestions * 100,
-    percentage,
-  };
+  return { score: totalNormalizedScore, maxPossible: answeredQuestions * 100, percentage };
 }
+
 
 // Get poverty tier from percentage
 export function getPovertyTierFromPercentage(percentage: number): "Low" | "Medium" | "High" {

@@ -14,6 +14,8 @@ import { sampleTrackingData, type TrackingInfo } from "@/lib/mockData";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
 import { Seo } from "@/components/seo/Seo";
+import { cn as cnSafe } from "@/lib/utils";
+
 
 export default function Track() {
   const [searchParams] = useSearchParams();
@@ -346,38 +348,100 @@ export default function Track() {
                 <ProgressTimeline stages={result.stages} currentStage={result.currentStage} />
               </Card>
 
-              {students.length > 0 && (
-                <Card className="p-6 shadow-card">
-                  <h3 className="text-lg font-semibold mb-4">
-                    Linked Students ({parentInfo?.total_students ?? students.length})
-                  </h3>
-                  <div className="space-y-3">
-                    {students.map((s, i) => (
-                      <div key={i} className="p-4 rounded-lg bg-secondary/40 border">
-                        <div className="flex items-start justify-between gap-3 flex-wrap">
-                          <div>
-                            <p className="font-medium">{s.student_full_name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {s.institution_name} · {s.student_type}
-                              {s.class_form ? ` · ${s.class_form}` : ""}
-                              {s.year_of_study ? ` · ${s.year_of_study}` : ""}
+              {students.length > 0 && (() => {
+                const approved = students.filter(s => s.status === "approved" || s.status === "disbursed").length;
+                const rejected = students.filter(s => s.status === "rejected").length;
+                const total = students.length;
+                const mixed = approved > 0 && approved < total;
+                const allApproved = approved === total;
+                const allRejected = rejected === total;
+                const totalAllocated = students.reduce((sum, s) => sum + (Number(s.allocated_amount) || 0), 0);
+
+                const statusStyles = (status: string) => {
+                  switch (status) {
+                    case "approved":
+                    case "disbursed":
+                      return "bg-primary/10 text-primary border-primary/20";
+                    case "rejected":
+                      return "bg-destructive/10 text-destructive border-destructive/20";
+                    default:
+                      return "bg-muted text-muted-foreground border-border";
+                  }
+                };
+
+                return (
+                  <Card className="p-6 shadow-card">
+                    {/* Summary banner */}
+                    {(mixed || allApproved || allRejected) && (
+                      <div
+                        className={cnSafe(
+                          "mb-4 rounded-lg border p-4 flex items-start gap-3",
+                          mixed
+                            ? "bg-amber-500/10 border-amber-500/30"
+                            : allApproved
+                            ? "bg-primary/10 border-primary/20"
+                            : "bg-destructive/10 border-destructive/20",
+                        )}
+                      >
+                        <div className="text-sm">
+                          <p className="font-semibold">
+                            {mixed
+                              ? `Partially Approved — ${approved} of ${total} student${total > 1 ? "s" : ""} approved`
+                              : allApproved
+                              ? `All ${total} student${total > 1 ? "s" : ""} approved`
+                              : `Application not successful for all ${total} student${total > 1 ? "s" : ""}`}
+                          </p>
+                          {totalAllocated > 0 && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Total allocated to this family: KES {totalAllocated.toLocaleString()}
                             </p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-xs text-muted-foreground">Status</p>
-                            <p className="font-medium text-primary capitalize">{s.status}</p>
-                            {s.allocated_amount ? (
-                              <p className="text-xs text-muted-foreground mt-1">
-                                Allocated: KES {Number(s.allocated_amount).toLocaleString()}
-                              </p>
-                            ) : null}
-                          </div>
+                          )}
+                          <p className="text-xs text-muted-foreground mt-1">
+                            One tracking number covers all students on this application — each
+                            student's outcome is shown separately below.
+                          </p>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </Card>
-              )}
+                    )}
+
+                    <h3 className="text-lg font-semibold mb-4">
+                      Linked Students ({parentInfo?.total_students ?? students.length})
+                    </h3>
+                    <div className="space-y-3">
+                      {students.map((s, i) => (
+                        <div key={i} className="p-4 rounded-lg bg-secondary/40 border">
+                          <div className="flex items-start justify-between gap-3 flex-wrap">
+                            <div>
+                              <p className="font-medium">{s.student_full_name}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {s.institution_name} · {s.student_type}
+                                {s.class_form ? ` · ${s.class_form}` : ""}
+                                {s.year_of_study ? ` · ${s.year_of_study}` : ""}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <span
+                                className={cnSafe(
+                                  "inline-block text-xs font-medium px-2 py-1 rounded-md border capitalize",
+                                  statusStyles(s.status),
+                                )}
+                              >
+                                {s.status}
+                              </span>
+                              {s.allocated_amount ? (
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Allocated: KES {Number(s.allocated_amount).toLocaleString()}
+                                </p>
+                              ) : null}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                );
+              })()}
+
 
               <div className="text-center text-sm text-muted-foreground">
                 <p>

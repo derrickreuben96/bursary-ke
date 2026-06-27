@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useId } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,9 @@ import { useApplication, type StudentEntry } from "@/context/ApplicationContext"
 import { useToast } from "@/hooks/use-toast";
 import { lookupNemisId, validateNemisFormat, formatNemisId } from "@/lib/nemisApi";
 import { maskName } from "@/lib/maskData";
+import { kenyanInstitutions, kenyanCourses } from "@/lib/mockData";
 import { cn } from "@/lib/utils";
+
 
 interface Props {
   onNext: () => void;
@@ -32,6 +34,9 @@ const newStudent = (defaultType: "secondary" | "university"): StudentEntry => ({
 
 export function StudentsRepeater({ onNext, onBack, defaultType }: Props) {
   const { data, updateData } = useApplication();
+  const instListId = useId();
+  const courseListId = useId();
+
   const { toast } = useToast();
   const isSecondary = defaultType === "secondary";
   const [students, setStudents] = useState<StudentEntry[]>(
@@ -79,13 +84,16 @@ export function StudentsRepeater({ onNext, onBack, defaultType }: Props) {
   const handleNext = () => {
     const ids = new Set<string>();
     for (const s of students) {
-      if (!s.studentName.trim() || !s.identifier.trim() || !s.institution.trim()) {
+      // For university students the admission number IS the identifier going forward.
+      const universityId = (s.admissionNumber || s.identifier || "").trim();
+      const idOk = isSecondary ? s.identifier.trim() : universityId;
+      if (!s.studentName.trim() || !idOk || !s.institution.trim()) {
         toast({
           variant: "destructive",
           title: "Missing student info",
           description: isSecondary
             ? "Each student needs a verified NEMIS ID."
-            : "Each student needs a name, ID, and institution.",
+            : "Each student needs a name, admission number, and institution.",
         });
         return;
       }
@@ -93,20 +101,28 @@ export function StudentsRepeater({ onNext, onBack, defaultType }: Props) {
         toast({ variant: "destructive", title: "Invalid NEMIS ID", description: "NEMIS ID must be 11 digits." });
         return;
       }
-      const k = s.identifier.trim().toUpperCase();
+      const k = (isSecondary ? s.identifier : universityId).trim().toUpperCase();
       if (ids.has(k)) {
         toast({
           variant: "destructive",
-          title: "Duplicate NEMIS ID",
+          title: isSecondary ? "Duplicate NEMIS ID" : "Duplicate Admission Number",
           description: `${isSecondary ? formatNemisId(k) : k} appears more than once. Each student must be unique.`,
         });
         return;
       }
       ids.add(k);
     }
-    const first = students[0];
+
+    // Ensure university identifier == admission number for downstream services.
+    const normalized = students.map((s) =>
+      s.studentType === "university"
+        ? { ...s, identifier: (s.admissionNumber || s.identifier).trim(), admissionNumber: (s.admissionNumber || s.identifier).trim() }
+        : s,
+    );
+
+    const first = normalized[0];
     updateData({
-      students,
+      students: normalized,
       ...(first.studentType === "secondary"
         ? {
             secondaryStudent: {
@@ -128,6 +144,7 @@ export function StudentsRepeater({ onNext, onBack, defaultType }: Props) {
     });
     onNext();
   };
+
 
   const atMax = students.length >= MAX_STUDENTS;
 
@@ -225,16 +242,26 @@ export function StudentsRepeater({ onNext, onBack, defaultType }: Props) {
                   <Input value={s.studentName} onChange={(e) => update(s.id, { studentName: e.target.value })} placeholder="Student full name" />
                 </div>
                 <div>
-                  <Label>Student ID *</Label>
-                  <Input value={s.identifier} onChange={(e) => update(s.id, { identifier: e.target.value })} placeholder="e.g. CS/123/2024" />
+                  <Label>Admission Number *</Label>
+                  <Input
+                    value={s.admissionNumber || ""}
+                    onChange={(e) => update(s.id, { admissionNumber: e.target.value, identifier: e.target.value })}
+                    placeholder="e.g. CS/123/2024"
+                    autoComplete="off"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Use the admission number issued by your institution.
+                  </p>
                 </div>
                 <div>
                   <Label>Institution *</Label>
-                  <Input value={s.institution} onChange={(e) => update(s.id, { institution: e.target.value })} placeholder="University / College" />
-                </div>
-                <div>
-                  <Label>Admission Number</Label>
-                  <Input value={s.admissionNumber || ""} onChange={(e) => update(s.id, { admissionNumber: e.target.value })} placeholder="Optional" />
+                  <Input
+                    list={instListId}
+                    value={s.institution}
+                    onChange={(e) => update(s.id, { institution: e.target.value })}
+                    placeholder="Start typing — e.g. University of Nairobi"
+                    autoComplete="off"
+                  />
                 </div>
                 <div>
                   <Label>Year of Study</Label>
@@ -247,15 +274,37 @@ export function StudentsRepeater({ onNext, onBack, defaultType }: Props) {
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
+                <div className="md:col-span-2">
                   <Label>Course / Program</Label>
-                  <Input value={s.course || ""} onChange={(e) => update(s.id, { course: e.target.value })} placeholder="e.g. BSc Computer Science" />
+                  <Input
+                    list={courseListId}
+                    value={s.course || ""}
+                    onChange={(e) => update(s.id, { course: e.target.value })}
+                    placeholder="Start typing — e.g. Bachelor of Science in Computer Science"
+                    autoComplete="off"
+                  />
                 </div>
               </div>
             )}
           </Card>
         );
       })}
+
+      {!isSecondary && (
+        <>
+          <datalist id={instListId}>
+            {kenyanInstitutions.map((i) => (
+              <option key={i} value={i} />
+            ))}
+          </datalist>
+          <datalist id={courseListId}>
+            {kenyanCourses.map((c) => (
+              <option key={c} value={c} />
+            ))}
+          </datalist>
+        </>
+      )}
+
 
       <div className="flex flex-col items-start gap-2">
         <Button type="button" variant="outline" onClick={add} disabled={atMax} className="hover:scale-[1.02] transition-transform">
