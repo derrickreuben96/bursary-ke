@@ -349,18 +349,39 @@ export default function Track() {
               </Card>
 
               {students.length > 0 && (() => {
-                const approved = students.filter(s => s.status === "approved" || s.status === "disbursed").length;
-                const rejected = students.filter(s => s.status === "rejected").length;
+                // Normalize each student's raw status into the 4 outcome buckets
+                // the UI cares about. One tracking number maps to N students,
+                // and each student carries its OWN row-level status from
+                // public.student_beneficiaries — so we never collapse them.
+                type Bucket = "approved" | "disbursed" | "rejected" | "pending";
+                const bucketOf = (raw: string | null | undefined): Bucket => {
+                  const s = (raw || "").toLowerCase().trim();
+                  if (s === "disbursed") return "disbursed";
+                  if (s === "approved") return "approved";
+                  if (s === "rejected" || s === "denied") return "rejected";
+                  return "pending"; // received / under_review / verification / null
+                };
+                const bucketLabel: Record<Bucket, string> = {
+                  approved: "Approved",
+                  disbursed: "Disbursed",
+                  rejected: "Not Successful",
+                  pending: "In Progress",
+                };
+
+                const buckets = students.map((s) => bucketOf(s.status));
                 const total = students.length;
-                const mixed = approved > 0 && approved < total;
-                const allApproved = approved === total;
-                const allRejected = rejected === total;
+                const approvedCount = buckets.filter((b) => b === "approved" || b === "disbursed").length;
+                const rejectedCount = buckets.filter((b) => b === "rejected").length;
+                const pendingCount = buckets.filter((b) => b === "pending").length;
+                const mixed = approvedCount > 0 && (rejectedCount > 0 || pendingCount > 0);
+                const allApproved = approvedCount === total;
+                const allRejected = rejectedCount === total;
                 const totalAllocated = students.reduce((sum, s) => sum + (Number(s.allocated_amount) || 0), 0);
 
-                const statusStyles = (status: string) => {
-                  switch (status) {
-                    case "approved":
+                const statusStyles = (b: Bucket) => {
+                  switch (b) {
                     case "disbursed":
+                    case "approved":
                       return "bg-primary/10 text-primary border-primary/20";
                     case "rejected":
                       return "bg-destructive/10 text-destructive border-destructive/20";
@@ -368,6 +389,7 @@ export default function Track() {
                       return "bg-muted text-muted-foreground border-border";
                   }
                 };
+
 
                 return (
                   <Card className="p-6 shadow-card">
@@ -386,10 +408,11 @@ export default function Track() {
                         <div className="text-sm">
                           <p className="font-semibold">
                             {mixed
-                              ? `Partially Approved — ${approved} of ${total} student${total > 1 ? "s" : ""} approved`
+                              ? `Partially Approved — ${approvedCount} of ${total} student${total > 1 ? "s" : ""} approved${pendingCount > 0 ? `, ${pendingCount} still in progress` : ""}${rejectedCount > 0 ? `, ${rejectedCount} not successful` : ""}`
                               : allApproved
                               ? `All ${total} student${total > 1 ? "s" : ""} approved`
                               : `Application not successful for all ${total} student${total > 1 ? "s" : ""}`}
+
                           </p>
                           {totalAllocated > 0 && (
                             <p className="text-xs text-muted-foreground mt-1">
@@ -408,35 +431,39 @@ export default function Track() {
                       Linked Students ({parentInfo?.total_students ?? students.length})
                     </h3>
                     <div className="space-y-3">
-                      {students.map((s, i) => (
-                        <div key={i} className="p-4 rounded-lg bg-secondary/40 border">
-                          <div className="flex items-start justify-between gap-3 flex-wrap">
-                            <div>
-                              <p className="font-medium">{s.student_full_name}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {s.institution_name} · {s.student_type}
-                                {s.class_form ? ` · ${s.class_form}` : ""}
-                                {s.year_of_study ? ` · ${s.year_of_study}` : ""}
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              <span
-                                className={cnSafe(
-                                  "inline-block text-xs font-medium px-2 py-1 rounded-md border capitalize",
-                                  statusStyles(s.status),
-                                )}
-                              >
-                                {s.status}
-                              </span>
-                              {s.allocated_amount ? (
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  Allocated: KES {Number(s.allocated_amount).toLocaleString()}
+                      {students.map((s, i) => {
+                        const b = bucketOf(s.status);
+                        return (
+                          <div key={i} className="p-4 rounded-lg bg-secondary/40 border">
+                            <div className="flex items-start justify-between gap-3 flex-wrap">
+                              <div>
+                                <p className="font-medium">{s.student_full_name}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {s.institution_name} · {s.student_type}
+                                  {s.class_form ? ` · ${s.class_form}` : ""}
+                                  {s.year_of_study ? ` · ${s.year_of_study}` : ""}
                                 </p>
-                              ) : null}
+                              </div>
+                              <div className="text-right">
+                                <span
+                                  className={cnSafe(
+                                    "inline-block text-xs font-medium px-2 py-1 rounded-md border",
+                                    statusStyles(b),
+                                  )}
+                                >
+                                  {bucketLabel[b]}
+                                </span>
+                                {s.allocated_amount ? (
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Allocated: KES {Number(s.allocated_amount).toLocaleString()}
+                                  </p>
+                                ) : null}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
+
                     </div>
                   </Card>
                 );
