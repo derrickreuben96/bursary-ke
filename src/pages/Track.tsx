@@ -408,10 +408,11 @@ export default function Track() {
                         <div className="text-sm">
                           <p className="font-semibold">
                             {mixed
-                              ? `Partially Approved — ${approved} of ${total} student${total > 1 ? "s" : ""} approved`
+                              ? `Partially Approved — ${approvedCount} of ${total} student${total > 1 ? "s" : ""} approved${pendingCount > 0 ? `, ${pendingCount} still in progress` : ""}${rejectedCount > 0 ? `, ${rejectedCount} not successful` : ""}`
                               : allApproved
                               ? `All ${total} student${total > 1 ? "s" : ""} approved`
                               : `Application not successful for all ${total} student${total > 1 ? "s" : ""}`}
+
                           </p>
                           {totalAllocated > 0 && (
                             <p className="text-xs text-muted-foreground mt-1">
