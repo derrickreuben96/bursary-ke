@@ -24,8 +24,8 @@ export function CountdownTimer({ deadline }: CountdownTimerProps) {
   return (
     <div className={`p-4 rounded-xl border-2 ${isUrgent ? 'bg-destructive/10 border-destructive/30' : 'bg-primary/10 border-primary/30'}`}>
       <div className="flex items-center gap-2 mb-3">
-        <Clock className={`h-4 w-4 ${isUrgent ? 'text-destructive' : 'text-primary'}`} />
-        <span className={`text-xs font-medium uppercase tracking-wide ${isUrgent ? 'text-destructive' : 'text-primary'}`}>
+        <Clock className={`h-4 w-4 ${isUrgent ? 'text-destructive animate-alarm-shake' : 'text-primary'}`} />
+        <span className={`text-xs font-medium uppercase tracking-wide ${isUrgent ? 'text-destructive animate-deadline-pulse-move' : 'text-primary'}`}>
           {isUrgent ? t("timer.deadline_approaching") : t("timer.time_remaining")}
         </span>
       </div>
