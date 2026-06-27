@@ -864,6 +864,7 @@ export type Database = {
           parent_national_id: string
           parent_phone: string
           parent_ward: string | null
+          poverty_answers: Json
           poverty_score: number
           poverty_tier: string | null
           released_to_treasury: boolean
@@ -892,6 +893,7 @@ export type Database = {
           parent_national_id: string
           parent_phone: string
           parent_ward?: string | null
+          poverty_answers?: Json
           poverty_score?: number
           poverty_tier?: string | null
           released_to_treasury?: boolean
@@ -920,6 +922,7 @@ export type Database = {
           parent_national_id?: string
           parent_phone?: string
           parent_ward?: string | null
+          poverty_answers?: Json
           poverty_score?: number
           poverty_tier?: string | null
           released_to_treasury?: boolean
@@ -1136,7 +1139,9 @@ export type Database = {
           allocation_date: string | null
           class_form: string | null
           created_at: string
+          disability_status: string | null
           fee_balance: number | null
+          health_status: string | null
           id: string
           institution_name: string
           parent_application_id: string
@@ -1155,7 +1160,9 @@ export type Database = {
           allocation_date?: string | null
           class_form?: string | null
           created_at?: string
+          disability_status?: string | null
           fee_balance?: number | null
+          health_status?: string | null
           id?: string
           institution_name: string
           parent_application_id: string
@@ -1174,7 +1181,9 @@ export type Database = {
           allocation_date?: string | null
           class_form?: string | null
           created_at?: string
+          disability_status?: string | null
           fee_balance?: number | null
+          health_status?: string | null
           id?: string
           institution_name?: string
           parent_application_id?: string
