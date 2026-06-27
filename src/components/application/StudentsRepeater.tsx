@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useId } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,9 @@ import { useApplication, type StudentEntry } from "@/context/ApplicationContext"
 import { useToast } from "@/hooks/use-toast";
 import { lookupNemisId, validateNemisFormat, formatNemisId } from "@/lib/nemisApi";
 import { maskName } from "@/lib/maskData";
+import { kenyanInstitutions, kenyanCourses } from "@/lib/mockData";
 import { cn } from "@/lib/utils";
+
 
 interface Props {
   onNext: () => void;
