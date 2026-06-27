@@ -431,35 +431,39 @@ export default function Track() {
                       Linked Students ({parentInfo?.total_students ?? students.length})
                     </h3>
                     <div className="space-y-3">
-                      {students.map((s, i) => (
-                        <div key={i} className="p-4 rounded-lg bg-secondary/40 border">
-                          <div className="flex items-start justify-between gap-3 flex-wrap">
-                            <div>
-                              <p className="font-medium">{s.student_full_name}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {s.institution_name} · {s.student_type}
-                                {s.class_form ? ` · ${s.class_form}` : ""}
-                                {s.year_of_study ? ` · ${s.year_of_study}` : ""}
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              <span
-                                className={cnSafe(
-                                  "inline-block text-xs font-medium px-2 py-1 rounded-md border capitalize",
-                                  statusStyles(s.status),
-                                )}
-                              >
-                                {s.status}
-                              </span>
-                              {s.allocated_amount ? (
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  Allocated: KES {Number(s.allocated_amount).toLocaleString()}
+                      {students.map((s, i) => {
+                        const b = bucketOf(s.status);
+                        return (
+                          <div key={i} className="p-4 rounded-lg bg-secondary/40 border">
+                            <div className="flex items-start justify-between gap-3 flex-wrap">
+                              <div>
+                                <p className="font-medium">{s.student_full_name}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {s.institution_name} · {s.student_type}
+                                  {s.class_form ? ` · ${s.class_form}` : ""}
+                                  {s.year_of_study ? ` · ${s.year_of_study}` : ""}
                                 </p>
-                              ) : null}
+                              </div>
+                              <div className="text-right">
+                                <span
+                                  className={cnSafe(
+                                    "inline-block text-xs font-medium px-2 py-1 rounded-md border",
+                                    statusStyles(b),
+                                  )}
+                                >
+                                  {bucketLabel[b]}
+                                </span>
+                                {s.allocated_amount ? (
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Allocated: KES {Number(s.allocated_amount).toLocaleString()}
+                                  </p>
+                                ) : null}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
+
                     </div>
                   </Card>
                 );
