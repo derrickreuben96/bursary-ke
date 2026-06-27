@@ -34,6 +34,9 @@ const newStudent = (defaultType: "secondary" | "university"): StudentEntry => ({
 
 export function StudentsRepeater({ onNext, onBack, defaultType }: Props) {
   const { data, updateData } = useApplication();
+  const instListId = useId();
+  const courseListId = useId();
+
   const { toast } = useToast();
   const isSecondary = defaultType === "secondary";
   const [students, setStudents] = useState<StudentEntry[]>(
