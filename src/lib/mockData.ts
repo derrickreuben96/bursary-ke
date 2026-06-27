@@ -190,6 +190,78 @@ export const kenyanInstitutions = [
   "Other (specify)",
 ];
 
+// Common Kenyan university/college courses & programs (used for autocomplete)
+export const kenyanCourses = [
+  // Engineering & Tech
+  "Bachelor of Science in Computer Science",
+  "Bachelor of Science in Information Technology",
+  "Bachelor of Science in Software Engineering",
+  "Bachelor of Science in Electrical Engineering",
+  "Bachelor of Science in Civil Engineering",
+  "Bachelor of Science in Mechanical Engineering",
+  "Bachelor of Science in Telecommunications Engineering",
+  "Bachelor of Science in Data Science",
+  "Bachelor of Science in Mathematics",
+  "Bachelor of Science in Statistics",
+  "Bachelor of Science in Physics",
+  "Bachelor of Science in Chemistry",
+  "Bachelor of Science in Actuarial Science",
+  // Medical & Health
+  "Bachelor of Medicine and Bachelor of Surgery (MBChB)",
+  "Bachelor of Pharmacy",
+  "Bachelor of Dental Surgery",
+  "Bachelor of Science in Nursing",
+  "Bachelor of Science in Clinical Medicine",
+  "Bachelor of Science in Public Health",
+  "Bachelor of Science in Medical Laboratory Sciences",
+  // Business & Economics
+  "Bachelor of Commerce",
+  "Bachelor of Business Administration",
+  "Bachelor of Science in Economics",
+  "Bachelor of Science in Finance",
+  "Bachelor of Science in Accounting",
+  "Bachelor of Procurement and Supply Chain Management",
+  "Bachelor of Marketing",
+  // Law, Arts & Humanities
+  "Bachelor of Laws (LLB)",
+  "Bachelor of Arts in Communication",
+  "Bachelor of Arts in Sociology",
+  "Bachelor of Arts in Psychology",
+  "Bachelor of Arts in Political Science",
+  "Bachelor of Arts in International Relations",
+  "Bachelor of Education (Arts)",
+  "Bachelor of Education (Science)",
+  "Bachelor of Education (Early Childhood)",
+  // Agriculture & Environment
+  "Bachelor of Science in Agriculture",
+  "Bachelor of Science in Agribusiness Management",
+  "Bachelor of Science in Environmental Science",
+  "Bachelor of Science in Wildlife Management",
+  // Architecture & Design
+  "Bachelor of Architecture",
+  "Bachelor of Quantity Surveying",
+  "Bachelor of Interior Design",
+  // Diplomas
+  "Diploma in Information Technology",
+  "Diploma in Business Management",
+  "Diploma in Nursing",
+  "Diploma in Clinical Medicine",
+  "Diploma in Electrical Engineering",
+  "Diploma in Civil Engineering",
+  "Diploma in Education (Primary)",
+  "Diploma in Journalism",
+  "Diploma in Hospitality Management",
+  // Certificates / TVET
+  "Certificate in Plumbing",
+  "Certificate in Motor Vehicle Mechanics",
+  "Certificate in Carpentry and Joinery",
+  "Certificate in Electrical Installation",
+  "Certificate in Welding and Fabrication",
+  "Certificate in Tailoring and Dressmaking",
+  "Other (specify)",
+];
+
+
 // Sample tracking data
 export const sampleTrackingData: Record<string, TrackingInfo> = {
   "BKE-ABC123": {
