@@ -147,12 +147,15 @@ const allQuestions: PovertyQuestion[] = [
   },
 
   // Health/Disability questions (pick 1-2) - CRITICAL
+  // disability_student & health_challenges are asked PER STUDENT because the
+  // answer can legitimately differ between siblings on the same application.
   {
     id: "disability_student",
     question: "Does the student have any form of disability?",
     type: "dropdown",
     category: "health",
     weight: 10,
+    perStudent: true,
     options: [
       { value: "severe_physical", label: "Yes - Severe physical disability", score: 100 },
       { value: "visual_impairment", label: "Yes - Visual impairment/Blind", score: 95 },
@@ -179,10 +182,11 @@ const allQuestions: PovertyQuestion[] = [
   },
   {
     id: "health_challenges",
-    question: "Does your household face any ongoing health challenges?",
+    question: "Does the student face any ongoing health challenges?",
     type: "dropdown",
     category: "health",
     weight: 7,
+    perStudent: true,
     options: [
       { value: "hiv_aids", label: "Living with HIV/AIDS", score: 85 },
       { value: "chronic_illness", label: "Chronic illness (diabetes, cancer, etc.)", score: 80 },
@@ -192,6 +196,7 @@ const allQuestions: PovertyQuestion[] = [
       { value: "no_issues", label: "No significant health challenges", score: 0 },
     ],
   },
+
 
   // Education questions (pick 1)
   {
