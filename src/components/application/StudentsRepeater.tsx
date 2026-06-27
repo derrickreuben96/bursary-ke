@@ -242,16 +242,26 @@ export function StudentsRepeater({ onNext, onBack, defaultType }: Props) {
                   <Input value={s.studentName} onChange={(e) => update(s.id, { studentName: e.target.value })} placeholder="Student full name" />
                 </div>
                 <div>
-                  <Label>Student ID *</Label>
-                  <Input value={s.identifier} onChange={(e) => update(s.id, { identifier: e.target.value })} placeholder="e.g. CS/123/2024" />
+                  <Label>Admission Number *</Label>
+                  <Input
+                    value={s.admissionNumber || ""}
+                    onChange={(e) => update(s.id, { admissionNumber: e.target.value, identifier: e.target.value })}
+                    placeholder="e.g. CS/123/2024"
+                    autoComplete="off"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Use the admission number issued by your institution.
+                  </p>
                 </div>
                 <div>
                   <Label>Institution *</Label>
-                  <Input value={s.institution} onChange={(e) => update(s.id, { institution: e.target.value })} placeholder="University / College" />
-                </div>
-                <div>
-                  <Label>Admission Number</Label>
-                  <Input value={s.admissionNumber || ""} onChange={(e) => update(s.id, { admissionNumber: e.target.value })} placeholder="Optional" />
+                  <Input
+                    list={instListId}
+                    value={s.institution}
+                    onChange={(e) => update(s.id, { institution: e.target.value })}
+                    placeholder="Start typing — e.g. University of Nairobi"
+                    autoComplete="off"
+                  />
                 </div>
                 <div>
                   <Label>Year of Study</Label>
@@ -264,15 +274,37 @@ export function StudentsRepeater({ onNext, onBack, defaultType }: Props) {
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
+                <div className="md:col-span-2">
                   <Label>Course / Program</Label>
-                  <Input value={s.course || ""} onChange={(e) => update(s.id, { course: e.target.value })} placeholder="e.g. BSc Computer Science" />
+                  <Input
+                    list={courseListId}
+                    value={s.course || ""}
+                    onChange={(e) => update(s.id, { course: e.target.value })}
+                    placeholder="Start typing — e.g. Bachelor of Science in Computer Science"
+                    autoComplete="off"
+                  />
                 </div>
               </div>
             )}
           </Card>
         );
       })}
+
+      {!isSecondary && (
+        <>
+          <datalist id={instListId}>
+            {kenyanInstitutions.map((i) => (
+              <option key={i} value={i} />
+            ))}
+          </datalist>
+          <datalist id={courseListId}>
+            {kenyanCourses.map((c) => (
+              <option key={c} value={c} />
+            ))}
+          </datalist>
+        </>
+      )}
+
 
       <div className="flex flex-col items-start gap-2">
         <Button type="button" variant="outline" onClick={add} disabled={atMax} className="hover:scale-[1.02] transition-transform">
