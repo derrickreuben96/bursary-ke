@@ -11,7 +11,16 @@ export interface PovertyQuestion {
   options?: { value: string; label: string; score: number }[];
   category: "income" | "housing" | "employment" | "health" | "education" | "assets" | "vulnerability";
   weight: number; // Weight in scoring (1-10)
+  /**
+   * If true, this question is asked once PER student when there are 2-3
+   * students in the same application (disability / chronic illness etc.).
+   * Per-student answers are stored under keys like `${id}::s0`, `${id}::s1`.
+   * Scoring takes the MAX (most-needy student) so one severely impaired
+   * student still drives the household priority upward.
+   */
+  perStudent?: boolean;
 }
+
 
 // All possible questions - system randomly selects from these
 const allQuestions: PovertyQuestion[] = [
