@@ -84,13 +84,16 @@ export function StudentsRepeater({ onNext, onBack, defaultType }: Props) {
   const handleNext = () => {
     const ids = new Set<string>();
     for (const s of students) {
-      if (!s.studentName.trim() || !s.identifier.trim() || !s.institution.trim()) {
+      // For university students the admission number IS the identifier going forward.
+      const universityId = (s.admissionNumber || s.identifier || "").trim();
+      const idOk = isSecondary ? s.identifier.trim() : universityId;
+      if (!s.studentName.trim() || !idOk || !s.institution.trim()) {
         toast({
           variant: "destructive",
           title: "Missing student info",
           description: isSecondary
             ? "Each student needs a verified NEMIS ID."
-            : "Each student needs a name, ID, and institution.",
+            : "Each student needs a name, admission number, and institution.",
         });
         return;
       }
@@ -98,20 +101,28 @@ export function StudentsRepeater({ onNext, onBack, defaultType }: Props) {
         toast({ variant: "destructive", title: "Invalid NEMIS ID", description: "NEMIS ID must be 11 digits." });
         return;
       }
-      const k = s.identifier.trim().toUpperCase();
+      const k = (isSecondary ? s.identifier : universityId).trim().toUpperCase();
       if (ids.has(k)) {
         toast({
           variant: "destructive",
-          title: "Duplicate NEMIS ID",
+          title: isSecondary ? "Duplicate NEMIS ID" : "Duplicate Admission Number",
           description: `${isSecondary ? formatNemisId(k) : k} appears more than once. Each student must be unique.`,
         });
         return;
       }
       ids.add(k);
     }
-    const first = students[0];
+
+    // Ensure university identifier == admission number for downstream services.
+    const normalized = students.map((s) =>
+      s.studentType === "university"
+        ? { ...s, identifier: (s.admissionNumber || s.identifier).trim(), admissionNumber: (s.admissionNumber || s.identifier).trim() }
+        : s,
+    );
+
+    const first = normalized[0];
     updateData({
-      students,
+      students: normalized,
       ...(first.studentType === "secondary"
         ? {
             secondaryStudent: {
@@ -133,6 +144,7 @@ export function StudentsRepeater({ onNext, onBack, defaultType }: Props) {
     });
     onNext();
   };
+
 
   const atMax = students.length >= MAX_STUDENTS;
 
