@@ -266,6 +266,32 @@ export default function CommissionerDashboard() {
       } else {
         setFairnessMap(new Map());
       }
+
+      // Fetch per-student DVL, fraud AI score, and pipeline rank
+      try {
+        const { data: parentRows } = await supabase.rpc("get_parent_applications_for_commissioner");
+        const detailMap: Record<string, StudentDvlInfo> = {};
+        (parentRows || []).forEach((row: any) => {
+          const students: any[] = Array.isArray(row.students) ? row.students : [];
+          if (students.length === 0) return;
+          const fraudMax = students.reduce((m, s) => Math.max(m, Number(s.fraud_score) || 0), 0);
+          const ranks = students.map((s) => s.rank_in_pipeline).filter((r: any) => r != null);
+          const rankMin = ranks.length ? Math.min(...ranks) : null;
+          const pipeline = students.find((s) => s.assessment_pipeline)?.assessment_pipeline ?? null;
+          const disability = students
+            .filter((s) => s.disability_status || s.ncpwd_registration_number || s.disability_card_url)
+            .map((s) => ({
+              name: s.student_name_masked || "Student",
+              type: s.disability_type ?? null,
+              ncpwd: s.ncpwd_registration_number ?? null,
+              cardUrl: s.disability_card_url ?? null,
+            }));
+          detailMap[row.tracking_number] = { fraudMax, rankMin, pipeline, disability };
+        });
+        setStudentDetailsMap(detailMap);
+      } catch (e) {
+        console.warn("DVL/fraud fetch failed", e);
+      }
     }
     setDataLastFetched(new Date());
     setIsLoading(false);
