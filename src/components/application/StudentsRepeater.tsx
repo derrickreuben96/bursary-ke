@@ -137,7 +137,27 @@ export function StudentsRepeater({ onNext, onBack, defaultType }: Props) {
         return;
       }
       ids.add(k);
-    }
+
+      // DVL: if the user declared *any* disability field, require the full triple.
+      const declaredDisability = Boolean(s.ncpwdRegistrationNumber || s.disabilityType || s.disabilityCardUrl);
+      if (declaredDisability) {
+        if (!s.ncpwdRegistrationNumber?.trim() || !s.disabilityType?.trim() || !s.disabilityCardUrl?.trim()) {
+          toast({
+            variant: "destructive",
+            title: "Disability verification incomplete",
+            description: `Student ${s.studentName || ""}: NCPWD number, disability type, and card upload are all required.`,
+          });
+          return;
+        }
+        if (!/^[A-Z0-9/\-]{4,24}$/.test(s.ncpwdRegistrationNumber.trim())) {
+          toast({
+            variant: "destructive",
+            title: "Invalid NCPWD number",
+            description: "Use only letters, numbers, dashes and slashes (4–24 chars).",
+          });
+          return;
+        }
+      }
 
     // Ensure university identifier == admission number for downstream services.
     const normalized = students.map((s) =>
