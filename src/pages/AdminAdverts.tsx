@@ -45,6 +45,13 @@ interface Advert {
   is_active: boolean | null;
   required_documents: string[] | null;
   venues: any;
+  total_slots?: number | null;
+  high_school_quota_slots?: number | null;
+  higher_education_quota_slots?: number | null;
+  high_school_budget_cap?: number | null;
+  higher_education_budget_cap?: number | null;
+  min_award_per_student?: number | null;
+  max_award_per_student?: number | null;
 }
 
 interface FormData {
@@ -56,6 +63,13 @@ interface FormData {
   min_beneficiaries: string;
   description: string;
   required_documents: string;
+  total_slots: string;
+  high_school_quota_slots: string;
+  higher_education_quota_slots: string;
+  high_school_budget_cap: string;
+  higher_education_budget_cap: string;
+  min_award_per_student: string;
+  max_award_per_student: string;
 }
 
 const emptyForm: FormData = {
@@ -67,6 +81,13 @@ const emptyForm: FormData = {
   min_beneficiaries: "",
   description: "",
   required_documents: DEFAULT_REQUIRED_DOCUMENTS,
+  total_slots: "",
+  high_school_quota_slots: "",
+  higher_education_quota_slots: "",
+  high_school_budget_cap: "",
+  higher_education_budget_cap: "",
+  min_award_per_student: "",
+  max_award_per_student: "",
 };
 
 interface FilterState {
