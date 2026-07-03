@@ -1321,40 +1321,55 @@ export type Database = {
       sms_logs: {
         Row: {
           applicant_name_masked: string | null
+          application_id: string | null
           created_at: string
           error: string | null
           event_type: string
           id: string
           message: string
           metadata: Json
+          phone_masked: string | null
+          provider: string | null
+          provider_ref: string | null
           recipient: string
           sent_at: string | null
+          stage: string | null
           status: string
           tracking_id: string | null
         }
         Insert: {
           applicant_name_masked?: string | null
+          application_id?: string | null
           created_at?: string
           error?: string | null
           event_type: string
           id?: string
           message: string
           metadata?: Json
+          phone_masked?: string | null
+          provider?: string | null
+          provider_ref?: string | null
           recipient: string
           sent_at?: string | null
+          stage?: string | null
           status?: string
           tracking_id?: string | null
         }
         Update: {
           applicant_name_masked?: string | null
+          application_id?: string | null
           created_at?: string
           error?: string | null
           event_type?: string
           id?: string
           message?: string
           metadata?: Json
+          phone_masked?: string | null
+          provider?: string | null
+          provider_ref?: string | null
           recipient?: string
           sent_at?: string | null
+          stage?: string | null
           status?: string
           tracking_id?: string | null
         }
