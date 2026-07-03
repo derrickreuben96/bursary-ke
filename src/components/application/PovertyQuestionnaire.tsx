@@ -25,6 +25,7 @@ import { Card } from "@/components/ui/card";
 import { ArrowLeft, ArrowRight, ClipboardCheck, Lock, Shuffle } from "lucide-react";
 import { useApplication } from "@/context/ApplicationContext";
 import { getRandomizedQuestions, calculatePovertyScoreFromAnswers, type PovertyQuestion } from "@/lib/povertyQuestions";
+import { DynamicPovertyBank } from "./DynamicPovertyBank";
 
 interface PovertyQuestionnaireProps {
   onNext: () => void;
