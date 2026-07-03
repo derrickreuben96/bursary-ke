@@ -1391,6 +1391,9 @@ export type Database = {
           disability_status: string | null
           disability_type: string | null
           disability_verified: boolean
+          dvl_notes: string | null
+          dvl_verified_at: string | null
+          dvl_verified_by: string | null
           education_category:
             | Database["public"]["Enums"]["education_category"]
             | null
@@ -1427,6 +1430,9 @@ export type Database = {
           disability_status?: string | null
           disability_type?: string | null
           disability_verified?: boolean
+          dvl_notes?: string | null
+          dvl_verified_at?: string | null
+          dvl_verified_by?: string | null
           education_category?:
             | Database["public"]["Enums"]["education_category"]
             | null
@@ -1463,6 +1469,9 @@ export type Database = {
           disability_status?: string | null
           disability_type?: string | null
           disability_verified?: boolean
+          dvl_notes?: string | null
+          dvl_verified_at?: string | null
+          dvl_verified_by?: string | null
           education_category?:
             | Database["public"]["Enums"]["education_category"]
             | null
@@ -1849,6 +1858,10 @@ export type Database = {
           _user_agent?: string
         }
         Returns: string
+      }
+      mark_dvl_verified: {
+        Args: { _notes?: string; _student_id: string; _verified: boolean }
+        Returns: Json
       }
       move_to_dlq: {
         Args: {
