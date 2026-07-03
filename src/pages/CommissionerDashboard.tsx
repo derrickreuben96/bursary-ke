@@ -819,6 +819,8 @@ export default function CommissionerDashboard() {
           <TableHead>Priority</TableHead>
           <TableHead>Fairness</TableHead>
           <TableHead>Fraud Risk</TableHead>
+          <TableHead>Fraud AI</TableHead>
+          <TableHead>Rank</TableHead>
           {showAmount && <TableHead>Amount</TableHead>}
           <TableHead>Status</TableHead>
           <TableHead className="min-w-[320px]">AI Decision Reasoning</TableHead>
