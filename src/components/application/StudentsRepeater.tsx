@@ -4,12 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Plus, Trash2, GraduationCap, ArrowLeft, ArrowRight, AlertCircle, Loader2, Check, School } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Plus, Trash2, GraduationCap, ArrowLeft, ArrowRight, AlertCircle, Loader2, Check, School, Upload, ShieldCheck } from "lucide-react";
 import { useApplication, type StudentEntry } from "@/context/ApplicationContext";
 import { useToast } from "@/hooks/use-toast";
 import { lookupNemisId, validateNemisFormat, formatNemisId } from "@/lib/nemisApi";
 import { maskName } from "@/lib/maskData";
 import { kenyanInstitutions, kenyanCourses } from "@/lib/mockData";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
 
@@ -45,8 +47,31 @@ export function StudentsRepeater({ onNext, onBack, defaultType }: Props) {
   );
   const [lookupState, setLookupState] = useState<Record<string, { loading: boolean; error?: string; verified?: boolean }>>({});
 
+  const [dvlUploading, setDvlUploading] = useState<Record<string, boolean>>({});
+
   const update = (id: string, patch: Partial<StudentEntry>) =>
     setStudents((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+
+  const uploadDisabilityCard = async (studentId: string, file: File) => {
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ variant: "destructive", title: "File too large", description: "Max 5 MB." });
+      return;
+    }
+    if (!["image/jpeg", "image/png", "application/pdf"].includes(file.type)) {
+      toast({ variant: "destructive", title: "Unsupported format", description: "Use JPG, PNG, or PDF." });
+      return;
+    }
+    setDvlUploading((p) => ({ ...p, [studentId]: true }));
+    const key = `ncpwd/${studentId}-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+    const { error } = await supabase.storage.from("applicant-documents").upload(key, file, { upsert: false });
+    setDvlUploading((p) => ({ ...p, [studentId]: false }));
+    if (error) {
+      toast({ variant: "destructive", title: "Upload failed", description: error.message });
+      return;
+    }
+    update(studentId, { disabilityCardUrl: key });
+    toast({ title: "Card uploaded", description: "NCPWD verification document received." });
+  };
 
   const handleNemisChange = async (id: string, raw: string) => {
     const value = raw.replace(/\D/g, "").slice(0, 11);
@@ -112,7 +137,29 @@ export function StudentsRepeater({ onNext, onBack, defaultType }: Props) {
         return;
       }
       ids.add(k);
+
+      // DVL: if the user declared *any* disability field, require the full triple.
+      const declaredDisability = Boolean(s.ncpwdRegistrationNumber || s.disabilityType || s.disabilityCardUrl);
+      if (declaredDisability) {
+        if (!s.ncpwdRegistrationNumber?.trim() || !s.disabilityType?.trim() || !s.disabilityCardUrl?.trim()) {
+          toast({
+            variant: "destructive",
+            title: "Disability verification incomplete",
+            description: `Student ${s.studentName || ""}: NCPWD number, disability type, and card upload are all required.`,
+          });
+          return;
+        }
+        if (!/^[A-Z0-9/\-]{4,24}$/.test(s.ncpwdRegistrationNumber.trim())) {
+          toast({
+            variant: "destructive",
+            title: "Invalid NCPWD number",
+            description: "Use only letters, numbers, dashes and slashes (4–24 chars).",
+          });
+          return;
+        }
+      }
     }
+
 
     // Ensure university identifier == admission number for downstream services.
     const normalized = students.map((s) =>
@@ -304,6 +351,77 @@ export function StudentsRepeater({ onNext, onBack, defaultType }: Props) {
                 </div>
               </div>
             )}
+
+            {/* Disability Verification Layer (DVL) — optional per student */}
+            <div className="rounded-lg border border-dashed p-4 space-y-3 bg-muted/20">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-primary" />
+                  <Label className="text-sm font-medium m-0">Registered disability (NCPWD)</Label>
+                </div>
+                <Switch
+                  checked={Boolean(s.ncpwdRegistrationNumber || s.disabilityType || s.disabilityCardUrl)}
+                  onCheckedChange={(on) => {
+                    if (!on) {
+                      update(s.id, { ncpwdRegistrationNumber: "", disabilityType: "", disabilityCardUrl: "" });
+                    } else {
+                      update(s.id, { disabilityType: s.disabilityType || "physical" });
+                    }
+                  }}
+                />
+              </div>
+              {(s.ncpwdRegistrationNumber || s.disabilityType || s.disabilityCardUrl) && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">NCPWD Registration Number *</Label>
+                    <Input
+                      value={s.ncpwdRegistrationNumber || ""}
+                      onChange={(e) => update(s.id, { ncpwdRegistrationNumber: e.target.value.toUpperCase().slice(0, 24) })}
+                      placeholder="e.g. NCPWD/2024/12345"
+                      className="font-mono"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Disability Type *</Label>
+                    <Select
+                      value={s.disabilityType || ""}
+                      onValueChange={(v) => update(s.id, { disabilityType: v })}
+                    >
+                      <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="physical">Physical</SelectItem>
+                        <SelectItem value="visual">Visual</SelectItem>
+                        <SelectItem value="hearing">Hearing</SelectItem>
+                        <SelectItem value="intellectual">Intellectual</SelectItem>
+                        <SelectItem value="multiple">Multiple</SelectItem>
+                        <SelectItem value="albinism">Albinism</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label className="text-xs">NCPWD Card Upload * (JPG, PNG, or PDF, ≤5 MB)</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="file"
+                        accept="image/jpeg,image/png,application/pdf"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) uploadDisabilityCard(s.id, f);
+                          e.currentTarget.value = "";
+                        }}
+                        disabled={dvlUploading[s.id]}
+                      />
+                      {dvlUploading[s.id] && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                    </div>
+                    {s.disabilityCardUrl && (
+                      <p className="text-xs text-primary mt-1 flex items-center gap-1">
+                        <Check className="h-3 w-3" /> Card uploaded — awaiting verification.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </Card>
         );
       })}
