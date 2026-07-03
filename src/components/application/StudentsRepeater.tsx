@@ -329,6 +329,77 @@ export function StudentsRepeater({ onNext, onBack, defaultType }: Props) {
                 </div>
               </div>
             )}
+
+            {/* Disability Verification Layer (DVL) — optional per student */}
+            <div className="rounded-lg border border-dashed p-4 space-y-3 bg-muted/20">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-primary" />
+                  <Label className="text-sm font-medium m-0">Registered disability (NCPWD)</Label>
+                </div>
+                <Switch
+                  checked={Boolean(s.ncpwdRegistrationNumber || s.disabilityType || s.disabilityCardUrl)}
+                  onCheckedChange={(on) => {
+                    if (!on) {
+                      update(s.id, { ncpwdRegistrationNumber: "", disabilityType: "", disabilityCardUrl: "" });
+                    } else {
+                      update(s.id, { disabilityType: s.disabilityType || "physical" });
+                    }
+                  }}
+                />
+              </div>
+              {(s.ncpwdRegistrationNumber || s.disabilityType || s.disabilityCardUrl) && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">NCPWD Registration Number *</Label>
+                    <Input
+                      value={s.ncpwdRegistrationNumber || ""}
+                      onChange={(e) => update(s.id, { ncpwdRegistrationNumber: e.target.value.toUpperCase().slice(0, 24) })}
+                      placeholder="e.g. NCPWD/2024/12345"
+                      className="font-mono"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Disability Type *</Label>
+                    <Select
+                      value={s.disabilityType || ""}
+                      onValueChange={(v) => update(s.id, { disabilityType: v })}
+                    >
+                      <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="physical">Physical</SelectItem>
+                        <SelectItem value="visual">Visual</SelectItem>
+                        <SelectItem value="hearing">Hearing</SelectItem>
+                        <SelectItem value="intellectual">Intellectual</SelectItem>
+                        <SelectItem value="multiple">Multiple</SelectItem>
+                        <SelectItem value="albinism">Albinism</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label className="text-xs">NCPWD Card Upload * (JPG, PNG, or PDF, ≤5 MB)</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="file"
+                        accept="image/jpeg,image/png,application/pdf"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) uploadDisabilityCard(s.id, f);
+                          e.currentTarget.value = "";
+                        }}
+                        disabled={dvlUploading[s.id]}
+                      />
+                      {dvlUploading[s.id] && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                    </div>
+                    {s.disabilityCardUrl && (
+                      <p className="text-xs text-primary mt-1 flex items-center gap-1">
+                        <Check className="h-3 w-3" /> Card uploaded — awaiting verification.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </Card>
         );
       })}
