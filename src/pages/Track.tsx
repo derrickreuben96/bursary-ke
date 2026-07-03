@@ -59,8 +59,9 @@ export default function Track() {
       return;
     }
 
-    if (!isValidTrackingNumber(normalizedNumber)) {
-      setError(t("track.error_invalid_format"));
+    const isHousehold = isValidHouseholdId(normalizedNumber);
+    if (!isHousehold && !isValidTrackingNumber(normalizedNumber)) {
+      setError("Enter a tracking number (BKE-XXXXXX) or household ID (BK-HH-YYYY-NNNNN).");
       return;
     }
 
@@ -70,6 +71,47 @@ export default function Track() {
     }
 
     setIsLoading(true);
+
+    // ---- Household lookup path ----
+    if (isHousehold) {
+      try {
+        const { data: hData, error: hErr } = await supabase.rpc("get_household_by_id", {
+          _household_id: normalizedNumber,
+          _verifier: verVal,
+        });
+        if (hErr) throw hErr;
+        if (!hData || (hData as { error?: string }).error) {
+          if ((hData as { error?: string })?.error === "verification_failed") {
+            setError("Verification failed. Phone/National ID does not match this household.");
+          } else {
+            setNotFound(true);
+          }
+          setIsLoading(false);
+          return;
+        }
+        const h = hData as {
+          household_tracking_id: string;
+          total_students?: number;
+          parent_county?: string;
+          parent_ward?: string;
+          students?: typeof students;
+        };
+        setParentInfo({
+          household_tracking_id: h.household_tracking_id,
+          total_students: h.total_students,
+          parent_county: h.parent_county,
+          parent_ward: h.parent_ward,
+        });
+        setStudents(h.students || []);
+      } catch (err) {
+        console.error("Household lookup error:", err);
+        setNotFound(true);
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
 
     try {
       const body: Record<string, string> = {
