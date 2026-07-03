@@ -281,10 +281,13 @@ export default function CommissionerDashboard() {
           const disability = students
             .filter((s) => s.disability_status || s.ncpwd_registration_number || s.disability_card_url)
             .map((s) => ({
+              id: s.id,
               name: s.student_name_masked || "Student",
               type: s.disability_type ?? null,
               ncpwd: s.ncpwd_registration_number ?? null,
               cardUrl: s.disability_card_url ?? null,
+              verifiedAt: s.dvl_verified_at ?? null,
+              notes: s.dvl_notes ?? null,
             }));
           detailMap[row.tracking_number] = { fraudMax, rankMin, pipeline, disability };
         });
