@@ -80,14 +80,20 @@ export function ParentGuardianForm({ onNext }: ParentGuardianFormProps) {
       });
   }, []);
 
-  // Reset ward and advert when county changes
+  // Reset ward and advert when county changes (skip initial mount to preserve rehydrated values)
+  const prevCountyRef = useRef(selectedCounty);
   useEffect(() => {
+    if (prevCountyRef.current === selectedCounty) return;
+    prevCountyRef.current = selectedCounty;
     form.setValue("ward", "");
     form.setValue("selectedAdvertId", "");
   }, [selectedCounty]);
 
-  // Reset advert when ward changes
+  // Reset advert when ward changes (skip initial mount)
+  const prevWardRef = useRef(selectedWard);
   useEffect(() => {
+    if (prevWardRef.current === selectedWard) return;
+    prevWardRef.current = selectedWard;
     form.setValue("selectedAdvertId", "");
   }, [selectedWard]);
 
