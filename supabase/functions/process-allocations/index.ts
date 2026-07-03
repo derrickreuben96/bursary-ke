@@ -358,6 +358,14 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Step 3.5: Write immutable decision-log rows for each processed application.
+    // Non-blocking — audit trail must never break allocation.
+    try {
+      await writeDecisionLog(supabaseAdmin, advertId, results, scoredApps, authResult);
+    } catch (logErr) {
+      console.error("[DECISION_LOG] Non-blocking error:", logErr);
+    }
+
     // Step 4: Send SMS/email notifications to ALL applicants (approved + rejected)
     try {
       await notifyAllApplicants(supabaseAdmin, results, validApps);
