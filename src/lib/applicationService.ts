@@ -105,6 +105,8 @@ export async function submitApplication(
           sms_consent: data.parentGuardian?.consentNotifications || false,
           household_income: data.povertyQuestionnaire?.householdIncome || 0,
           household_dependents: data.povertyQuestionnaire?.numberOfDependents || 0,
+          household_disability_burden:
+            (povertyAnswers as Record<string, unknown> | null)?.["household_disability"] === "yes" || false,
           // Raw questionnaire answers — server recomputes score & tier authoritatively
           poverty_answers: povertyAnswers,
 
@@ -113,11 +115,16 @@ export async function submitApplication(
           student_full_name: s.studentName,
           student_identifier: s.identifier,
           student_type: s.studentType,
+          education_category:
+            s.educationCategory || (s.studentType === "secondary" ? "high_school" : "university"),
           institution_name: s.institution,
           admission_number: s.admissionNumber || null,
           class_form: s.classForm || null,
           year_of_study: s.yearOfStudy || null,
           fee_balance: s.feeBalance || 0,
+          ncpwd_registration_number: s.ncpwdRegistrationNumber || null,
+          disability_type: s.disabilityType || null,
+          disability_card_url: s.disabilityCardUrl || null,
         })),
       });
 
