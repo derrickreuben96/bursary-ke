@@ -38,8 +38,10 @@ export default function Track() {
     allocated_amount: number | null;
     class_form?: string | null;
     year_of_study?: string | null;
+    rank_in_pipeline?: number | null;
+    child_code?: string | null;
   }>>([]);
-  const [parentInfo, setParentInfo] = useState<{ total_students?: number; parent_county?: string; parent_ward?: string } | null>(null);
+  const [parentInfo, setParentInfo] = useState<{ total_students?: number; parent_county?: string; parent_ward?: string; household_tracking_id?: string } | null>(null);
   const [notFound, setNotFound] = useState(false);
 
   const handleTrack = async () => {
