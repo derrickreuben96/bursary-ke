@@ -158,6 +158,8 @@ export function StudentsRepeater({ onNext, onBack, defaultType }: Props) {
           return;
         }
       }
+    }
+
 
     // Ensure university identifier == admission number for downstream services.
     const normalized = students.map((s) =>
