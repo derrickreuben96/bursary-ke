@@ -23,6 +23,7 @@ const MAX_STUDENTS = 3;
 const newStudent = (defaultType: "secondary" | "university"): StudentEntry => ({
   id: crypto.randomUUID(),
   studentType: defaultType,
+  educationCategory: defaultType === "secondary" ? "high_school" : "university",
   studentName: "",
   identifier: "",
   institution: "",
