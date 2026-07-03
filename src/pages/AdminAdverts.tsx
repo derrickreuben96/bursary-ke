@@ -681,6 +681,49 @@ export default function AdminAdverts() {
                   Maximum number of applicants to approve. This number is not shown publicly in the advert.
                 </p>
               </div>
+
+              <div className="rounded-lg border border-dashed p-4 space-y-3 bg-muted/30">
+                <div>
+                  <h4 className="font-semibold text-sm">Quota & Budget Segmentation (optional)</h4>
+                  <p className="text-xs text-muted-foreground">
+                    Leave blank for a single common pool. If set, slots must sum to Total, and category caps must fit within Budget.
+                  </p>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <Label className="text-xs">Total Slots</Label>
+                    <Input type="number" value={form.total_slots} onChange={(e) => setForm({ ...form, total_slots: e.target.value })} placeholder="e.g. 100" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">High-School Slots</Label>
+                    <Input type="number" value={form.high_school_quota_slots} onChange={(e) => setForm({ ...form, high_school_quota_slots: e.target.value })} placeholder="e.g. 60" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Higher-Ed Slots</Label>
+                    <Input type="number" value={form.higher_education_quota_slots} onChange={(e) => setForm({ ...form, higher_education_quota_slots: e.target.value })} placeholder="e.g. 40" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">High-School Budget Cap (KES)</Label>
+                    <Input type="number" value={form.high_school_budget_cap} onChange={(e) => setForm({ ...form, high_school_budget_cap: e.target.value })} placeholder="e.g. 2000000" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Higher-Ed Budget Cap (KES)</Label>
+                    <Input type="number" value={form.higher_education_budget_cap} onChange={(e) => setForm({ ...form, higher_education_budget_cap: e.target.value })} placeholder="e.g. 3000000" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Min Award per Student (KES)</Label>
+                    <Input type="number" value={form.min_award_per_student} onChange={(e) => setForm({ ...form, min_award_per_student: e.target.value })} placeholder="e.g. 15000" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Max Award per Student (KES)</Label>
+                    <Input type="number" value={form.max_award_per_student} onChange={(e) => setForm({ ...form, max_award_per_student: e.target.value })} placeholder="e.g. 75000" />
+                  </div>
+                </div>
+              </div>
               <div>
                 <Label>Description</Label>
                 <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} placeholder="Brief description of this bursary..." />
