@@ -241,11 +241,11 @@ export default function Track() {
             <div className="space-y-4">
               <div>
                 <Label htmlFor="tracking" className="text-sm font-medium mb-2 block">
-                  {t("track.tracking_number")}
+                  {t("track.tracking_number")} or Household ID
                 </Label>
                 <Input
                   id="tracking"
-                  placeholder={t("tracking.placeholder")}
+                  placeholder="BKE-XXXXXX or BK-HH-2026-00042"
                   value={trackingNumber}
                   onChange={(e) => {
                     setTrackingNumber(e.target.value.toUpperCase());
