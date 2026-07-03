@@ -12,9 +12,13 @@ export interface SecondaryStudentFormData {
  * Generic per-student record used by the multi-student repeater.
  * Either secondary or university shape; max 3 per parent application.
  */
+export type EducationCategory = "high_school" | "university" | "college" | "tvet";
+
 export interface StudentEntry {
   id: string; // local-only uuid for React keys
   studentType: "secondary" | "university";
+  /** Fine-grained education level. For secondary: always 'high_school'. For higher-ed: user picks. */
+  educationCategory?: EducationCategory;
   studentName: string;
   identifier: string; // NEMIS/birth-cert OR university student id
   institution: string;
@@ -23,6 +27,10 @@ export interface StudentEntry {
   yearOfStudy?: string;
   course?: string;
   feeBalance?: number;
+  // Disability Verification Layer (optional; required when applicant declares disability)
+  ncpwdRegistrationNumber?: string;
+  disabilityType?: string;
+  disabilityCardUrl?: string;
 }
 
 export interface ApplicationData {
