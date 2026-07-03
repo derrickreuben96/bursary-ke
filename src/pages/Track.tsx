@@ -491,6 +491,13 @@ export default function Track() {
                                   {s.class_form ? ` · ${s.class_form}` : ""}
                                   {s.year_of_study ? ` · ${s.year_of_study}` : ""}
                                 </p>
+                                {(s.child_code || s.rank_in_pipeline) && (
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {s.child_code ? <>Child code: <span className="font-mono">{s.child_code}</span></> : null}
+                                    {s.child_code && s.rank_in_pipeline ? " · " : ""}
+                                    {s.rank_in_pipeline ? <>Rank in pipeline: <span className="font-medium">#{s.rank_in_pipeline}</span></> : null}
+                                  </p>
+                                )}
                               </div>
                               <div className="text-right">
                                 <span
