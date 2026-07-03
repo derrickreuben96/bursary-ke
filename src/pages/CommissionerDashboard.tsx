@@ -65,6 +65,13 @@ interface FairnessInfo {
   consistencyFlags: string[];
 }
 
+interface StudentDvlInfo {
+  fraudMax: number;
+  rankMin: number | null;
+  pipeline: string | null;
+  disability: Array<{ name: string; type: string | null; ncpwd: string | null; cardUrl: string | null }>;
+}
+
 interface BursaryAdvert {
   id: string;
   title: string;
