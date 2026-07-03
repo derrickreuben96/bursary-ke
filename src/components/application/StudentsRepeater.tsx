@@ -4,12 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Plus, Trash2, GraduationCap, ArrowLeft, ArrowRight, AlertCircle, Loader2, Check, School } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Plus, Trash2, GraduationCap, ArrowLeft, ArrowRight, AlertCircle, Loader2, Check, School, Upload, ShieldCheck } from "lucide-react";
 import { useApplication, type StudentEntry } from "@/context/ApplicationContext";
 import { useToast } from "@/hooks/use-toast";
 import { lookupNemisId, validateNemisFormat, formatNemisId } from "@/lib/nemisApi";
 import { maskName } from "@/lib/maskData";
 import { kenyanInstitutions, kenyanCourses } from "@/lib/mockData";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
 
