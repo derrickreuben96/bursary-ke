@@ -65,6 +65,13 @@ interface FairnessInfo {
   consistencyFlags: string[];
 }
 
+interface StudentDvlInfo {
+  fraudMax: number;
+  rankMin: number | null;
+  pipeline: string | null;
+  disability: Array<{ name: string; type: string | null; ncpwd: string | null; cardUrl: string | null }>;
+}
+
 interface BursaryAdvert {
   id: string;
   title: string;
@@ -126,6 +133,7 @@ function AIReasonCell({ reason }: { reason: string | null }) {
 export default function CommissionerDashboard() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [fairnessMap, setFairnessMap] = useState<Map<string, FairnessInfo>>(new Map());
+  const [studentDetailsMap, setStudentDetailsMap] = useState<Record<string, StudentDvlInfo>>({});
   const [statusHistory, setStatusHistory] = useState<Record<string, StatusHistoryEntry[]>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -257,6 +265,32 @@ export default function CommissionerDashboard() {
         setFairnessMap(fMap);
       } else {
         setFairnessMap(new Map());
+      }
+
+      // Fetch per-student DVL, fraud AI score, and pipeline rank
+      try {
+        const { data: parentRows } = await supabase.rpc("get_parent_applications_for_commissioner");
+        const detailMap: Record<string, StudentDvlInfo> = {};
+        (parentRows || []).forEach((row: any) => {
+          const students: any[] = Array.isArray(row.students) ? row.students : [];
+          if (students.length === 0) return;
+          const fraudMax = students.reduce((m, s) => Math.max(m, Number(s.fraud_score) || 0), 0);
+          const ranks = students.map((s) => s.rank_in_pipeline).filter((r: any) => r != null);
+          const rankMin = ranks.length ? Math.min(...ranks) : null;
+          const pipeline = students.find((s) => s.assessment_pipeline)?.assessment_pipeline ?? null;
+          const disability = students
+            .filter((s) => s.disability_status || s.ncpwd_registration_number || s.disability_card_url)
+            .map((s) => ({
+              name: s.student_name_masked || "Student",
+              type: s.disability_type ?? null,
+              ncpwd: s.ncpwd_registration_number ?? null,
+              cardUrl: s.disability_card_url ?? null,
+            }));
+          detailMap[row.tracking_number] = { fraudMax, rankMin, pipeline, disability };
+        });
+        setStudentDetailsMap(detailMap);
+      } catch (e) {
+        console.warn("DVL/fraud fetch failed", e);
       }
     }
     setDataLastFetched(new Date());
@@ -785,6 +819,8 @@ export default function CommissionerDashboard() {
           <TableHead>Priority</TableHead>
           <TableHead>Fairness</TableHead>
           <TableHead>Fraud Risk</TableHead>
+          <TableHead>Fraud AI</TableHead>
+          <TableHead>Rank</TableHead>
           {showAmount && <TableHead>Amount</TableHead>}
           <TableHead>Status</TableHead>
           <TableHead className="min-w-[320px]">AI Decision Reasoning</TableHead>
@@ -822,6 +858,25 @@ export default function CommissionerDashboard() {
                     {f?.fraudRiskLevel || "low"}
                   </Badge>
                 </TableCell>
+                <TableCell>
+                  {(() => {
+                    const d = studentDetailsMap[app.tracking_number];
+                    const score = d?.fraudMax ?? 0;
+                    const variant = score >= 70 ? "destructive" : score >= 40 ? "secondary" : "outline";
+                    return <Badge variant={variant as any} title="AI fraud score (0–100, higher = riskier)">{score}</Badge>;
+                  })()}
+                </TableCell>
+                <TableCell>
+                  {(() => {
+                    const d = studentDetailsMap[app.tracking_number];
+                    if (d?.rankMin == null) return <span className="text-xs text-muted-foreground">—</span>;
+                    return (
+                      <Badge variant="outline" className="font-mono" title={d.pipeline ? `Pipeline: ${d.pipeline}` : undefined}>
+                        #{d.rankMin}
+                      </Badge>
+                    );
+                  })()}
+                </TableCell>
                 {showAmount && (
                   <TableCell className="font-medium">KES {(app.allocated_amount || 0).toLocaleString()}</TableCell>
                 )}
@@ -830,9 +885,32 @@ export default function CommissionerDashboard() {
                   <AIReasonCell reason={app.ai_decision_reason} />
                 </TableCell>
               </TableRow>
+              {studentDetailsMap[app.tracking_number]?.disability?.length > 0 && (
+                <TableRow>
+                  <TableCell colSpan={showAmount ? 12 : 11} className="py-1 px-6 bg-amber-50/40 dark:bg-amber-950/10">
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-amber-800 dark:text-amber-300">DVL — Disability Evidence (verify NCPWD)</p>
+                      {studentDetailsMap[app.tracking_number].disability.map((d, i) => (
+                        <div key={i} className="text-xs text-muted-foreground flex flex-wrap gap-x-3 gap-y-0.5">
+                          <span className="font-medium">{d.name}</span>
+                          {d.type && <span>Type: {d.type}</span>}
+                          <span>NCPWD: <span className="font-mono">{d.ncpwd || "—"}</span></span>
+                          {d.cardUrl ? (
+                            <a href={d.cardUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                              View card
+                            </a>
+                          ) : (
+                            <span className="italic">No card uploaded</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
               {statusHistory[app.id]?.length > 0 && (
                 <TableRow>
-                  <TableCell colSpan={showAmount ? 10 : 9} className="py-1 px-6">
+                  <TableCell colSpan={showAmount ? 12 : 11} className="py-1 px-6">
                     <div className="space-y-0.5">
                       <p className="text-xs font-medium text-muted-foreground">Status History</p>
                       {statusHistory[app.id].map((entry) => (
