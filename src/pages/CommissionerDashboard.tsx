@@ -69,7 +69,7 @@ interface StudentDvlInfo {
   fraudMax: number;
   rankMin: number | null;
   pipeline: string | null;
-  disability: Array<{ name: string; type: string | null; ncpwd: string | null; cardUrl: string | null }>;
+  disability: Array<{ id: string; name: string; type: string | null; ncpwd: string | null; cardUrl: string | null; verifiedAt: string | null; notes: string | null }>;
 }
 
 interface BursaryAdvert {
