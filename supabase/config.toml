@@ -50,4 +50,7 @@ verify_jwt = false
 [functions.disbursement-auto]
 verify_jwt = false
 
+[functions.sms-lifecycle]
+verify_jwt = false
+
 
