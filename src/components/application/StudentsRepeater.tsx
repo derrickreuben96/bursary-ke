@@ -47,8 +47,31 @@ export function StudentsRepeater({ onNext, onBack, defaultType }: Props) {
   );
   const [lookupState, setLookupState] = useState<Record<string, { loading: boolean; error?: string; verified?: boolean }>>({});
 
+  const [dvlUploading, setDvlUploading] = useState<Record<string, boolean>>({});
+
   const update = (id: string, patch: Partial<StudentEntry>) =>
     setStudents((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+
+  const uploadDisabilityCard = async (studentId: string, file: File) => {
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ variant: "destructive", title: "File too large", description: "Max 5 MB." });
+      return;
+    }
+    if (!["image/jpeg", "image/png", "application/pdf"].includes(file.type)) {
+      toast({ variant: "destructive", title: "Unsupported format", description: "Use JPG, PNG, or PDF." });
+      return;
+    }
+    setDvlUploading((p) => ({ ...p, [studentId]: true }));
+    const key = `ncpwd/${studentId}-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+    const { error } = await supabase.storage.from("applicant-documents").upload(key, file, { upsert: false });
+    setDvlUploading((p) => ({ ...p, [studentId]: false }));
+    if (error) {
+      toast({ variant: "destructive", title: "Upload failed", description: error.message });
+      return;
+    }
+    update(studentId, { disabilityCardUrl: key });
+    toast({ title: "Card uploaded", description: "NCPWD verification document received." });
+  };
 
   const handleNemisChange = async (id: string, raw: string) => {
     const value = raw.replace(/\D/g, "").slice(0, 11);
