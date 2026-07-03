@@ -169,6 +169,13 @@ export default function AdminAdverts() {
       min_beneficiaries: advert.min_beneficiaries?.toString() || "",
       description: advert.description || "",
       required_documents: (advert.required_documents || []).join("\n"),
+      total_slots: advert.total_slots?.toString() || "",
+      high_school_quota_slots: advert.high_school_quota_slots?.toString() || "",
+      higher_education_quota_slots: advert.higher_education_quota_slots?.toString() || "",
+      high_school_budget_cap: advert.high_school_budget_cap?.toString() || "",
+      higher_education_budget_cap: advert.higher_education_budget_cap?.toString() || "",
+      min_award_per_student: advert.min_award_per_student?.toString() || "",
+      max_award_per_student: advert.max_award_per_student?.toString() || "",
     });
     setDialogOpen(true);
   };
@@ -176,6 +183,15 @@ export default function AdminAdverts() {
   const handleSubmit = async () => {
     if (!form.title || !form.county || !form.ward || !form.deadline) {
       toast({ title: "Validation Error", description: "Title, county, ward, and deadline are required.", variant: "destructive" });
+      return;
+    }
+
+    // Client-side quota validation (DB trigger enforces authoritatively)
+    const hs = form.high_school_quota_slots ? parseInt(form.high_school_quota_slots) : null;
+    const he = form.higher_education_quota_slots ? parseInt(form.higher_education_quota_slots) : null;
+    const ts = form.total_slots ? parseInt(form.total_slots) : null;
+    if (ts !== null && hs !== null && he !== null && hs + he !== ts) {
+      toast({ title: "Quota mismatch", description: `High-school (${hs}) + higher-education (${he}) must equal total slots (${ts}).`, variant: "destructive" });
       return;
     }
 
@@ -194,6 +210,13 @@ export default function AdminAdverts() {
       min_beneficiaries: form.min_beneficiaries ? parseInt(form.min_beneficiaries) : null,
       description: form.description || null,
       required_documents: requiredDocs,
+      total_slots: ts,
+      high_school_quota_slots: hs,
+      higher_education_quota_slots: he,
+      high_school_budget_cap: form.high_school_budget_cap ? parseFloat(form.high_school_budget_cap) : null,
+      higher_education_budget_cap: form.higher_education_budget_cap ? parseFloat(form.higher_education_budget_cap) : null,
+      min_award_per_student: form.min_award_per_student ? parseFloat(form.min_award_per_student) : null,
+      max_award_per_student: form.max_award_per_student ? parseFloat(form.max_award_per_student) : null,
     };
 
     let error;
