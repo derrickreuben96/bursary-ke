@@ -858,6 +858,25 @@ export default function CommissionerDashboard() {
                     {f?.fraudRiskLevel || "low"}
                   </Badge>
                 </TableCell>
+                <TableCell>
+                  {(() => {
+                    const d = studentDetailsMap[app.tracking_number];
+                    const score = d?.fraudMax ?? 0;
+                    const variant = score >= 70 ? "destructive" : score >= 40 ? "secondary" : "outline";
+                    return <Badge variant={variant as any} title="AI fraud score (0–100, higher = riskier)">{score}</Badge>;
+                  })()}
+                </TableCell>
+                <TableCell>
+                  {(() => {
+                    const d = studentDetailsMap[app.tracking_number];
+                    if (d?.rankMin == null) return <span className="text-xs text-muted-foreground">—</span>;
+                    return (
+                      <Badge variant="outline" className="font-mono" title={d.pipeline ? `Pipeline: ${d.pipeline}` : undefined}>
+                        #{d.rankMin}
+                      </Badge>
+                    );
+                  })()}
+                </TableCell>
                 {showAmount && (
                   <TableCell className="font-medium">KES {(app.allocated_amount || 0).toLocaleString()}</TableCell>
                 )}
@@ -866,9 +885,32 @@ export default function CommissionerDashboard() {
                   <AIReasonCell reason={app.ai_decision_reason} />
                 </TableCell>
               </TableRow>
+              {studentDetailsMap[app.tracking_number]?.disability?.length > 0 && (
+                <TableRow>
+                  <TableCell colSpan={showAmount ? 12 : 11} className="py-1 px-6 bg-amber-50/40 dark:bg-amber-950/10">
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-amber-800 dark:text-amber-300">DVL — Disability Evidence (verify NCPWD)</p>
+                      {studentDetailsMap[app.tracking_number].disability.map((d, i) => (
+                        <div key={i} className="text-xs text-muted-foreground flex flex-wrap gap-x-3 gap-y-0.5">
+                          <span className="font-medium">{d.name}</span>
+                          {d.type && <span>Type: {d.type}</span>}
+                          <span>NCPWD: <span className="font-mono">{d.ncpwd || "—"}</span></span>
+                          {d.cardUrl ? (
+                            <a href={d.cardUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                              View card
+                            </a>
+                          ) : (
+                            <span className="italic">No card uploaded</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
               {statusHistory[app.id]?.length > 0 && (
                 <TableRow>
-                  <TableCell colSpan={showAmount ? 10 : 9} className="py-1 px-6">
+                  <TableCell colSpan={showAmount ? 12 : 11} className="py-1 px-6">
                     <div className="space-y-0.5">
                       <p className="text-xs font-medium text-muted-foreground">Status History</p>
                       {statusHistory[app.id].map((entry) => (
