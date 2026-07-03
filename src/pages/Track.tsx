@@ -540,8 +540,68 @@ export default function Track() {
             </div>
           )}
 
+          {/* Household-only view (no per-application timeline) */}
+          {!result && parentInfo?.household_tracking_id && students.length > 0 && (
+            <div className="space-y-6 animate-fade-in">
+              <Card className="p-6 shadow-card">
+                <h2 className="text-xl font-semibold mb-2">Household Overview</h2>
+                <p className="text-sm text-muted-foreground">
+                  Household ID:{" "}
+                  <span className="font-mono font-semibold text-foreground">
+                    {parentInfo.household_tracking_id}
+                  </span>
+                  {parentInfo.parent_county ? ` · ${parentInfo.parent_county}` : ""}
+                  {parentInfo.parent_ward ? ` · ${parentInfo.parent_ward}` : ""}
+                </p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Showing every application ever linked to this household. Each student below
+                  keeps their own status across cycles.
+                </p>
+              </Card>
+
+              <Card className="p-6 shadow-card">
+                <h3 className="text-lg font-semibold mb-4">
+                  Linked Students ({parentInfo?.total_students ?? students.length})
+                </h3>
+                <div className="space-y-3">
+                  {students.map((s, i) => (
+                    <div key={i} className="p-4 rounded-lg bg-secondary/40 border">
+                      <div className="flex items-start justify-between gap-3 flex-wrap">
+                        <div>
+                          <p className="font-medium">{s.student_full_name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {s.institution_name} · {s.student_type}
+                            {s.class_form ? ` · ${s.class_form}` : ""}
+                            {s.year_of_study ? ` · ${s.year_of_study}` : ""}
+                          </p>
+                          {(s.child_code || s.rank_in_pipeline) && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {s.child_code ? <>Child code: <span className="font-mono">{s.child_code}</span></> : null}
+                              {s.child_code && s.rank_in_pipeline ? " · " : ""}
+                              {s.rank_in_pipeline ? <>Rank in pipeline: <span className="font-medium">#{s.rank_in_pipeline}</span></> : null}
+                            </p>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <span className="inline-block text-xs font-medium px-2 py-1 rounded-md border bg-secondary">
+                            {s.status || "pending"}
+                          </span>
+                          {s.allocated_amount ? (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Allocated: KES {Number(s.allocated_amount).toLocaleString()}
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            </div>
+          )}
+
           {/* Demo Help */}
-          {!result && !notFound && (
+          {!result && !notFound && !parentInfo?.household_tracking_id && (
             <Card className="p-6 bg-primary/5 border-primary/20">
               <h3 className="font-semibold text-foreground mb-2">{t("track.demo_title")}</h3>
               <p className="text-sm text-muted-foreground mb-3">
