@@ -1707,6 +1707,7 @@ export type Database = {
       }
     }
     Functions: {
+      compute_fraud_score: { Args: { _student_id: string }; Returns: number }
       compute_poverty_score: {
         Args: { _answers: Json }
         Returns: {
@@ -1753,6 +1754,10 @@ export type Database = {
           updated_at: string
           year_of_study: string
         }[]
+      }
+      get_household_by_id: {
+        Args: { _household_id: string; _verifier: string }
+        Returns: Json
       }
       get_internal_config: { Args: { _key: string }; Returns: string }
       get_parent_application_by_tracking: {
