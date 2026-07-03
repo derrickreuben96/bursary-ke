@@ -183,6 +183,79 @@ export type Database = {
           },
         ]
       }
+      application_decision_log: {
+        Row: {
+          advert_id: string | null
+          decided_at: string
+          decided_by: string | null
+          decision: string
+          disability_score: number | null
+          fraud_score: number | null
+          id: string
+          parent_application_id: string | null
+          poverty_score: number | null
+          quota_category: string | null
+          rank_in_pipeline: number | null
+          reason_code: string | null
+          snapshot: Json
+          student_beneficiary_id: string
+        }
+        Insert: {
+          advert_id?: string | null
+          decided_at?: string
+          decided_by?: string | null
+          decision: string
+          disability_score?: number | null
+          fraud_score?: number | null
+          id?: string
+          parent_application_id?: string | null
+          poverty_score?: number | null
+          quota_category?: string | null
+          rank_in_pipeline?: number | null
+          reason_code?: string | null
+          snapshot?: Json
+          student_beneficiary_id: string
+        }
+        Update: {
+          advert_id?: string | null
+          decided_at?: string
+          decided_by?: string | null
+          decision?: string
+          disability_score?: number | null
+          fraud_score?: number | null
+          id?: string
+          parent_application_id?: string | null
+          poverty_score?: number | null
+          quota_category?: string | null
+          rank_in_pipeline?: number | null
+          reason_code?: string | null
+          snapshot?: Json
+          student_beneficiary_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_decision_log_advert_id_fkey"
+            columns: ["advert_id"]
+            isOneToOne: false
+            referencedRelation: "bursary_adverts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_decision_log_parent_application_id_fkey"
+            columns: ["parent_application_id"]
+            isOneToOne: false
+            referencedRelation: "parent_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_decision_log_student_beneficiary_id_fkey"
+            columns: ["student_beneficiary_id"]
+            isOneToOne: false
+            referencedRelation: "student_beneficiaries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       application_status_history: {
         Row: {
           application_id: string
@@ -260,12 +333,19 @@ export type Database = {
           created_at: string | null
           deadline: string
           description: string | null
+          high_school_budget_cap: number | null
+          high_school_quota_slots: number | null
+          higher_education_budget_cap: number | null
+          higher_education_quota_slots: number | null
           id: string
           is_active: boolean | null
+          max_award_per_student: number | null
           max_slots: number | null
+          min_award_per_student: number | null
           min_beneficiaries: number | null
           required_documents: string[] | null
           title: string
+          total_slots: number | null
           updated_at: string | null
           venues: Json | null
           ward: string | null
@@ -277,12 +357,19 @@ export type Database = {
           created_at?: string | null
           deadline: string
           description?: string | null
+          high_school_budget_cap?: number | null
+          high_school_quota_slots?: number | null
+          higher_education_budget_cap?: number | null
+          higher_education_quota_slots?: number | null
           id?: string
           is_active?: boolean | null
+          max_award_per_student?: number | null
           max_slots?: number | null
+          min_award_per_student?: number | null
           min_beneficiaries?: number | null
           required_documents?: string[] | null
           title: string
+          total_slots?: number | null
           updated_at?: string | null
           venues?: Json | null
           ward?: string | null
@@ -294,12 +381,19 @@ export type Database = {
           created_at?: string | null
           deadline?: string
           description?: string | null
+          high_school_budget_cap?: number | null
+          high_school_quota_slots?: number | null
+          higher_education_budget_cap?: number | null
+          higher_education_quota_slots?: number | null
           id?: string
           is_active?: boolean | null
+          max_award_per_student?: number | null
           max_slots?: number | null
+          min_award_per_student?: number | null
           min_beneficiaries?: number | null
           required_documents?: string[] | null
           title?: string
+          total_slots?: number | null
           updated_at?: string | null
           venues?: Json | null
           ward?: string | null
@@ -832,6 +926,51 @@ export type Database = {
           },
         ]
       }
+      household_child_codes: {
+        Row: {
+          child_code: string
+          child_index: number
+          created_at: string
+          household_tracking_id: string
+          id: string
+          parent_application_id: string
+          student_beneficiary_id: string
+        }
+        Insert: {
+          child_code: string
+          child_index: number
+          created_at?: string
+          household_tracking_id: string
+          id?: string
+          parent_application_id: string
+          student_beneficiary_id: string
+        }
+        Update: {
+          child_code?: string
+          child_index?: number
+          created_at?: string
+          household_tracking_id?: string
+          id?: string
+          parent_application_id?: string
+          student_beneficiary_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "household_child_codes_parent_application_id_fkey"
+            columns: ["parent_application_id"]
+            isOneToOne: false
+            referencedRelation: "parent_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "household_child_codes_student_beneficiary_id_fkey"
+            columns: ["student_beneficiary_id"]
+            isOneToOne: true
+            referencedRelation: "student_beneficiaries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kenya_locations: {
         Row: {
           county: string
@@ -855,7 +994,9 @@ export type Database = {
           current_stage: string
           document_urls: Json
           household_dependents: number
+          household_disability_burden: boolean
           household_income: number
+          household_tracking_id: string | null
           id: string
           locked_for_resubmission: boolean
           parent_county: string
@@ -884,7 +1025,9 @@ export type Database = {
           current_stage?: string
           document_urls?: Json
           household_dependents?: number
+          household_disability_burden?: boolean
           household_income?: number
+          household_tracking_id?: string | null
           id?: string
           locked_for_resubmission?: boolean
           parent_county: string
@@ -913,7 +1056,9 @@ export type Database = {
           current_stage?: string
           document_urls?: Json
           household_dependents?: number
+          household_disability_burden?: boolean
           household_income?: number
+          household_tracking_id?: string | null
           id?: string
           locked_for_resubmission?: boolean
           parent_county?: string
@@ -977,6 +1122,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      poverty_question_bank: {
+        Row: {
+          applies_to: string
+          category: string
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          options: Json
+          text_en: string
+          text_sw: string
+          weight_high_school: number
+          weight_higher_ed: number
+        }
+        Insert: {
+          applies_to: string
+          category: string
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          options?: Json
+          text_en: string
+          text_sw: string
+          weight_high_school?: number
+          weight_higher_ed?: number
+        }
+        Update: {
+          applies_to?: string
+          category?: string
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          options?: Json
+          text_en?: string
+          text_sw?: string
+          weight_high_school?: number
+          weight_higher_ed?: number
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -1131,20 +1318,77 @@ export type Database = {
         }
         Relationships: []
       }
+      sms_logs: {
+        Row: {
+          applicant_name_masked: string | null
+          created_at: string
+          error: string | null
+          event_type: string
+          id: string
+          message: string
+          metadata: Json
+          recipient: string
+          sent_at: string | null
+          status: string
+          tracking_id: string | null
+        }
+        Insert: {
+          applicant_name_masked?: string | null
+          created_at?: string
+          error?: string | null
+          event_type: string
+          id?: string
+          message: string
+          metadata?: Json
+          recipient: string
+          sent_at?: string | null
+          status?: string
+          tracking_id?: string | null
+        }
+        Update: {
+          applicant_name_masked?: string | null
+          created_at?: string
+          error?: string | null
+          event_type?: string
+          id?: string
+          message?: string
+          metadata?: Json
+          recipient?: string
+          sent_at?: string | null
+          status?: string
+          tracking_id?: string | null
+        }
+        Relationships: []
+      }
       student_beneficiaries: {
         Row: {
           admission_number: string | null
           ai_decision_reason: string | null
           allocated_amount: number | null
           allocation_date: string | null
+          assessment_pipeline:
+            | Database["public"]["Enums"]["assessment_pipeline"]
+            | null
           class_form: string | null
           created_at: string
+          decision_reason_code: string | null
+          disability_card_url: string | null
           disability_status: string | null
+          disability_type: string | null
+          disability_verified: boolean
+          education_category:
+            | Database["public"]["Enums"]["education_category"]
+            | null
           fee_balance: number | null
+          fraud_flags: Json
+          fraud_score: number
           health_status: string | null
           id: string
           institution_name: string
+          ncpwd_registration_number: string | null
           parent_application_id: string
+          poverty_index_score: number | null
+          rank_in_pipeline: number | null
           released_to_treasury: boolean
           status: string
           student_full_name: string
@@ -1158,14 +1402,29 @@ export type Database = {
           ai_decision_reason?: string | null
           allocated_amount?: number | null
           allocation_date?: string | null
+          assessment_pipeline?:
+            | Database["public"]["Enums"]["assessment_pipeline"]
+            | null
           class_form?: string | null
           created_at?: string
+          decision_reason_code?: string | null
+          disability_card_url?: string | null
           disability_status?: string | null
+          disability_type?: string | null
+          disability_verified?: boolean
+          education_category?:
+            | Database["public"]["Enums"]["education_category"]
+            | null
           fee_balance?: number | null
+          fraud_flags?: Json
+          fraud_score?: number
           health_status?: string | null
           id?: string
           institution_name: string
+          ncpwd_registration_number?: string | null
           parent_application_id: string
+          poverty_index_score?: number | null
+          rank_in_pipeline?: number | null
           released_to_treasury?: boolean
           status?: string
           student_full_name: string
@@ -1179,14 +1438,29 @@ export type Database = {
           ai_decision_reason?: string | null
           allocated_amount?: number | null
           allocation_date?: string | null
+          assessment_pipeline?:
+            | Database["public"]["Enums"]["assessment_pipeline"]
+            | null
           class_form?: string | null
           created_at?: string
+          decision_reason_code?: string | null
+          disability_card_url?: string | null
           disability_status?: string | null
+          disability_type?: string | null
+          disability_verified?: boolean
+          education_category?:
+            | Database["public"]["Enums"]["education_category"]
+            | null
           fee_balance?: number | null
+          fraud_flags?: Json
+          fraud_score?: number
           health_status?: string | null
           id?: string
           institution_name?: string
+          ncpwd_registration_number?: string | null
           parent_application_id?: string
+          poverty_index_score?: number | null
+          rank_in_pipeline?: number | null
           released_to_treasury?: boolean
           status?: string
           student_full_name?: string
@@ -1434,6 +1708,7 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      generate_household_tracking_id: { Args: never; Returns: string }
       generate_tracking_number: { Args: never; Returns: string }
       get_commissioner_applications: {
         Args: never
@@ -1607,6 +1882,8 @@ export type Database = {
         | "approved"
         | "rejected"
         | "disbursed"
+      assessment_pipeline: "basic_education" | "higher_education"
+      education_category: "high_school" | "university" | "college" | "tvet"
       poverty_tier: "Low" | "Medium" | "High"
       student_type: "secondary" | "university"
     }
@@ -1745,6 +2022,8 @@ export const Constants = {
         "rejected",
         "disbursed",
       ],
+      assessment_pipeline: ["basic_education", "higher_education"],
+      education_category: ["high_school", "university", "college", "tvet"],
       poverty_tier: ["Low", "Medium", "High"],
       student_type: ["secondary", "university"],
     },
