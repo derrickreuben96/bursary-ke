@@ -236,27 +236,66 @@ Deno.serve(async (req) => {
           historicalStatus: fairness?.historical_status || app.historical_status || "new",
         };
       })
-      .sort((a, b) => b.combinedScore - a.combinedScore);
+    // Populate fraud_score for the students behind each application (best-effort).
+    try {
+      const { data: linkedStudents } = await supabaseAdmin
+        .from("parent_applications")
+        .select("id, tracking_number, student_beneficiaries(id)")
+        .in("tracking_number", validApps.map(a => a.tracking_number));
+      for (const parent of (linkedStudents || []) as Array<{ tracking_number: string; student_beneficiaries: Array<{ id: string }> }>) {
+        for (const s of parent.student_beneficiaries || []) {
+          const { data: score } = await supabaseAdmin.rpc("compute_fraud_score", { _student_id: s.id });
+          if (typeof score === "number") {
+            await supabaseAdmin.from("student_beneficiaries")
+              .update({ fraud_score: score })
+              .eq("id", s.id);
+          }
+        }
+      }
+    } catch (fraudErr) {
+      console.error("[FRAUD] Non-blocking scoring error:", fraudErr);
+    }
 
-    // Step 3: Determine quota — use maxSlots > min_beneficiaries > budget-based
-    const budget = budgetAmount || advert.budget_amount || 0;
+    // Sort applications by combined score
+    const sortedApps = scoredApps.sort((a, b) => b.combinedScore - a.combinedScore);
+
+    // Determine pipeline for each app from primary student_type
+    const pipelineOf = (a: { student_type?: string }): "basic_education" | "higher_education" =>
+      (a.student_type === "secondary" || a.student_type === "high_school") ? "basic_education" : "higher_education";
+
+    // ---- Quota configuration ----
+    const totalBudget = budgetAmount || advert.budget_amount || 0;
+    const hsSlots = advert.high_school_quota_slots as number | null;
+    const heSlots = advert.higher_education_quota_slots as number | null;
+    const hsBudgetCap = advert.high_school_budget_cap as number | null;
+    const heBudgetCap = advert.higher_education_budget_cap as number | null;
+    const minAward = (advert.min_award_per_student as number | null) ?? 10000;
+    const maxAward = (advert.max_award_per_student as number | null) ?? 100000;
+    const totalSlots = advert.total_slots as number | null;
+
+    const hasPipelineQuotas = !!(hsSlots || heSlots || hsBudgetCap || heBudgetCap);
+
+    // Legacy fallback quota
     const minBeneficiaries = advert.min_beneficiaries as number | null;
-    const averageAllocation = 35000;
-    const budgetBasedMax = Math.floor(budget / averageAllocation);
+    const legacyEffectiveSlots = parseResult.data.maxSlots || (minBeneficiaries && minBeneficiaries > 0 ? minBeneficiaries : null) || totalSlots;
+    const legacyBudgetMax = Math.floor(totalBudget / 35000);
+    const legacyMaxApprovals = legacyEffectiveSlots ? Math.min(legacyEffectiveSlots, legacyBudgetMax) : legacyBudgetMax;
 
-    // Priority: explicit maxSlots param > advert min_beneficiaries > budget calculation
-    const effectiveSlots = parseResult.data.maxSlots || (minBeneficiaries && minBeneficiaries > 0 ? minBeneficiaries : null);
-    const maxApprovals = effectiveSlots
-      ? Math.min(effectiveSlots, budgetBasedMax)
-      : budgetBasedMax;
+    console.log(`[ALLOCATION] mode=${hasPipelineQuotas ? "pipeline_split" : "legacy_pool"} budget=${totalBudget} hsSlots=${hsSlots} heSlots=${heSlots} minAward=${minAward} maxAward=${maxAward}`);
 
-    console.log(`[ALLOCATION] Quota: ${maxApprovals} (min_beneficiaries: ${minBeneficiaries}, budget: ${budget})`);
+    // Per-pipeline counters
+    const state = {
+      basic_education: { approved: 0, spent: 0, slots: hsSlots ?? Infinity, budget: hsBudgetCap ?? Infinity },
+      higher_education: { approved: 0, spent: 0, slots: heSlots ?? Infinity, budget: heBudgetCap ?? Infinity },
+    } as Record<"basic_education" | "higher_education", { approved: number; spent: number; slots: number; budget: number }>;
 
-    const results: AllocationResult[] = [];
-    let approvedCount = 0;
+    let legacyApproved = 0;
     let totalAllocated = 0;
+    const results: AllocationResult[] = [];
 
-    for (const app of scoredApps) {
+    const clamp = (amt: number) => Math.max(minAward, Math.min(maxAward, amt));
+
+    for (const app of sortedApps) {
       const failIfErr = (label: string, res: { error: { message: string } | null }) => {
         if (res.error) {
           console.error(`[ALLOCATION] ${label} update failed for ${app.tracking_number}:`, res.error.message);
@@ -286,15 +325,56 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Determine allocation amount by tier
-      let allocationAmount = averageAllocation;
+      // Base allocation from poverty tier, then clamp to [min,max]
+      let allocationAmount: number;
       if (app.poverty_tier === "High") allocationAmount = 50000;
       else if (app.poverty_tier === "Medium") allocationAmount = 35000;
       else allocationAmount = 20000;
+      allocationAmount = clamp(allocationAmount);
 
-      const canApprove = approvedCount < maxApprovals;
+      // ---- Approval decision ----
+      let canApprove = false;
+      let rejectReason = "";
+      let pipeline: "basic_education" | "higher_education" | null = null;
+
+      if (hasPipelineQuotas) {
+        pipeline = pipelineOf(app);
+        const st = state[pipeline];
+        const wouldSpend = st.spent + allocationAmount;
+        const remainingTotalBudget = totalBudget > 0 ? totalBudget - totalAllocated : Infinity;
+        if (st.approved >= st.slots) {
+          rejectReason = `Pipeline quota exhausted (${pipeline.replace("_"," ")} slots: ${st.slots}).`;
+        } else if (wouldSpend > st.budget) {
+          rejectReason = `Pipeline budget cap reached (${pipeline.replace("_"," ")} cap: KES ${Number.isFinite(st.budget) ? st.budget.toLocaleString() : "n/a"}).`;
+        } else if (allocationAmount > remainingTotalBudget) {
+          rejectReason = `Total advert budget exhausted (KES ${totalBudget.toLocaleString()} fully allocated).`;
+        } else {
+          canApprove = true;
+        }
+      } else {
+        // Legacy pool
+        if (legacyApproved >= legacyMaxApprovals) {
+          rejectReason = legacyEffectiveSlots && legacyApproved >= legacyEffectiveSlots
+            ? `Quota of ${legacyEffectiveSlots} recipients reached`
+            : `Budget of KES ${totalBudget.toLocaleString()} fully allocated`;
+        } else {
+          canApprove = true;
+        }
+      }
 
       if (canApprove) {
+        if (hasPipelineQuotas && pipeline) {
+          state[pipeline].approved += 1;
+          state[pipeline].spent += allocationAmount;
+        } else {
+          legacyApproved += 1;
+        }
+        totalAllocated += allocationAmount;
+
+        const quotaLine = hasPipelineQuotas && pipeline
+          ? `• Pipeline: ${pipeline.replace("_"," ")} (${state[pipeline].approved}${Number.isFinite(state[pipeline].slots) ? `/${state[pipeline].slots}` : ""} approved, KES ${state[pipeline].spent.toLocaleString()}${Number.isFinite(state[pipeline].budget) ? ` of ${state[pipeline].budget.toLocaleString()} cap` : ""} used)`
+          : `• Selected from combined pool (${legacyApproved}${legacyEffectiveSlots ? `/${legacyEffectiveSlots}` : ""} approved)`;
+
         const fairnessPart = app.isFairnessPriority
           ? `\n• Fairness boost applied: +${app.fairnessScore} pts (previously applied but not funded — priority restored)`
           : app.historicalStatus === "returning_funded"
@@ -308,45 +388,39 @@ Deno.serve(async (req) => {
           `📊 Assessment Summary:`,
           `• Poverty score: ${app.poverty_score}/100 (${app.poverty_tier} priority tier)`,
           `• Combined score (poverty + fairness): ${app.combinedScore}/120`,
-          `• Household income bracket: ${app.household_income !== null ? `Score ${app.household_income}/100` : "Not provided"}`,
-          `• Dependents in household: ${app.household_dependents ?? "Not provided"}`,
-          `• Student type: ${app.student_type}`,
+          `• Award clamped to policy range: KES ${minAward.toLocaleString()} – KES ${maxAward.toLocaleString()}`,
+          quotaLine,
           `• Fraud risk level: ${app.fraudRisk}`,
           fairnessPart,
           ``,
-          `💡 Selection rationale: Ranked ${scoredApps.indexOf(app) + 1} of ${scoredApps.length} applicants by combined score. Meets budget and${effectiveSlots ? ` quota (${effectiveSlots} slots) and` : ""} poverty threshold requirements.`,
-        ].filter(l => l !== undefined).join("\n");
-        approvedCount++;
-        totalAllocated += allocationAmount;
+          `💡 Selection rationale: Ranked ${sortedApps.indexOf(app) + 1} of ${sortedApps.length} applicants by combined score.`,
+        ].filter(l => l !== undefined && l !== "").join("\n");
 
         failIfErr("approve", await supabaseAdmin.from("bursary_applications").update({
           status: "approved",
           ai_decision_reason: reason,
           allocated_amount: allocationAmount,
           allocation_date: new Date().toISOString(),
-          ecitizen_ref: `ECIT-${advert.county.substring(0, 3).toUpperCase()}-${Date.now()}-${approvedCount}`,
+          ecitizen_ref: `ECIT-${advert.county.substring(0, 3).toUpperCase()}-${Date.now()}-${totalAllocated}`,
         }).eq("id", app.id));
 
         results.push({ applicationId: app.id, trackingNumber: app.tracking_number, status: "approved", reason, allocatedAmount: allocationAmount });
       } else {
-        // Rejected — quota or budget exceeded
-        const rankPosition = scoredApps.indexOf(app) + 1;
-        const quotaCause = effectiveSlots && approvedCount >= effectiveSlots;
+        const rankPosition = sortedApps.indexOf(app) + 1;
         const reason = [
-          `❌ NOT SELECTED — ${quotaCause ? `Quota of ${effectiveSlots} recipients reached` : `Budget of KES ${budget.toLocaleString()} fully allocated`}`,
+          `❌ NOT SELECTED — ${rejectReason}`,
           ``,
           `📊 Your Assessment:`,
           `• Poverty score: ${app.poverty_score}/100 (${app.poverty_tier} priority tier)`,
           `• Combined score: ${app.combinedScore}/120`,
-          `• Your rank: ${rankPosition} of ${scoredApps.length} applicants`,
-          `• Applicants selected above you: ${approvedCount}`,
-          app.isFairnessPriority ? `• ✨ Priority boost was applied (+${app.fairnessScore} pts) but was insufficient to reach selection threshold` : "",
+          `• Your rank: ${rankPosition} of ${sortedApps.length} applicants`,
+          hasPipelineQuotas && pipeline ? `• Pipeline: ${pipeline.replace("_"," ")}` : "",
+          app.isFairnessPriority ? `• ✨ Priority boost was applied (+${app.fairnessScore} pts) but was insufficient` : "",
           ``,
           `🔄 Next Cycle:`,
           `• Your application data has been saved automatically`,
           `• You will receive a priority boost of +5 pts in the next cycle`,
           `• Re-apply when the next bursary cycle opens — your history gives you an advantage`,
-          `• Ensure all information remains consistent across applications`,
         ].filter(l => l !== "").join("\n");
 
         failIfErr("reject", await supabaseAdmin.from("bursary_applications").update({
@@ -357,6 +431,8 @@ Deno.serve(async (req) => {
         results.push({ applicationId: app.id, trackingNumber: app.tracking_number, status: "rejected", reason });
       }
     }
+
+    const approvedCount = results.filter(r => r.status === "approved").length;
 
     // Step 3.5: Write immutable decision-log rows for each processed application.
     // Non-blocking — audit trail must never break allocation.
