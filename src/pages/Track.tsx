@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ProgressTimeline } from "@/components/tracking/ProgressTimeline";
 import { Search, AlertCircle, Loader2, FileSearch, GraduationCap, School, Shield } from "lucide-react";
-import { isValidTrackingNumber } from "@/lib/maskData";
+import { isValidTrackingNumber, isValidHouseholdId } from "@/lib/maskData";
 import { sampleTrackingData, type TrackingInfo } from "@/lib/mockData";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
