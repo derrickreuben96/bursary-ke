@@ -459,3 +459,86 @@ async function notifyAllApplicants(
     }
   }
 }
+
+/** Insert one immutable audit row per student for this allocation run. */
+async function writeDecisionLog(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  advertId: string,
+  results: AllocationResult[],
+  scoredApps: any[],
+  authResult: { isServiceRole: boolean; user?: { id: string } }
+) {
+  if (!results.length) return;
+
+  const trackingNumbers = results.map(r => r.trackingNumber);
+
+  // Resolve parent_applications by tracking number
+  const { data: parents } = await supabaseAdmin
+    .from("parent_applications")
+    .select("id, tracking_number")
+    .in("tracking_number", trackingNumbers);
+
+  const parentByTracking = new Map((parents || []).map((p: any) => [p.tracking_number, p.id]));
+  const parentIds = (parents || []).map((p: any) => p.id);
+  if (!parentIds.length) return;
+
+  const { data: students } = await supabaseAdmin
+    .from("student_beneficiaries")
+    .select("id, parent_application_id, student_type, education_category, assessment_pipeline, fraud_score")
+    .in("parent_application_id", parentIds);
+
+  const studentsByParent = new Map<string, any[]>();
+  for (const s of students || []) {
+    const arr = studentsByParent.get(s.parent_application_id) || [];
+    arr.push(s);
+    studentsByParent.set(s.parent_application_id, arr);
+  }
+
+  const scoredByTracking = new Map(scoredApps.map(a => [a.tracking_number, a]));
+  const decidedBy = authResult.isServiceRole ? null : (authResult.user?.id ?? null);
+  const rows: any[] = [];
+
+  for (const r of results) {
+    const parentId = parentByTracking.get(r.trackingNumber);
+    if (!parentId) continue;
+    const kids = studentsByParent.get(parentId) || [];
+    if (!kids.length) continue;
+    const scored = scoredByTracking.get(r.trackingNumber);
+    const povertyScore = scored?.poverty_score ?? null;
+    const rank = scored ? scoredApps.indexOf(scored) + 1 : null;
+    const reasonCode = r.status === "approved"
+      ? "approved"
+      : (scored?.isRedFlagged ? "red_flag_exclusion"
+        : scored?.fraudRisk === "high" ? "manual_review"
+        : "lower_rank_or_quota_exhausted");
+
+    for (const kid of kids) {
+      rows.push({
+        student_beneficiary_id: kid.id,
+        parent_application_id: parentId,
+        advert_id: advertId,
+        decision: r.status,
+        poverty_score: povertyScore,
+        fraud_score: kid.fraud_score ?? scored?.fraudRisk === "high" ? 100 : 0,
+        disability_score: null,
+        rank_in_pipeline: rank,
+        quota_category: kid.assessment_pipeline || (kid.student_type === "secondary" ? "basic_education" : "higher_education"),
+        reason_code: reasonCode,
+        decided_by: decidedBy,
+        snapshot: {
+          tracking_number: r.trackingNumber,
+          allocated_amount: r.allocatedAmount ?? null,
+          combined_score: scored?.combinedScore ?? null,
+          fairness_score: scored?.fairnessScore ?? null,
+          historical_status: scored?.historicalStatus ?? null,
+          reason_text: r.reason,
+        },
+      });
+    }
+  }
+
+  if (!rows.length) return;
+  const { error } = await supabaseAdmin.from("application_decision_log").insert(rows);
+  if (error) console.error("[DECISION_LOG] insert failed:", error.message);
+  else console.log(`[DECISION_LOG] Wrote ${rows.length} immutable decision rows`);
+}
