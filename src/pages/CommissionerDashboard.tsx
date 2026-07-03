@@ -894,7 +894,7 @@ export default function CommissionerDashboard() {
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-amber-800 dark:text-amber-300">DVL — Disability Evidence (verify NCPWD)</p>
                       {studentDetailsMap[app.tracking_number].disability.map((d, i) => (
-                        <div key={i} className="text-xs text-muted-foreground flex flex-wrap gap-x-3 gap-y-0.5">
+                        <div key={i} className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1">
                           <span className="font-medium">{d.name}</span>
                           {d.type && <span>Type: {d.type}</span>}
                           <span>NCPWD: <span className="font-mono">{d.ncpwd || "—"}</span></span>
@@ -905,6 +905,32 @@ export default function CommissionerDashboard() {
                           ) : (
                             <span className="italic">No card uploaded</span>
                           )}
+                          {d.verifiedAt ? (
+                            <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                              <CheckCircle2 className="h-3 w-3 mr-1" />DVL Verified
+                            </Badge>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-6 text-xs"
+                              onClick={async () => {
+                                const notes = window.prompt("Optional verification note (max 500 chars):", "") ?? undefined;
+                                const { error } = await supabase.rpc("mark_dvl_verified", {
+                                  _student_id: d.id, _verified: true, _notes: notes || null,
+                                });
+                                if (error) {
+                                  toast({ title: "Verification failed", description: error.message, variant: "destructive" });
+                                } else {
+                                  toast({ title: "DVL verified", description: `${d.name} marked as NCPWD-verified.` });
+                                  fetchApplications();
+                                }
+                              }}
+                            >
+                              Mark DVL verified
+                            </Button>
+                          )}
+                          {d.notes && <span className="italic opacity-70">“{d.notes}”</span>}
                         </div>
                       ))}
                     </div>
