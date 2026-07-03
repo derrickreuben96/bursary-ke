@@ -133,6 +133,7 @@ function AIReasonCell({ reason }: { reason: string | null }) {
 export default function CommissionerDashboard() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [fairnessMap, setFairnessMap] = useState<Map<string, FairnessInfo>>(new Map());
+  const [studentDetailsMap, setStudentDetailsMap] = useState<Record<string, StudentDvlInfo>>({});
   const [statusHistory, setStatusHistory] = useState<Record<string, StatusHistoryEntry[]>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
