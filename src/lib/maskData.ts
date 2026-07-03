@@ -115,3 +115,13 @@ export function isValidTrackingNumber(trackingNumber: string): boolean {
   const pattern = /^BKE-[A-Z0-9]{6}$/;
   return pattern.test(trackingNumber.toUpperCase());
 }
+
+/**
+ * Validates a household tracking ID format: BK-HH-YYYY-NNNNN
+ * @example isValidHouseholdId("BK-HH-2026-00042") -> true
+ */
+export function isValidHouseholdId(id: string): boolean {
+  const pattern = /^BK-HH-\d{4}-\d{5}$/;
+  return pattern.test((id || "").toUpperCase());
+}
+
