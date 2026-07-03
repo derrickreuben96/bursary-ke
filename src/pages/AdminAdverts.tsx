@@ -45,6 +45,13 @@ interface Advert {
   is_active: boolean | null;
   required_documents: string[] | null;
   venues: any;
+  total_slots?: number | null;
+  high_school_quota_slots?: number | null;
+  higher_education_quota_slots?: number | null;
+  high_school_budget_cap?: number | null;
+  higher_education_budget_cap?: number | null;
+  min_award_per_student?: number | null;
+  max_award_per_student?: number | null;
 }
 
 interface FormData {
@@ -56,6 +63,13 @@ interface FormData {
   min_beneficiaries: string;
   description: string;
   required_documents: string;
+  total_slots: string;
+  high_school_quota_slots: string;
+  higher_education_quota_slots: string;
+  high_school_budget_cap: string;
+  higher_education_budget_cap: string;
+  min_award_per_student: string;
+  max_award_per_student: string;
 }
 
 const emptyForm: FormData = {
@@ -67,6 +81,13 @@ const emptyForm: FormData = {
   min_beneficiaries: "",
   description: "",
   required_documents: DEFAULT_REQUIRED_DOCUMENTS,
+  total_slots: "",
+  high_school_quota_slots: "",
+  higher_education_quota_slots: "",
+  high_school_budget_cap: "",
+  higher_education_budget_cap: "",
+  min_award_per_student: "",
+  max_award_per_student: "",
 };
 
 interface FilterState {
@@ -148,6 +169,13 @@ export default function AdminAdverts() {
       min_beneficiaries: advert.min_beneficiaries?.toString() || "",
       description: advert.description || "",
       required_documents: (advert.required_documents || []).join("\n"),
+      total_slots: advert.total_slots?.toString() || "",
+      high_school_quota_slots: advert.high_school_quota_slots?.toString() || "",
+      higher_education_quota_slots: advert.higher_education_quota_slots?.toString() || "",
+      high_school_budget_cap: advert.high_school_budget_cap?.toString() || "",
+      higher_education_budget_cap: advert.higher_education_budget_cap?.toString() || "",
+      min_award_per_student: advert.min_award_per_student?.toString() || "",
+      max_award_per_student: advert.max_award_per_student?.toString() || "",
     });
     setDialogOpen(true);
   };
@@ -155,6 +183,15 @@ export default function AdminAdverts() {
   const handleSubmit = async () => {
     if (!form.title || !form.county || !form.ward || !form.deadline) {
       toast({ title: "Validation Error", description: "Title, county, ward, and deadline are required.", variant: "destructive" });
+      return;
+    }
+
+    // Client-side quota validation (DB trigger enforces authoritatively)
+    const hs = form.high_school_quota_slots ? parseInt(form.high_school_quota_slots) : null;
+    const he = form.higher_education_quota_slots ? parseInt(form.higher_education_quota_slots) : null;
+    const ts = form.total_slots ? parseInt(form.total_slots) : null;
+    if (ts !== null && hs !== null && he !== null && hs + he !== ts) {
+      toast({ title: "Quota mismatch", description: `High-school (${hs}) + higher-education (${he}) must equal total slots (${ts}).`, variant: "destructive" });
       return;
     }
 
@@ -173,6 +210,13 @@ export default function AdminAdverts() {
       min_beneficiaries: form.min_beneficiaries ? parseInt(form.min_beneficiaries) : null,
       description: form.description || null,
       required_documents: requiredDocs,
+      total_slots: ts,
+      high_school_quota_slots: hs,
+      higher_education_quota_slots: he,
+      high_school_budget_cap: form.high_school_budget_cap ? parseFloat(form.high_school_budget_cap) : null,
+      higher_education_budget_cap: form.higher_education_budget_cap ? parseFloat(form.higher_education_budget_cap) : null,
+      min_award_per_student: form.min_award_per_student ? parseFloat(form.min_award_per_student) : null,
+      max_award_per_student: form.max_award_per_student ? parseFloat(form.max_award_per_student) : null,
     };
 
     let error;
@@ -636,6 +680,49 @@ export default function AdminAdverts() {
                 <p className="text-xs text-muted-foreground mt-1">
                   Maximum number of applicants to approve. This number is not shown publicly in the advert.
                 </p>
+              </div>
+
+              <div className="rounded-lg border border-dashed p-4 space-y-3 bg-muted/30">
+                <div>
+                  <h4 className="font-semibold text-sm">Quota & Budget Segmentation (optional)</h4>
+                  <p className="text-xs text-muted-foreground">
+                    Leave blank for a single common pool. If set, slots must sum to Total, and category caps must fit within Budget.
+                  </p>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <Label className="text-xs">Total Slots</Label>
+                    <Input type="number" value={form.total_slots} onChange={(e) => setForm({ ...form, total_slots: e.target.value })} placeholder="e.g. 100" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">High-School Slots</Label>
+                    <Input type="number" value={form.high_school_quota_slots} onChange={(e) => setForm({ ...form, high_school_quota_slots: e.target.value })} placeholder="e.g. 60" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Higher-Ed Slots</Label>
+                    <Input type="number" value={form.higher_education_quota_slots} onChange={(e) => setForm({ ...form, higher_education_quota_slots: e.target.value })} placeholder="e.g. 40" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">High-School Budget Cap (KES)</Label>
+                    <Input type="number" value={form.high_school_budget_cap} onChange={(e) => setForm({ ...form, high_school_budget_cap: e.target.value })} placeholder="e.g. 2000000" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Higher-Ed Budget Cap (KES)</Label>
+                    <Input type="number" value={form.higher_education_budget_cap} onChange={(e) => setForm({ ...form, higher_education_budget_cap: e.target.value })} placeholder="e.g. 3000000" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Min Award per Student (KES)</Label>
+                    <Input type="number" value={form.min_award_per_student} onChange={(e) => setForm({ ...form, min_award_per_student: e.target.value })} placeholder="e.g. 15000" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Max Award per Student (KES)</Label>
+                    <Input type="number" value={form.max_award_per_student} onChange={(e) => setForm({ ...form, max_award_per_student: e.target.value })} placeholder="e.g. 75000" />
+                  </div>
+                </div>
               </div>
               <div>
                 <Label>Description</Label>

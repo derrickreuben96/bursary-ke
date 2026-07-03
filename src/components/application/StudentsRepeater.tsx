@@ -23,6 +23,7 @@ const MAX_STUDENTS = 3;
 const newStudent = (defaultType: "secondary" | "university"): StudentEntry => ({
   id: crypto.randomUUID(),
   studentType: defaultType,
+  educationCategory: defaultType === "secondary" ? "high_school" : "university",
   studentName: "",
   identifier: "",
   institution: "",
@@ -237,6 +238,23 @@ export function StudentsRepeater({ onNext, onBack, defaultType }: Props) {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                  <Label>Education Level *</Label>
+                  <Select
+                    value={s.educationCategory || "university"}
+                    onValueChange={(v) => update(s.id, { educationCategory: v as StudentEntry["educationCategory"] })}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select level" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="university">University</SelectItem>
+                      <SelectItem value="college">College</SelectItem>
+                      <SelectItem value="tvet">TVET</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    This routes your application into the correct assessment pipeline (Higher Education).
+                  </p>
+                </div>
                 <div>
                   <Label>Full Name *</Label>
                   <Input value={s.studentName} onChange={(e) => update(s.id, { studentName: e.target.value })} placeholder="Student full name" />

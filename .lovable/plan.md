@@ -1,77 +1,159 @@
-## Restore Centralized AI-Driven Bursary Workflow
+# Bursary KE — Strict Modular System Upgrade (IPN-Style Additive)
 
-Realign the platform to the original governance model: AI scores and allocates, commissioners only oversee + release, treasury only disburses. Strip all manual allocation UI, lock household integrity, and wire one synchronized workflow engine end-to-end.
-
----
-
-### 1. Strip manual commissioner allocation UI
-- Rewrite `src/components/dashboard/StudentBeneficiariesPanel.tsx` → rename to `AiAllocationReviewPanel.tsx`:
-  - Remove: amount input, Approve/Reject per student, manual scoring.
-  - Replace with: read-only AI allocation table (masked name, institution, AI score, AI-recommended amount, AI rationale), batch "Release to Treasury" button per parent application.
-- Update `CommissionerDashboard.tsx` to surface two governance actions only:
-  1. **Run AI Process Applications** (calls `process-allocations` edge function — only enabled after deadline closes).
-  2. **Download AI PDF Summary** (calls `admin-summary`).
-  3. **Release Batch to Treasury** (flips `released_to_treasury` for the AI-approved set).
-- Remove any per-student approve/reject from `CommissionerAppTable.tsx`.
-
-### 2. Database — enforce household + AI authority
-Migration:
-- Add `parent_applications.workflow_stage` enum-style text constraint: `submitted | ai_scored | ai_allocated | commissioner_review | released | disbursed`.
-- Add `parent_applications.ai_processed_at`, `ai_allocation_batch_id`.
-- Add `student_beneficiaries.allocation_reasoning text`, `ai_score int`.
-- Tighten RLS so commissioners can ONLY update `released_to_treasury` + `workflow_stage` (not `allocated_amount`, not `status`→approved/rejected directly). AI/admin (service role via edge function) writes allocations.
-- Trigger: when parent gets poverty_score, propagate to all linked students (shared household score).
-- Trigger: lock parent_national_id per advert_id (already partially exists in `submit_parent_application` — verify + harden).
-- Add `ai_allocation_runs` table (cycle audit: advert_id, run_at, run_by, total_budget, allocated_count, summary jsonb).
-
-### 3. AI Allocation Engine (edge function)
-Rewrite `supabase/functions/process-allocations/index.ts`:
-- Input: `advert_id`.
-- Guard: deadline must be passed; only commissioner/admin role.
-- Pull all parent_applications + students for advert.
-- For each parent: compute weighted poverty score from the 15 mandatory factors (income, employment, dependents, disability, orphan, fees, institution tier, ward profile, history, single-parent, etc.) via Lovable AI Gateway with structured tool-calling for explainability.
-- Allocate: rank by score → distribute `bursary_adverts.budget_amount` respecting `max_slots`, ward fairness, per-student cap.
-- Write back: set student `allocated_amount`, `ai_score`, `allocation_reasoning`, `status='approved'`; set parent `workflow_stage='ai_allocated'`, `ai_decision_reason`.
-- Insert `ai_allocation_runs` row.
-- Return summary JSON.
-
-### 4. Masked tracking + display
-- Centralize masking in `src/lib/maskData.ts` (verify exists, extend with `maskHouseholdRecord`).
-- Update Track page: lookup by tracking number / parent ID / phone, show masked student name, workflow_stage, allocation status, treasury status, history.
-- All commissioner views use masked RPCs (already in place via `get_parent_applications_for_commissioner`) — verify no raw names leak.
-
-### 5. AI PDF Summary
-- Extend `admin-summary` edge function to accept `scope='advert'` with full payload: ward overview, applicant counts, poverty distribution, vulnerability tiers, allocation logic, top priority cases (masked), budget utilization, rejected/incomplete, audit log refs.
-- `aiSummaryPdf.ts` already renders — extend payload schema.
-
-### 6. Real-time sync
-- Verify `emit_parent_dashboard_event` + `emit_dashboard_event` triggers fire on `workflow_stage` changes.
-- Commissioner + Treasury + Admin dashboards subscribe to their topics and refetch on event.
-
-### 7. Validation tests
-New `src/test/workflowIntegrity.test.ts`:
-- 1/2/3-student household submissions.
-- Shared poverty score across siblings.
-- Duplicate parent_national_id per advert blocked.
-- Duplicate student_identifier per advert blocked.
-- Commissioner cannot write `allocated_amount` (RLS deny test).
-- AI allocation produces deterministic ranking given fixed inputs.
-- Tracking lookup returns masked names only.
-
-### 8. Reports
-After implementation, output a single consolidated markdown report at `/mnt/documents/bursary-ke-workflow-restoration-report.md` covering all 12 required sections.
+This is an **additive upgrade** to the existing production platform. No rebuild, no destructive migrations, no regression of legacy auth, RLS, or dashboards. Every new column is nullable with safe defaults; every new table is separate; every new edge function is a sibling to existing ones. Legacy records continue to work exactly as today.
 
 ---
 
-### Technical notes
-- `process-allocations` already exists — will be rewritten, not created.
-- `verify_jwt = false` stays in config.toml; auth enforced in code via JWT validation + role check.
-- All RLS changes use `has_role()` (no recursion risk).
-- Mulberry32 PRNG in NEMIS lookup is untouched (out of scope).
-- No NEMIS / parent form changes — those were just stabilized and the user confirmed working.
+## 1. Database migration (single migration, all nullable/additive)
 
-### Out of scope (explicit)
-- NEMIS lookup format (already correct).
-- Translation/i18n changes.
-- Visual theme changes.
-- Data migration of historical applications (DB was wiped earlier per user request).
+**New enums**
+- `education_category`: `high_school | university | college | tvet`
+- `assessment_pipeline`: `basic_education | higher_education`
+
+**`bursary_adverts` — add nullable quota columns**
+- `total_slots int`, `high_school_quota_slots int`, `higher_education_quota_slots int`
+- `high_school_budget_cap numeric`, `higher_education_budget_cap numeric`
+- `min_award_per_student numeric`, `max_award_per_student numeric`
+- Trigger `validate_advert_quotas`: if any quota field set, enforce sums == totals, non-negative, cap <= budget. Legacy adverts with all NULL quotas keep current behavior.
+
+**`student_beneficiaries` — add**
+- `education_category education_category`
+- `assessment_pipeline assessment_pipeline` (auto-derived by trigger from category)
+- `ncpwd_registration_number text`, `disability_type text`, `disability_card_url text`
+- `disability_verified boolean default false`
+- `fraud_score int default 0`, `fraud_flags jsonb default '[]'`
+- `rank_in_pipeline int`, `decision_reason_code text`
+- `poverty_index_score int` (per-student final score after per-student weighting)
+
+**`parent_applications` — add**
+- `household_tracking_id text unique` (format `BK-HH-YYYY-NNNNN`)
+- `household_disability_burden boolean default false`
+- Backfill `household_tracking_id` for existing rows using existing `tracking_number` as fallback.
+
+**New table: `household_child_codes`**
+Maps `student_beneficiary_id` → child code `BK-HH-YYYY-NNNNN-01/02/03`. Populated by trigger on insert.
+
+**New table: `sms_logs`**
+- `id, recipient, message, status, event_type, tracking_id, applicant_name_masked, sent_at, error`
+- RLS: admin/service role only.
+
+**New table: `poverty_question_bank`**
+- `id, code, pipeline, category (static|dynamic), weight_high_school, weight_higher_ed, text_en, text_sw, options jsonb`
+- Seed static + dynamic pools per spec.
+
+**New table: `application_decision_log`** (immutable, insert-only)
+- `id, student_id, decision, poverty_score, fraud_score, disability_score, rank, quota_category, reason_code, decided_by, decided_at, snapshot jsonb`
+
+All new tables get `GRANT`s (service_role + authenticated read where needed) and RLS policies via `has_role()`.
+
+---
+
+## 2. Advanced Poverty Scoring Engine (APSE)
+
+**Client**: extend `src/lib/povertyQuestions.ts`
+- Split into `STATIC_CORE_QUESTIONS`, `DYNAMIC_POOL_HIGH_SCHOOL`, `DYNAMIC_POOL_HIGHER_ED`
+- Deterministic randomizer seeded from `parent_national_id + advert_id` picks 5–8 dynamic questions, no repeats
+- Route by chosen `education_category`
+
+**Server**: extend `compute_poverty_score(_answers jsonb, _pipeline text)` DB function
+- Static core weights (income, dependents, employment, orphan, sponsorship, household disability)
+- Pipeline-specific weights (basic vs higher ed) per spec
+- Bands: 0–30 low / 31–60 moderate / 61–80 high / 81–100 critical
+- Legacy calls without `_pipeline` default to current behavior (backward compatible overload)
+
+## 3. Disability Verification Layer
+
+- `PovertyQuestionnaire.tsx`: conditional block when `has_disability=yes` → NCPWD number, type, card upload (reuses `applicant-documents` bucket)
+- Zod schema: block submission if missing/invalid format `NCPWD/[A-Z]{2,3}/\d{4,6}`
+- Duplicate NCPWD detection in `submit_parent_application` (raise on repeat within advert)
+- Scoring bonuses: declared +10, verified +20, severe +10 (added inside `compute_poverty_score`)
+- Separate "household supports PWD" question feeds `household_disability_burden`
+
+## 4. Split application engine
+
+- Application form step 2 gains **Education Level** selector per student (High School / University / College / TVET)
+- Auto-derive pipeline; store on `student_beneficiaries`
+- `process-allocations` edge function rewritten to allocate **per pipeline per advert**:
+  1. Load advert quotas
+  2. Rank basic_education students by poverty_index within `high_school_quota_slots` & budget cap
+  3. Rank higher_education students by poverty_index within `higher_education_quota_slots` & budget cap
+  4. Enforce min/max award; write `rank_in_pipeline`, `decision_reason_code` (`quota_exhausted | lower_rank | incomplete_docs | approved | existing_sponsorship`)
+  5. Insert `application_decision_log` row per student (immutable audit)
+
+## 5. Household tracking
+
+- On parent submission generate `BK-HH-YYYY-NNNNN`; each student gets child code
+- `/track` page extended: lookup by household ID returns parent + N students with per-child status, rank, reason
+- Track function returns masked names + child codes; existing `BKE-XXXXXX` lookup still works
+
+## 6. SMS lifecycle engine
+
+- Extend `send-sms-notifications` edge function with event router: `submitted | under_review | verification_required | shortlisted | approved | rejected | disbursed`
+- Templates with variables `{name} {tracking_id} {status} {reason} {award}` (EN/SW)
+- Every send inserts into `sms_logs`
+- Hooked into: submission RPC, allocation function, disbursement-auto, commissioner release
+
+## 7. Fraud detection
+
+- New edge function `fraud-detect` (invoked inside `process-allocations` pre-ranking)
+- Checks: repeated national_id, repeated NCPWD, repeated admission_number, repeated fee invoice hash, household duplication
+- Writes `fraud_score` + `fraud_flags`; score > 70 → `decision_reason_code='manual_review'`, excluded from auto-approval, surfaced in admin queue
+
+## 8. Admin transparency panel
+
+- Extend `CommissionerAppTable.tsx` + new `AdminDecisionPanel.tsx`
+- Per applicant: poverty score, disability status, household burden, category, quota, rank, fraud score, reason code
+- Admin approval actions write to `application_decision_log` (immutable)
+
+## 9. Admin advert form
+
+- Extend `AdminAdverts.tsx` with quota + budget cap + award min/max inputs
+- Client-side + DB trigger validation
+- Dashboard cards show per-category utilization, remaining slots, budget balance
+
+## 10. Backward compatibility guarantees
+
+- All new columns nullable, defaulted
+- Legacy `bursary_applications` untouched
+- Legacy adverts (no quotas) fall back to single-pool allocation
+- Legacy tracking numbers still resolvable
+- No changes to auth, RLS helper `has_role`, or existing dashboards' data contracts
+
+## 11. Security
+
+- New tables: RLS + `has_role`-gated policies
+- `application_decision_log` insert-only (no UPDATE/DELETE policy)
+- Document uploads reuse existing private `applicant-documents` bucket
+- Rate limiting on new endpoints via existing `_shared/rateLimiter.ts`
+- Input validation via Zod on all new form fields
+
+## 12. Tests
+
+New Vitest suites:
+- `apse.test.ts` — deterministic randomization, pipeline weighting, band boundaries
+- `quotaAllocation.test.ts` — per-pipeline caps, min/max award enforcement
+- `householdTracking.test.ts` — child code generation, per-child independent outcomes
+- `fraudDetection.test.ts` — duplicate ID/NCPWD/admission triggers
+- `disabilityVerification.test.ts` — required fields, format, duplicate NCPWD block
+
+---
+
+## Execution order
+
+1. Migration (all schema + seed poverty_question_bank)
+2. DB functions (compute_poverty_score v2, household code generator, decision logger)
+3. Edge functions (process-allocations rewrite, fraud-detect, sms lifecycle)
+4. Frontend (application form category step, disability block, dynamic questions, admin quota form, decision panel, household track view)
+5. Tests
+6. Manual smoke: legacy tracking lookup + legacy advert allocation must still work
+
+## Out of scope (explicit)
+
+- NEMIS lookup logic (untouched)
+- i18n framework changes (only add SW strings for new UI)
+- Visual theme (semantic tokens preserved)
+- Historical data migration beyond safe backfill of household_tracking_id
+
+---
+
+**Confirm and I execute in the order above (single migration first, then code).**
