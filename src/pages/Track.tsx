@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ProgressTimeline } from "@/components/tracking/ProgressTimeline";
 import { Search, AlertCircle, Loader2, FileSearch, GraduationCap, School, Shield } from "lucide-react";
-import { isValidTrackingNumber } from "@/lib/maskData";
+import { isValidTrackingNumber, isValidHouseholdId } from "@/lib/maskData";
 import { sampleTrackingData, type TrackingInfo } from "@/lib/mockData";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
@@ -38,8 +38,10 @@ export default function Track() {
     allocated_amount: number | null;
     class_form?: string | null;
     year_of_study?: string | null;
+    rank_in_pipeline?: number | null;
+    child_code?: string | null;
   }>>([]);
-  const [parentInfo, setParentInfo] = useState<{ total_students?: number; parent_county?: string; parent_ward?: string } | null>(null);
+  const [parentInfo, setParentInfo] = useState<{ total_students?: number; parent_county?: string; parent_ward?: string; household_tracking_id?: string } | null>(null);
   const [notFound, setNotFound] = useState(false);
 
   const handleTrack = async () => {
@@ -57,8 +59,9 @@ export default function Track() {
       return;
     }
 
-    if (!isValidTrackingNumber(normalizedNumber)) {
-      setError(t("track.error_invalid_format"));
+    const isHousehold = isValidHouseholdId(normalizedNumber);
+    if (!isHousehold && !isValidTrackingNumber(normalizedNumber)) {
+      setError("Enter a tracking number (BKE-XXXXXX) or household ID (BK-HH-YYYY-NNNNN).");
       return;
     }
 
@@ -68,6 +71,47 @@ export default function Track() {
     }
 
     setIsLoading(true);
+
+    // ---- Household lookup path ----
+    if (isHousehold) {
+      try {
+        const { data: hData, error: hErr } = await supabase.rpc("get_household_by_id", {
+          _household_id: normalizedNumber,
+          _verifier: verVal,
+        });
+        if (hErr) throw hErr;
+        if (!hData || (hData as { error?: string }).error) {
+          if ((hData as { error?: string })?.error === "verification_failed") {
+            setError("Verification failed. Phone/National ID does not match this household.");
+          } else {
+            setNotFound(true);
+          }
+          setIsLoading(false);
+          return;
+        }
+        const h = hData as {
+          household_tracking_id: string;
+          total_students?: number;
+          parent_county?: string;
+          parent_ward?: string;
+          students?: typeof students;
+        };
+        setParentInfo({
+          household_tracking_id: h.household_tracking_id,
+          total_students: h.total_students,
+          parent_county: h.parent_county,
+          parent_ward: h.parent_ward,
+        });
+        setStudents(h.students || []);
+      } catch (err) {
+        console.error("Household lookup error:", err);
+        setNotFound(true);
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
 
     try {
       const body: Record<string, string> = {
@@ -197,11 +241,11 @@ export default function Track() {
             <div className="space-y-4">
               <div>
                 <Label htmlFor="tracking" className="text-sm font-medium mb-2 block">
-                  {t("track.tracking_number")}
+                  {t("track.tracking_number")} or Household ID
                 </Label>
                 <Input
                   id="tracking"
-                  placeholder={t("tracking.placeholder")}
+                  placeholder="BKE-XXXXXX or BK-HH-2026-00042"
                   value={trackingNumber}
                   onChange={(e) => {
                     setTrackingNumber(e.target.value.toUpperCase());
@@ -447,6 +491,13 @@ export default function Track() {
                                   {s.class_form ? ` · ${s.class_form}` : ""}
                                   {s.year_of_study ? ` · ${s.year_of_study}` : ""}
                                 </p>
+                                {(s.child_code || s.rank_in_pipeline) && (
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {s.child_code ? <>Child code: <span className="font-mono">{s.child_code}</span></> : null}
+                                    {s.child_code && s.rank_in_pipeline ? " · " : ""}
+                                    {s.rank_in_pipeline ? <>Rank in pipeline: <span className="font-medium">#{s.rank_in_pipeline}</span></> : null}
+                                  </p>
+                                )}
                               </div>
                               <div className="text-right">
                                 <span
@@ -489,8 +540,68 @@ export default function Track() {
             </div>
           )}
 
+          {/* Household-only view (no per-application timeline) */}
+          {!result && parentInfo?.household_tracking_id && students.length > 0 && (
+            <div className="space-y-6 animate-fade-in">
+              <Card className="p-6 shadow-card">
+                <h2 className="text-xl font-semibold mb-2">Household Overview</h2>
+                <p className="text-sm text-muted-foreground">
+                  Household ID:{" "}
+                  <span className="font-mono font-semibold text-foreground">
+                    {parentInfo.household_tracking_id}
+                  </span>
+                  {parentInfo.parent_county ? ` · ${parentInfo.parent_county}` : ""}
+                  {parentInfo.parent_ward ? ` · ${parentInfo.parent_ward}` : ""}
+                </p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Showing every application ever linked to this household. Each student below
+                  keeps their own status across cycles.
+                </p>
+              </Card>
+
+              <Card className="p-6 shadow-card">
+                <h3 className="text-lg font-semibold mb-4">
+                  Linked Students ({parentInfo?.total_students ?? students.length})
+                </h3>
+                <div className="space-y-3">
+                  {students.map((s, i) => (
+                    <div key={i} className="p-4 rounded-lg bg-secondary/40 border">
+                      <div className="flex items-start justify-between gap-3 flex-wrap">
+                        <div>
+                          <p className="font-medium">{s.student_full_name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {s.institution_name} · {s.student_type}
+                            {s.class_form ? ` · ${s.class_form}` : ""}
+                            {s.year_of_study ? ` · ${s.year_of_study}` : ""}
+                          </p>
+                          {(s.child_code || s.rank_in_pipeline) && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {s.child_code ? <>Child code: <span className="font-mono">{s.child_code}</span></> : null}
+                              {s.child_code && s.rank_in_pipeline ? " · " : ""}
+                              {s.rank_in_pipeline ? <>Rank in pipeline: <span className="font-medium">#{s.rank_in_pipeline}</span></> : null}
+                            </p>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <span className="inline-block text-xs font-medium px-2 py-1 rounded-md border bg-secondary">
+                            {s.status || "pending"}
+                          </span>
+                          {s.allocated_amount ? (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Allocated: KES {Number(s.allocated_amount).toLocaleString()}
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            </div>
+          )}
+
           {/* Demo Help */}
-          {!result && !notFound && (
+          {!result && !notFound && !parentInfo?.household_tracking_id && (
             <Card className="p-6 bg-primary/5 border-primary/20">
               <h3 className="font-semibold text-foreground mb-2">{t("track.demo_title")}</h3>
               <p className="text-sm text-muted-foreground mb-3">
