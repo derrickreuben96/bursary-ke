@@ -25,6 +25,7 @@ import { Card } from "@/components/ui/card";
 import { ArrowLeft, ArrowRight, ClipboardCheck, Lock, Shuffle } from "lucide-react";
 import { useApplication } from "@/context/ApplicationContext";
 import { getRandomizedQuestions, calculatePovertyScoreFromAnswers, type PovertyQuestion } from "@/lib/povertyQuestions";
+import { DynamicPovertyBank } from "./DynamicPovertyBank";
 
 interface PovertyQuestionnaireProps {
   onNext: () => void;
@@ -45,6 +46,24 @@ export function PovertyQuestionnaire({ onNext, onBack }: PovertyQuestionnairePro
     const s = studentList[idx];
     return s?.studentName?.trim() || `Student ${idx + 1}`;
   };
+
+  // Pipeline: higher_education if any student is uni/college/tvet; basic_education if only secondary; mixed otherwise
+  const pipeline = useMemo<"basic_education" | "higher_education" | "mixed">(() => {
+    const cats = studentList.map((s) => (s as { educationCategory?: string }).educationCategory || s?.studentType);
+    const hasHigher = cats.some((c) => c === "university" || c === "college" || c === "tvet" || c === "higher_education");
+    const hasBasic = cats.some((c) => c === "secondary" || c === "high_school");
+    if (hasHigher && !hasBasic) return "higher_education";
+    if (hasBasic && !hasHigher) return "basic_education";
+    return "mixed";
+  }, [studentList]);
+
+  // Preserve previously entered bank answers when reopening this step
+  const prevPq = (data.povertyQuestionnaire || {}) as Record<string, unknown>;
+  const initialBank: Record<string, string> = {};
+  Object.entries(prevPq).forEach(([k, v]) => {
+    if (k.startsWith("bank.") && typeof v === "string") initialBank[k] = v;
+  });
+  const [bankAnswers, setBankAnswers] = useState<Record<string, string>>(initialBank);
 
   // Build dynamic schema based on questions (per-student questions get one
   // field per student, e.g. `disability_student::s0`).
@@ -97,6 +116,7 @@ export function PovertyQuestionnaire({ onNext, onBack }: PovertyQuestionnairePro
     updateData({
       povertyQuestionnaire: {
         ...formData,
+        ...bankAnswers,
         householdIncome: percentage,
         numberOfDependents: 4,
         housingType: "Other" as const,
@@ -104,7 +124,7 @@ export function PovertyQuestionnaire({ onNext, onBack }: PovertyQuestionnairePro
         parentalEmployment: "One Employed" as const,
         otherChildrenInSchool: 2,
         receivesOtherAid: false,
-        _rawAnswers: formData,
+        _rawAnswers: { ...formData, ...bankAnswers },
         _questions: questions.map((q) => q.id),
         _calculatedScore: percentage,
       } as never,
@@ -235,6 +255,14 @@ export function PovertyQuestionnaire({ onNext, onBack }: PovertyQuestionnairePro
             {categoryQuestions.map(renderQuestion)}
           </div>
         ))}
+
+        <DynamicPovertyBank
+          pipeline={pipeline}
+          value={bankAnswers}
+          onChange={setBankAnswers}
+        />
+
+
 
 
         {/* Additional Circumstances */}
