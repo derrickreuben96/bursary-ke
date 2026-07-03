@@ -256,6 +256,14 @@ export function PovertyQuestionnaire({ onNext, onBack }: PovertyQuestionnairePro
           </div>
         ))}
 
+        <DynamicPovertyBank
+          pipeline={pipeline}
+          value={bankAnswers}
+          onChange={setBankAnswers}
+        />
+
+
+
 
         {/* Additional Circumstances */}
         <FormField
