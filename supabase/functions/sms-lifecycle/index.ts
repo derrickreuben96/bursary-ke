@@ -1,6 +1,9 @@
 // SMS Lifecycle router — sends stage-aware SMS via Africa's Talking and
 // records every attempt in public.sms_logs. Idempotent per (application_id, stage).
-import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-internal-secret",
+};
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { z } from "npm:zod@3";
 
