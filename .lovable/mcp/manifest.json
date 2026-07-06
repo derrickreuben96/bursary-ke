@@ -1,7 +1,7 @@
 {
   "version": 1,
   "sdk_version": "0.20.0",
-  "path": "/mcp",
+  "path": "/functions/v1/mcp",
   "auth": {
     "type": "none"
   },
@@ -15,7 +15,7 @@
       {
         "name": "track_application",
         "title": "Track bursary application",
-        "description": "Look up the current status and progress of a Bursary KE application by its tracking number (format BKE-XXXXXX). Returns stage, county/ward, submission date, and (if any) allocation amount. PII such as parent/student names, phone, and ID numbers is never returned.",
+        "description": "Look up the current status of a Bursary KE application by its tracking number (BKE-XXXXXX). To protect applicant privacy, the applicant's phone number OR national ID must also be provided as a verification value — without a matching value nothing is returned. Never returns names or other PII.",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,
@@ -26,13 +26,26 @@
           "properties": {
             "tracking_number": {
               "type": "string",
-              "minLength": 6,
-              "maxLength": 24,
-              "description": "Public tracking number issued at submission, e.g. BKE-123456."
+              "description": "Public tracking number issued at submission, e.g. BKE-ABC123."
+            },
+            "verification_type": {
+              "type": "string",
+              "enum": [
+                "phone",
+                "national_id"
+              ],
+              "description": "Which private detail is being used to verify ownership of the application."
+            },
+            "verification_value": {
+              "type": "string",
+              "minLength": 4,
+              "description": "The parent's phone number (any Kenyan format) or national ID, matching verification_type."
             }
           },
           "required": [
-            "tracking_number"
+            "tracking_number",
+            "verification_type",
+            "verification_value"
           ],
           "additionalProperties": false,
           "$schema": "http://json-schema.org/draft-07/schema#"

@@ -1,53 +1,48 @@
 import { defineTool } from "@lovable.dev/mcp-js";
 import { z } from "zod";
-import { createClient } from "@supabase/supabase-js";
 
 export default defineTool({
   name: "track_application",
   title: "Track bursary application",
   description:
-    "Look up the current status and progress of a Bursary KE application by its tracking number (format BKE-XXXXXX). Returns stage, county/ward, submission date, and (if any) allocation amount. PII such as parent/student names, phone, and ID numbers is never returned.",
+    "Look up the current status of a Bursary KE application by its tracking number (BKE-XXXXXX). To protect applicant privacy, the applicant's phone number OR national ID must also be provided as a verification value — without a matching value nothing is returned. Never returns names or other PII.",
   inputSchema: {
     tracking_number: z
       .string()
-      .min(6)
-      .max(24)
-      .describe("Public tracking number issued at submission, e.g. BKE-123456."),
+      .describe("Public tracking number issued at submission, e.g. BKE-ABC123."),
+    verification_type: z
+      .enum(["phone", "national_id"])
+      .describe("Which private detail is being used to verify ownership of the application."),
+    verification_value: z
+      .string()
+      .min(4)
+      .describe("The parent's phone number (any Kenyan format) or national ID, matching verification_type."),
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
-  handler: async ({ tracking_number }) => {
-    const supabase = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY!,
-      { auth: { persistSession: false, autoRefreshToken: false } },
-    );
-    const tn = tracking_number.trim().toUpperCase();
-    const { data, error } = await supabase.rpc("get_application_by_tracking", {
-      _tracking_number: tn,
+  handler: async ({ tracking_number, verification_type, verification_value }) => {
+    const url = `${process.env.SUPABASE_URL}/functions/v1/track-application`;
+    const key = process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY!;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${key}`,
+        apikey: key,
+      },
+      body: JSON.stringify({
+        trackingNumber: tracking_number.trim().toUpperCase(),
+        verificationType: verification_type,
+        verificationValue: verification_value.trim(),
+      }),
     });
-    if (error) {
-      return { content: [{ type: "text", text: `Lookup failed: ${error.message}` }], isError: true };
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const msg = body?.message ?? body?.error ?? `HTTP ${res.status}`;
+      return { content: [{ type: "text", text: String(msg) }], isError: res.status >= 500 };
     }
-    const row = Array.isArray(data) ? data[0] : data;
-    if (!row) {
-      return {
-        content: [{ type: "text", text: `No application found for ${tn}.` }],
-        structuredContent: { found: false, tracking_number: tn },
-      };
-    }
-    const summary = {
-      tracking_number: tn,
-      status: row.status ?? null,
-      stage: row.current_stage ?? row.stage ?? null,
-      county: row.parent_county ?? row.county ?? null,
-      ward: row.parent_ward ?? row.ward ?? null,
-      submitted_at: row.created_at ?? row.submitted_at ?? null,
-      allocated_amount: row.allocated_amount ?? null,
-      advert_title: row.advert_title ?? null,
-    };
     return {
-      content: [{ type: "text", text: JSON.stringify(summary, null, 2) }],
-      structuredContent: { found: true, ...summary },
+      content: [{ type: "text", text: JSON.stringify(body, null, 2) }],
+      structuredContent: body,
     };
   },
 });
