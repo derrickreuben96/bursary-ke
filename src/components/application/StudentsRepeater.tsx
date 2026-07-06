@@ -62,7 +62,8 @@ export function StudentsRepeater({ onNext, onBack, defaultType }: Props) {
       return;
     }
     setDvlUploading((p) => ({ ...p, [studentId]: true }));
-    const key = `ncpwd/${studentId}-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const key = `temp-${Date.now()}/ncpwd/${studentId}-${safeName}`;
     const { error } = await supabase.storage.from("applicant-documents").upload(key, file, { upsert: false });
     setDvlUploading((p) => ({ ...p, [studentId]: false }));
     if (error) {
