@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "sdk_version": "0.20.0",
+  "path": "/functions/v1/mcp",
+  "auth": {
+    "type": "none"
+  },
+  "mcp": {
+    "server": {
+      "name": "bursary-ke-mcp",
+      "version": "0.1.0",
+      "title": "Bursary KE"
+    },
+    "tools": [
+      {
+        "name": "track_application",
+        "title": "Track bursary application",
+        "description": "Look up the current status of a Bursary KE application by its tracking number (BKE-XXXXXX). To protect applicant privacy, the applicant's phone number OR national ID must also be provided as a verification value — without a matching value nothing is returned. Never returns names or other PII.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "tracking_number": {
+              "type": "string",
+              "description": "Public tracking number issued at submission, e.g. BKE-ABC123."
+            },
+            "verification_type": {
+              "type": "string",
+              "enum": [
+                "phone",
+                "national_id"
+              ],
+              "description": "Which private detail is being used to verify ownership of the application."
+            },
+            "verification_value": {
+              "type": "string",
+              "minLength": 4,
+              "description": "The parent's phone number (any Kenyan format) or national ID, matching verification_type."
+            }
+          },
+          "required": [
+            "tracking_number",
+            "verification_type",
+            "verification_value"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_active_bursaries",
+        "title": "List active bursary adverts",
+        "description": "List currently open Bursary KE adverts. Optionally filter by county or ward. Returns title, county, ward, deadline, and required documents so applicants know what to prepare.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "county": {
+              "type": "string",
+              "description": "Kenyan county name to filter by, e.g. 'Nairobi'."
+            },
+            "ward": {
+              "type": "string",
+              "description": "Ward name to filter by (case-insensitive)."
+            },
+            "limit": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 50,
+              "description": "Max number of adverts to return (default 20)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
