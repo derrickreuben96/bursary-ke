@@ -899,9 +899,22 @@ export default function CommissionerDashboard() {
                           {d.type && <span>Type: {d.type}</span>}
                           <span>NCPWD: <span className="font-mono">{d.ncpwd || "—"}</span></span>
                           {d.cardUrl ? (
-                            <a href={d.cardUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                const { data, error } = await supabase.storage
+                                  .from("applicant-documents")
+                                  .createSignedUrl(d.cardUrl!, 300);
+                                if (error || !data?.signedUrl) {
+                                  toast({ variant: "destructive", title: "Cannot open card", description: error?.message ?? "Signed URL failed" });
+                                  return;
+                                }
+                                window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+                              }}
+                              className="text-primary underline"
+                            >
                               View card
-                            </a>
+                            </button>
                           ) : (
                             <span className="italic">No card uploaded</span>
                           )}
