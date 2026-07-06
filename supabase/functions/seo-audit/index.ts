@@ -28,30 +28,42 @@ interface RichResultsIssue {
   message: string;
 }
 
-async function runLighthouse(url: string): Promise<LighthouseScores> {
-  const params = new URLSearchParams({
-    url,
-    strategy: "mobile",
-  });
+async function runLighthouse(url: string): Promise<{ scores: LighthouseScores; warning: string | null }> {
+  const params = new URLSearchParams({ url, strategy: "mobile" });
   for (const c of ["performance", "accessibility", "best-practices", "seo"]) {
     params.append("category", c);
   }
-  const res = await fetch(
-    `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?${params}`,
-  );
-  if (!res.ok) {
-    throw new Error(`PageSpeed Insights failed: ${res.status} ${await res.text()}`);
+  const apiKey = Deno.env.get("PAGESPEED_API_KEY");
+  if (apiKey) params.append("key", apiKey);
+  const empty: LighthouseScores = { performance: null, accessibility: null, best_practices: null, seo: null };
+  try {
+    const res = await fetch(
+      `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?${params}`,
+    );
+    if (!res.ok) {
+      const txt = await res.text();
+      const warn = res.status === 429
+        ? "PageSpeed Insights quota exceeded (API key not configured or daily quota=0). Scores skipped."
+        : `PageSpeed Insights unavailable (HTTP ${res.status}). Scores skipped.`;
+      console.warn("[seo-audit] lighthouse degraded:", res.status, txt.slice(0, 200));
+      return { scores: empty, warning: warn };
+    }
+    const data = await res.json();
+    const cat = data?.lighthouseResult?.categories ?? {};
+    const pct = (v: unknown) => typeof v === "number" ? Math.round(v * 100) : null;
+    return {
+      scores: {
+        performance: pct(cat.performance?.score),
+        accessibility: pct(cat.accessibility?.score),
+        best_practices: pct(cat["best-practices"]?.score),
+        seo: pct(cat.seo?.score),
+      },
+      warning: null,
+    };
+  } catch (e) {
+    console.warn("[seo-audit] lighthouse error:", (e as Error).message);
+    return { scores: empty, warning: `PageSpeed Insights error: ${(e as Error).message}` };
   }
-  const data = await res.json();
-  const cat = data?.lighthouseResult?.categories ?? {};
-  const pct = (v: unknown) =>
-    typeof v === "number" ? Math.round(v * 100) : null;
-  return {
-    performance: pct(cat.performance?.score),
-    accessibility: pct(cat.accessibility?.score),
-    best_practices: pct(cat["best-practices"]?.score),
-    seo: pct(cat.seo?.score),
-  };
 }
 
 async function validateRichResults(url: string): Promise<RichResultsIssue[]> {
@@ -180,10 +192,12 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    const [scores, richIssues] = await Promise.all([
+    const [lh, richIssues] = await Promise.all([
       runLighthouse(url),
       validateRichResults(url),
     ]);
+    const scores = lh.scores;
+    const lighthouseWarning = lh.warning;
 
 
 
@@ -226,7 +240,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ url, scores, richIssues, isRegression, reasons }),
+      JSON.stringify({ url, scores, richIssues, isRegression, reasons, lighthouseWarning }),
       {
         status: isRegression ? 409 : 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
