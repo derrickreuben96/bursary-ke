@@ -1,0 +1,76 @@
+{
+  "version": 1,
+  "sdk_version": "0.20.0",
+  "path": "/mcp",
+  "auth": {
+    "type": "none"
+  },
+  "mcp": {
+    "server": {
+      "name": "bursary-ke-mcp",
+      "version": "0.1.0",
+      "title": "Bursary KE"
+    },
+    "tools": [
+      {
+        "name": "track_application",
+        "title": "Track bursary application",
+        "description": "Look up the current status and progress of a Bursary KE application by its tracking number (format BKE-XXXXXX). Returns stage, county/ward, submission date, and (if any) allocation amount. PII such as parent/student names, phone, and ID numbers is never returned.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "tracking_number": {
+              "type": "string",
+              "minLength": 6,
+              "maxLength": 24,
+              "description": "Public tracking number issued at submission, e.g. BKE-123456."
+            }
+          },
+          "required": [
+            "tracking_number"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_active_bursaries",
+        "title": "List active bursary adverts",
+        "description": "List currently open Bursary KE adverts. Optionally filter by county or ward. Returns title, county, ward, deadline, and required documents so applicants know what to prepare.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "county": {
+              "type": "string",
+              "description": "Kenyan county name to filter by, e.g. 'Nairobi'."
+            },
+            "ward": {
+              "type": "string",
+              "description": "Ward name to filter by (case-insensitive)."
+            },
+            "limit": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 50,
+              "description": "Max number of adverts to return (default 20)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
