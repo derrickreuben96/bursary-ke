@@ -7,6 +7,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Track from "./pages/Track";
+import HouseholdDashboard from "./pages/HouseholdDashboard";
 import ApplyUniversity from "./pages/ApplyUniversity";
 import ApplySecondary from "./pages/ApplySecondary";
 import Bursaries from "./pages/Bursaries";
@@ -37,6 +38,8 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/track" element={<Track />} />
+            <Route path="/parent" element={<HouseholdDashboard />} />
+            <Route path="/household" element={<HouseholdDashboard />} />
             <Route path="/bursaries" element={<Bursaries />} />
             <Route path="/apply/university" element={<ApplyUniversity />} />
             <Route path="/apply/secondary" element={<ApplySecondary />} />
