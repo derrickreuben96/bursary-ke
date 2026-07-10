@@ -121,6 +121,7 @@ export default function HouseholdDashboard() {
       <Seo
         title="My Household — Bursary KE"
         description="Manage every bursary application in your household from one dashboard."
+        path="/parent"
       />
       <Header />
 
