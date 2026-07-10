@@ -286,6 +286,45 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_logs: {
+        Row: {
+          actor_role: string | null
+          actor_user_id: string | null
+          created_at: string
+          details: Json
+          entity_id: string | null
+          entity_type: string | null
+          event_type: string
+          id: string
+          ip: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          actor_role?: string | null
+          actor_user_id?: string | null
+          created_at?: string
+          details?: Json
+          entity_id?: string | null
+          entity_type?: string | null
+          event_type: string
+          id?: string
+          ip?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          actor_role?: string | null
+          actor_user_id?: string | null
+          created_at?: string
+          details?: Json
+          entity_id?: string | null
+          entity_type?: string | null
+          event_type?: string
+          id?: string
+          ip?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       audit_runs: {
         Row: {
           deployment_ref: string | null
@@ -645,6 +684,57 @@ export type Database = {
         }
         Relationships: []
       }
+      duplicate_detection: {
+        Row: {
+          applicant_identifier: string | null
+          created_at: string
+          id: string
+          match_type: string
+          matched_household_id: string | null
+          matched_student_id: string | null
+          parent_national_id: string | null
+          resolution_notes: string | null
+          resolved: boolean
+        }
+        Insert: {
+          applicant_identifier?: string | null
+          created_at?: string
+          id?: string
+          match_type: string
+          matched_household_id?: string | null
+          matched_student_id?: string | null
+          parent_national_id?: string | null
+          resolution_notes?: string | null
+          resolved?: boolean
+        }
+        Update: {
+          applicant_identifier?: string | null
+          created_at?: string
+          id?: string
+          match_type?: string
+          matched_household_id?: string | null
+          matched_student_id?: string | null
+          parent_national_id?: string | null
+          resolution_notes?: string | null
+          resolved?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "duplicate_detection_matched_household_id_fkey"
+            columns: ["matched_household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "duplicate_detection_matched_student_id_fkey"
+            columns: ["matched_student_id"]
+            isOneToOne: false
+            referencedRelation: "student_beneficiaries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -926,6 +1016,60 @@ export type Database = {
           },
         ]
       }
+      fraud_flags: {
+        Row: {
+          created_at: string
+          evidence: Json
+          flag_code: string
+          id: string
+          parent_application_id: string | null
+          resolved: boolean
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          student_beneficiary_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          evidence?: Json
+          flag_code: string
+          id?: string
+          parent_application_id?: string | null
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          student_beneficiary_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          evidence?: Json
+          flag_code?: string
+          id?: string
+          parent_application_id?: string | null
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          student_beneficiary_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fraud_flags_parent_application_id_fkey"
+            columns: ["parent_application_id"]
+            isOneToOne: false
+            referencedRelation: "parent_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fraud_flags_student_beneficiary_id_fkey"
+            columns: ["student_beneficiary_id"]
+            isOneToOne: false
+            referencedRelation: "student_beneficiaries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       household_child_codes: {
         Row: {
           child_code: string
@@ -971,6 +1115,91 @@ export type Database = {
           },
         ]
       }
+      household_members: {
+        Row: {
+          created_at: string
+          household_id: string
+          id: string
+          parent_application_id: string | null
+          student_beneficiary_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          household_id: string
+          id?: string
+          parent_application_id?: string | null
+          student_beneficiary_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          household_id?: string
+          id?: string
+          parent_application_id?: string | null
+          student_beneficiary_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "household_members_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "household_members_parent_application_id_fkey"
+            columns: ["parent_application_id"]
+            isOneToOne: false
+            referencedRelation: "parent_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "household_members_student_beneficiary_id_fkey"
+            columns: ["student_beneficiary_id"]
+            isOneToOne: false
+            referencedRelation: "student_beneficiaries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      households: {
+        Row: {
+          created_at: string
+          household_tracking_id: string | null
+          id: string
+          parent_county: string | null
+          parent_email: string | null
+          parent_full_name: string | null
+          parent_national_id: string
+          parent_phone: string | null
+          parent_ward: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          household_tracking_id?: string | null
+          id?: string
+          parent_county?: string | null
+          parent_email?: string | null
+          parent_full_name?: string | null
+          parent_national_id: string
+          parent_phone?: string | null
+          parent_ward?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          household_tracking_id?: string | null
+          id?: string
+          parent_county?: string | null
+          parent_email?: string | null
+          parent_full_name?: string | null
+          parent_national_id?: string
+          parent_phone?: string | null
+          parent_ward?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       kenya_locations: {
         Row: {
           county: string
@@ -985,6 +1214,50 @@ export type Database = {
           ward?: string
         }
         Relationships: []
+      }
+      notification_history: {
+        Row: {
+          body: string | null
+          channel: string
+          created_at: string
+          event_type: string
+          household_id: string | null
+          id: string
+          parent_national_id: string | null
+          read_at: string | null
+          title: string
+        }
+        Insert: {
+          body?: string | null
+          channel?: string
+          created_at?: string
+          event_type: string
+          household_id?: string | null
+          id?: string
+          parent_national_id?: string | null
+          read_at?: string | null
+          title: string
+        }
+        Update: {
+          body?: string | null
+          channel?: string
+          created_at?: string
+          event_type?: string
+          household_id?: string | null
+          id?: string
+          parent_national_id?: string | null
+          read_at?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_history_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       parent_applications: {
         Row: {
@@ -1728,6 +2001,19 @@ export type Database = {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      detect_duplicate_applicant: {
+        Args: {
+          _identifier: string
+          _institution?: string
+          _parent_national_id: string
+          _year?: string
+        }
+        Returns: {
+          match_type: string
+          matched_household_id: string
+          matched_student_id: string
+        }[]
+      }
       email_queue_dispatch: { Args: never; Returns: undefined }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
@@ -1768,7 +2054,32 @@ export type Database = {
         Args: { _household_id: string; _verifier: string }
         Returns: Json
       }
+      get_household_summary: {
+        Args: { _lookup: string; _verifier?: string }
+        Returns: Json
+      }
       get_internal_config: { Args: { _key: string }; Returns: string }
+      get_or_create_household: {
+        Args: { _national_id: string; _parent?: Json }
+        Returns: {
+          created_at: string
+          household_tracking_id: string | null
+          id: string
+          parent_county: string | null
+          parent_email: string | null
+          parent_full_name: string | null
+          parent_national_id: string
+          parent_phone: string | null
+          parent_ward: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "households"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       get_parent_application_by_tracking: {
         Args: { _tracking: string; _verifier: string }
         Returns: Json
@@ -1847,6 +2158,15 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      log_audit: {
+        Args: {
+          _details?: Json
+          _entity_id: string
+          _entity_type: string
+          _event_type: string
+        }
+        Returns: string
       }
       log_security_event: {
         Args: {
