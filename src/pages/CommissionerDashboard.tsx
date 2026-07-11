@@ -198,14 +198,23 @@ export default function CommissionerDashboard() {
     fetchAdverts();
   }, [assignedWard, assignedCounty]);
 
-  const fetchApplications = async () => {
-    setIsLoading(true);
+  // Background-fetch aware: pass { silent: true } to refresh data WITHOUT
+  // flipping the top-level isLoading flag. This preserves the user's tab,
+  // filters, scroll position, expanded rows, and open dialogs when polling,
+  // tab-focus or realtime broadcasts trigger a refresh.
+  const prevAppIdsRef = React.useRef<Set<string>>(new Set());
+  const isFirstLoadRef = React.useRef<boolean>(true);
+  const fetchApplications = async (opts?: { silent?: boolean }) => {
+    const silent = opts?.silent ?? false;
+    if (!silent) setIsLoading(true);
     const { data, error } = await supabase
       .rpc("get_commissioner_applications");
 
     if (error) {
       console.error("Error fetching applications:", error);
-      toast({ title: "Error", description: "Failed to load applications", variant: "destructive" });
+      if (!silent) {
+        toast({ title: "Error", description: "Failed to load applications", variant: "destructive" });
+      }
     } else {
       let apps = (data || []).map((d: any) => ({
         ...d,
@@ -221,6 +230,22 @@ export default function CommissionerDashboard() {
       } else if (assignedCounty) {
         apps = apps.filter(a => a.parent_county === assignedCounty);
       }
+
+      // Detect newly-arrived applications for a non-intrusive toast.
+      const nextIds = new Set(apps.map(a => a.id));
+      if (!isFirstLoadRef.current) {
+        let added = 0;
+        nextIds.forEach(id => { if (!prevAppIdsRef.current.has(id)) added++; });
+        if (added > 0) {
+          toast({
+            title: added === 1 ? "1 new application received" : `${added} new applications received`,
+            description: "Dashboard updated in the background.",
+          });
+        }
+      }
+      prevAppIdsRef.current = nextIds;
+      isFirstLoadRef.current = false;
+
       setApplications(apps);
 
       // Fetch status history
