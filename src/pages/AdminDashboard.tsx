@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
@@ -95,13 +95,28 @@ export default function AdminDashboard() {
   const [selectedAdvertId, setSelectedAdvertId] = useState<string>("");
   const [generatingSummary, setGeneratingSummary] = useState(false);
 
+  // Track prior totals so background refreshes can surface a non-intrusive
+  // toast when new applications arrive instead of silently swapping data.
+  const prevTotalRef = useRef<number | null>(null);
+
   useEffect(() => {
     let mounted = true;
     async function loadData(showSpinner = true) {
       if (showSpinner) setIsLoading(true);
       try {
         const data = await fetchDashboardStats();
-        if (data && mounted) setDashboardData(data);
+        if (data && mounted) {
+          const prev = prevTotalRef.current;
+          if (prev !== null && data.totalApplications > prev) {
+            const delta = data.totalApplications - prev;
+            toast({
+              title: delta === 1 ? "1 new application received" : `${delta} new applications received`,
+              description: "Dashboard metrics updated in the background.",
+            });
+          }
+          prevTotalRef.current = data.totalApplications;
+          setDashboardData(data);
+        }
       } catch (error) {
         console.error("Failed to load dashboard data:", error);
       } finally {
@@ -109,20 +124,16 @@ export default function AdminDashboard() {
       }
     }
     loadData(true);
-    // Polling fallback — PII tables are excluded from Supabase realtime by policy.
+    // Silent background polling. Deliberately no visibilitychange handler:
+    // returning to the tab should never trigger a spinner or reset the view.
     const interval = setInterval(() => {
       if (document.visibilityState === "visible") loadData(false);
     }, 15000);
-    const onVisible = () => {
-      if (document.visibilityState === "visible") loadData(false);
-    };
-    document.addEventListener("visibilitychange", onVisible);
     return () => {
       mounted = false;
       clearInterval(interval);
-      document.removeEventListener("visibilitychange", onVisible);
     };
-  }, []);
+  }, [toast]);
 
   // Push-based updates via sanitized broadcast channel (no PII in payload).
   useDashboardRealtime({ kind: "admin" }, () => {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
@@ -133,43 +133,61 @@ export default function TreasuryDashboard() {
     fetchProfile();
   }, [user]);
 
-  const fetchApprovedApplications = async () => {
-    setIsLoading(true);
+  // Background-fetch aware: `silent` refreshes data without flipping the
+  // top-level isLoading flag, preserving the officer's tab, search, filters,
+  // scroll position, and any open dialogs while data updates in the background.
+  const prevAppIdsRef = useRef<Set<string>>(new Set());
+  const isFirstLoadRef = useRef<boolean>(true);
+  const fetchApprovedApplications = async (opts?: { silent?: boolean }) => {
+    const silent = opts?.silent ?? false;
+    if (!silent) setIsLoading(true);
     // Use server-side RPC that enforces county filtering at database level
     const { data, error } = await supabase.rpc("get_treasury_applications");
 
     if (error) {
       console.error("Error fetching applications:", error);
-      toast({ title: "Error", description: "Failed to load approved applications", variant: "destructive" });
+      if (!silent) {
+        toast({ title: "Error", description: "Failed to load approved applications", variant: "destructive" });
+      }
     } else {
-      setApplications((data as ApprovedApplication[]) || []);
+      const apps = (data as ApprovedApplication[]) || [];
+      const nextIds = new Set(apps.map(a => a.id));
+      if (!isFirstLoadRef.current) {
+        let added = 0;
+        nextIds.forEach(id => { if (!prevAppIdsRef.current.has(id)) added++; });
+        if (added > 0) {
+          toast({
+            title: added === 1 ? "1 new approved application" : `${added} new approved applications`,
+            description: "Treasury queue updated in the background.",
+          });
+        }
+      }
+      prevAppIdsRef.current = nextIds;
+      isFirstLoadRef.current = false;
+      setApplications(apps);
     }
     setDataLastFetched(new Date());
-    setIsLoading(false);
+    if (!silent) setIsLoading(false);
   };
 
   useEffect(() => {
     if (!assignedCounty) return;
     fetchApprovedApplications();
 
-    // Polling fallback — PII tables are excluded from Supabase realtime by policy.
+    // Silent background polling — never resets the officer's workflow.
+    // Deliberately no visibilitychange handler: returning to the tab should
+    // not trigger a spinner or discard in-progress work.
     const interval = setInterval(() => {
-      if (document.visibilityState === "visible") fetchApprovedApplications();
+      if (document.visibilityState === "visible") fetchApprovedApplications({ silent: true });
     }, 15000);
-    const onVisible = () => {
-      if (document.visibilityState === "visible") fetchApprovedApplications();
-    };
-    document.addEventListener("visibilitychange", onVisible);
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener("visibilitychange", onVisible);
-    };
+    return () => clearInterval(interval);
   }, [assignedCounty]);
 
   // Push-based updates: sanitized broadcast scoped to this treasury's county.
+  // Silent refresh — never blanks the UI mid-review.
   useDashboardRealtime(
     assignedCounty ? { kind: "treasury", county: assignedCounty } : null,
-    () => { void fetchApprovedApplications(); },
+    () => { void fetchApprovedApplications({ silent: true }); },
   );
 
   const handleLogout = async () => {
@@ -819,7 +837,7 @@ export default function TreasuryDashboard() {
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input placeholder="Search cycles..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
                 </div>
-                <Button variant="outline" size="icon" onClick={fetchApprovedApplications}>
+                <Button variant="outline" size="icon" onClick={() => fetchApprovedApplications()}>
                   <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
                 </Button>
               </div>
