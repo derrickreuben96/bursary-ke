@@ -331,29 +331,25 @@ export default function CommissionerDashboard() {
     }
   }, [assignedWard, assignedCounty]);
 
-  // Polling fallback (PII tables are excluded from Supabase realtime by policy).
-  // Refresh every 30s while the dashboard is visible.
+  // Silent background polling — does NOT toggle isLoading, so the user's
+  // tab/filters/scroll/expanded rows stay intact when data refreshes.
+  // Also intentionally omits a visibilitychange handler: returning to the
+  // tab should never trigger a spinner or reset in-progress work.
   useEffect(() => {
     if (!assignedWard && !assignedCounty) return;
     const interval = setInterval(() => {
       if (document.visibilityState === "visible") {
-        fetchApplications();
+        fetchApplications({ silent: true });
       }
     }, 15000);
-    const onVisible = () => {
-      if (document.visibilityState === "visible") fetchApplications();
-    };
-    document.addEventListener("visibilitychange", onVisible);
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener("visibilitychange", onVisible);
-    };
+    return () => clearInterval(interval);
   }, [assignedWard, assignedCounty]);
 
   // Push-based updates: sanitized broadcast scoped to this commissioner's ward.
+  // Silent refresh — never blanks the UI mid-review.
   useDashboardRealtime(
     assignedWard ? { kind: "commissioner", ward: assignedWard } : null,
-    () => { void fetchApplications(); },
+    () => { void fetchApplications({ silent: true }); },
   );
 
   // Tick every 1s so the live countdown and deadline check stay current.
