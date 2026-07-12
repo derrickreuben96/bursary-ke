@@ -42,9 +42,13 @@ export function PovertyQuestionnaire({ onNext, onBack }: PovertyQuestionnairePro
   // expand into one field per student.
   const studentList = (data.students && data.students.length > 0) ? data.students : [];
   const studentCount = Math.max(1, studentList.length);
+  // Personalized label: "<Student Name> · <Institution>" so per-student
+  // assessment questions always identify the specific learner being assessed.
   const studentLabel = (idx: number) => {
     const s = studentList[idx];
-    return s?.studentName?.trim() || `Student ${idx + 1}`;
+    const name = s?.studentName?.trim() || `Student ${idx + 1}`;
+    const inst = s?.institution?.trim();
+    return inst ? `${name} · ${inst}` : name;
   };
 
   // Pipeline: higher_education if any student is uni/college/tvet; basic_education if only secondary; mixed otherwise
