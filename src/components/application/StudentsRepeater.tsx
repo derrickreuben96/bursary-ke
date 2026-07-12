@@ -503,8 +503,8 @@ export function StudentsRepeater({ onNext, onBack, defaultType }: Props) {
         <Button type="button" variant="outline" onClick={onBack}>
           <ArrowLeft className="h-4 w-4 mr-2" /> Back
         </Button>
-        <Button type="button" onClick={handleNext}>
-          Continue <ArrowRight className="h-4 w-4 ml-2" />
+        <Button type="button" onClick={handleNext} disabled={checkingDupes}>
+          {checkingDupes ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Checking…</>) : (<>Continue <ArrowRight className="h-4 w-4 ml-2" /></>)}
         </Button>
       </div>
     </div>
