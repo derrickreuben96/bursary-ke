@@ -204,6 +204,16 @@ export function StudentsRepeater({ onNext, onBack, defaultType }: Props) {
         : s,
     );
 
+    // Duplicate-application prevention (Feature 4): block advance if any
+    // NEMIS/admission number is already tied to another household's submission.
+    setCheckingDupes(true);
+    const dupeMsg = await checkForDuplicates(normalized);
+    setCheckingDupes(false);
+    if (dupeMsg) {
+      toast({ variant: "destructive", title: "Duplicate application detected", description: dupeMsg });
+      return;
+    }
+
     const first = normalized[0];
     updateData({
       students: normalized,
