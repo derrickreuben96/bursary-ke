@@ -108,7 +108,42 @@ export function StudentsRepeater({ onNext, onBack, defaultType }: Props) {
     setLookupState((p) => { const { [id]: _, ...rest } = p; return rest; });
   };
 
-  const handleNext = () => {
+  const [checkingDupes, setCheckingDupes] = useState(false);
+
+  /**
+   * Cross-application duplicate check.
+   * Calls the existing `detect_duplicate_applicant` RPC for every student on the
+   * form. If a match is returned (same NEMIS ID / admission number in another
+   * household) we block the step and show a targeted error. The parent's own
+   * national ID is passed so their own in-progress records are excluded.
+   */
+  const checkForDuplicates = async (list: StudentEntry[]): Promise<string | null> => {
+    const parentNid = (data.parentGuardian?.nationalId || "").trim();
+    if (!parentNid) return null; // parent step enforces this; skip silently
+    for (const s of list) {
+      const isSec = s.studentType === "secondary";
+      const idValue = (isSec ? s.identifier : (s.admissionNumber || s.identifier)).trim();
+      if (!idValue) continue;
+      const { data: rows, error } = await supabase.rpc("detect_duplicate_applicant", {
+        _parent_national_id: parentNid,
+        _identifier: idValue,
+        _institution: s.institution || undefined,
+      });
+      if (error) {
+        // Fail-open: don't block submission on RPC availability issues.
+        console.warn("duplicate check RPC failed", error);
+        continue;
+      }
+      if (Array.isArray(rows) && rows.length > 0) {
+        return isSec
+          ? "This NEMIS ID has already been used in another bursary application."
+          : "This admission number has already been used in another bursary application.";
+      }
+    }
+    return null;
+  };
+
+  const handleNext = async () => {
     const ids = new Set<string>();
     for (const s of students) {
       // For university students the admission number IS the identifier going forward.
