@@ -203,6 +203,9 @@ const translations: Record<string, Record<Language, string>> = {
   "step.documents": { en: "Documents", sw: "Nyaraka" },
   "step.review": { en: "Review", sw: "Kagua" },
   "step.parent_guardian": { en: "Parent/Guardian", sw: "Mzazi/Mlezi" },
+  "step.education_level": { en: "Education Level", sw: "Kiwango cha Elimu" },
+  "step.secondary_student": { en: "Secondary Student", sw: "Mwanafunzi wa Sekondari" },
+  "step.university_student": { en: "University/College Student", sw: "Mwanafunzi wa Chuo" },
 
   // Footer
   "footer.tagline": { en: "Empowering Kenyan students through transparent, accessible, and fair bursary distribution.", sw: "Kuwawezesha wanafunzi wa Kenya kupitia usambazaji wa bursari wenye uwazi, upatikanaji, na haki." },
