@@ -26,6 +26,7 @@ import { ArrowLeft, ArrowRight, ClipboardCheck, Lock, Shuffle } from "lucide-rea
 import { useApplication } from "@/context/ApplicationContext";
 import { getRandomizedQuestions, calculatePovertyScoreFromAnswers, type PovertyQuestion } from "@/lib/povertyQuestions";
 import { DynamicPovertyBank } from "./DynamicPovertyBank";
+import { AssessmentRenderer } from "./AssessmentRenderer";
 
 interface PovertyQuestionnaireProps {
   onNext: () => void;
@@ -64,10 +65,16 @@ export function PovertyQuestionnaire({ onNext, onBack }: PovertyQuestionnairePro
   // Preserve previously entered bank answers when reopening this step
   const prevPq = (data.povertyQuestionnaire || {}) as Record<string, unknown>;
   const initialBank: Record<string, string> = {};
+  const initialEngine: Record<string, string> = {};
   Object.entries(prevPq).forEach(([k, v]) => {
-    if (k.startsWith("bank.") && typeof v === "string") initialBank[k] = v;
+    if (typeof v !== "string") return;
+    if (k.startsWith("bank.")) initialBank[k] = v;
+    else if (k.startsWith("engine.")) initialEngine[k] = v;
   });
   const [bankAnswers, setBankAnswers] = useState<Record<string, string>>(initialBank);
+  // Config-driven assessment engine answers. Namespaced under `engine.*`
+  // so they never collide with legacy scoring keys or DB bank keys.
+  const [engineAnswers, setEngineAnswers] = useState<Record<string, string>>(initialEngine);
 
   // Build dynamic schema based on questions (per-student questions get one
   // field per student, e.g. `disability_student::s0`).
@@ -121,6 +128,7 @@ export function PovertyQuestionnaire({ onNext, onBack }: PovertyQuestionnairePro
       povertyQuestionnaire: {
         ...formData,
         ...bankAnswers,
+        ...engineAnswers,
         householdIncome: percentage,
         numberOfDependents: 4,
         housingType: "Other" as const,
@@ -128,7 +136,7 @@ export function PovertyQuestionnaire({ onNext, onBack }: PovertyQuestionnairePro
         parentalEmployment: "One Employed" as const,
         otherChildrenInSchool: 2,
         receivesOtherAid: false,
-        _rawAnswers: { ...formData, ...bankAnswers },
+        _rawAnswers: { ...formData, ...bankAnswers, ...engineAnswers },
         _questions: questions.map((q) => q.id),
         _calculatedScore: percentage,
       } as never,
@@ -259,6 +267,14 @@ export function PovertyQuestionnaire({ onNext, onBack }: PovertyQuestionnairePro
             {categoryQuestions.map(renderQuestion)}
           </div>
         ))}
+
+        {/* Configuration-driven assessment engine: household + per-student
+            questions generated from the application composition. */}
+        <AssessmentRenderer
+          students={studentList}
+          value={engineAnswers}
+          onChange={setEngineAnswers}
+        />
 
         <DynamicPovertyBank
           pipeline={pipeline}
