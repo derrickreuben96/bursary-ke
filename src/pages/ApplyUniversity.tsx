@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ApplicationStepper } from "@/components/application/ApplicationStepper";
 import { ParentGuardianForm } from "@/components/application/ParentGuardianForm";
+import { EducationLevelSelect } from "@/components/application/EducationLevelSelect";
 import { StudentsRepeater } from "@/components/application/StudentsRepeater";
 import { PovertyQuestionnaire } from "@/components/application/PovertyQuestionnaire";
 import { DocumentUpload } from "@/components/application/DocumentUpload";
@@ -24,14 +25,48 @@ const DEFAULT_DOCS = [
   "Academic Transcripts",
 ];
 
+type StepKey =
+  | "parent"
+  | "education"
+  | "secondary"
+  | "university"
+  | "assessment"
+  | "documents"
+  | "review";
+
 function ApplicationFormContent() {
-  const { currentStep, setCurrentStep, updateData, resetApplication } = useApplication();
+  const { data, updateData, resetApplication } = useApplication();
+  const [currentStep, setCurrentStep] = useState(1);
   const [showSuccess, setShowSuccess] = useState(false);
   const [trackingNumber, setTrackingNumber] = useState("");
   const [uploadedDocs, setUploadedDocs] = useState<any[]>([]);
   const { t } = useI18n();
 
-  const steps = [t("step.parent_info"), t("step.student_info"), t("step.assessment"), t("step.documents"), t("step.review")];
+  // Dynamic step flow driven by the Education Level selection.
+  const flow = useMemo<StepKey[]>(() => {
+    const f: StepKey[] = ["parent", "education"];
+    const levels = data.educationLevels;
+    if (levels?.secondary) f.push("secondary");
+    if (levels?.higherEd) f.push("university");
+    f.push("assessment", "documents", "review");
+    return f;
+  }, [data.educationLevels]);
+
+  const stepLabels: Record<StepKey, string> = {
+    parent: t("step.parent_info"),
+    education: t("step.education_level"),
+    secondary: t("step.secondary_student"),
+    university: t("step.university_student"),
+    assessment: t("step.assessment"),
+    documents: t("step.documents"),
+    review: t("step.review"),
+  };
+
+  const steps = flow.map((k) => stepLabels[k]);
+  const activeKey = flow[currentStep - 1] ?? "parent";
+
+  const goNext = () => setCurrentStep((s) => Math.min(s + 1, flow.length));
+  const goBack = () => setCurrentStep((s) => Math.max(s - 1, 1));
 
   const handleSuccess = (tracking: string) => {
     setTrackingNumber(tracking);
@@ -42,12 +77,18 @@ function ApplicationFormContent() {
   const handleCloseSuccess = () => {
     setShowSuccess(false);
     resetApplication();
+    setCurrentStep(1);
   };
+
+  // If both cohorts are selected we keep the top-level `studentType` tag as
+  // "university" for this entry route; per-student types remain accurate.
+  const reviewStudentType: "secondary" | "university" =
+    data.educationLevels?.higherEd ? "university" : "secondary";
 
   return (
     <div className="min-h-screen flex flex-col bg-secondary/30">
       <Header />
-      
+
       <main className="flex-1 py-12">
         <div className="container max-w-2xl">
           <div className="text-center mb-8">
@@ -68,43 +109,40 @@ function ApplicationFormContent() {
           <ApplicationStepper steps={steps} currentStep={currentStep} />
 
           <Card className="p-6 md:p-8 shadow-card">
-            {currentStep === 1 && (
-              <ParentGuardianForm onNext={() => setCurrentStep(2)} />
+            {activeKey === "parent" && <ParentGuardianForm onNext={goNext} />}
+            {activeKey === "education" && (
+              <EducationLevelSelect onNext={goNext} onBack={goBack} />
             )}
-            {currentStep === 2 && (
-              <StudentsRepeater
-                defaultType="university"
-                onNext={() => setCurrentStep(3)}
-                onBack={() => setCurrentStep(1)}
-              />
+            {activeKey === "secondary" && (
+              <StudentsRepeater defaultType="secondary" onNext={goNext} onBack={goBack} />
             )}
-            {currentStep === 3 && (
-              <PovertyQuestionnaire
-                onNext={() => setCurrentStep(4)}
-                onBack={() => setCurrentStep(2)}
-              />
+            {activeKey === "university" && (
+              <StudentsRepeater defaultType="university" onNext={goNext} onBack={goBack} />
             )}
-            {currentStep === 4 && (
+            {activeKey === "assessment" && (
+              <PovertyQuestionnaire onNext={goNext} onBack={goBack} />
+            )}
+            {activeKey === "documents" && (
               <div className="space-y-6">
                 <DocumentUpload
                   requiredDocs={DEFAULT_DOCS}
                   onDocumentsChange={setUploadedDocs}
                 />
                 <div className="flex justify-between">
-                  <Button variant="outline" onClick={() => setCurrentStep(3)}>
+                  <Button variant="outline" onClick={goBack}>
                     <ArrowLeft className="h-4 w-4 mr-2" />{t("apply.back")}
                   </Button>
-                  <Button onClick={() => setCurrentStep(5)}>
+                  <Button onClick={goNext}>
                     {t("apply.continue_review")}<ArrowRight className="h-4 w-4 ml-2" />
                   </Button>
                 </div>
               </div>
             )}
-            {currentStep === 5 && (
+            {activeKey === "review" && (
               <ReviewSubmit
-                onBack={() => setCurrentStep(4)}
+                onBack={goBack}
                 onSuccess={handleSuccess}
-                studentType="university"
+                studentType={reviewStudentType}
               />
             )}
           </Card>
@@ -128,7 +166,7 @@ function ApplicationFormContent() {
         isOpen={showSuccess}
         trackingNumber={trackingNumber}
         onClose={handleCloseSuccess}
-        studentType="university"
+        studentType={reviewStudentType}
       />
     </div>
   );
