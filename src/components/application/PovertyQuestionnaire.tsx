@@ -65,10 +65,16 @@ export function PovertyQuestionnaire({ onNext, onBack }: PovertyQuestionnairePro
   // Preserve previously entered bank answers when reopening this step
   const prevPq = (data.povertyQuestionnaire || {}) as Record<string, unknown>;
   const initialBank: Record<string, string> = {};
+  const initialEngine: Record<string, string> = {};
   Object.entries(prevPq).forEach(([k, v]) => {
-    if (k.startsWith("bank.") && typeof v === "string") initialBank[k] = v;
+    if (typeof v !== "string") return;
+    if (k.startsWith("bank.")) initialBank[k] = v;
+    else if (k.startsWith("engine.")) initialEngine[k] = v;
   });
   const [bankAnswers, setBankAnswers] = useState<Record<string, string>>(initialBank);
+  // Config-driven assessment engine answers. Namespaced under `engine.*`
+  // so they never collide with legacy scoring keys or DB bank keys.
+  const [engineAnswers, setEngineAnswers] = useState<Record<string, string>>(initialEngine);
 
   // Build dynamic schema based on questions (per-student questions get one
   // field per student, e.g. `disability_student::s0`).
