@@ -218,9 +218,13 @@ export function StudentsRepeater({ onNext, onBack, defaultType }: Props) {
       return;
     }
 
+    // Merge: preserve students of the OTHER type collected by a sibling
+    // repeater (mixed-household flow) and replace only our own scope.
+    const others = (data.students || []).filter((s) => s.studentType !== defaultType);
+    const merged = [...others, ...normalized];
     const first = normalized[0];
     updateData({
-      students: normalized,
+      students: merged,
       ...(first.studentType === "secondary"
         ? {
             secondaryStudent: {
