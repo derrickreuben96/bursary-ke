@@ -42,8 +42,12 @@ export function StudentsRepeater({ onNext, onBack, defaultType }: Props) {
 
   const { toast } = useToast();
   const isSecondary = defaultType === "secondary";
+  // Scope this repeater to students of its own type. In the mixed-household
+  // flow (Secondary + Higher Ed selected together) two repeaters mount
+  // back-to-back and must not overwrite each other's entries.
+  const existingForType = (data.students || []).filter((s) => s.studentType === defaultType);
   const [students, setStudents] = useState<StudentEntry[]>(
-    data.students && data.students.length > 0 ? data.students : [newStudent(defaultType)]
+    existingForType.length > 0 ? existingForType : [newStudent(defaultType)]
   );
   const [lookupState, setLookupState] = useState<Record<string, { loading: boolean; error?: string; verified?: boolean }>>({});
 
