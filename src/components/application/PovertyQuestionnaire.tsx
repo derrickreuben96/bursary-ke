@@ -268,6 +268,14 @@ export function PovertyQuestionnaire({ onNext, onBack }: PovertyQuestionnairePro
           </div>
         ))}
 
+        {/* Configuration-driven assessment engine: household + per-student
+            questions generated from the application composition. */}
+        <AssessmentRenderer
+          students={studentList}
+          value={engineAnswers}
+          onChange={setEngineAnswers}
+        />
+
         <DynamicPovertyBank
           pipeline={pipeline}
           value={bankAnswers}
