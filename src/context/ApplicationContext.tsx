@@ -43,6 +43,12 @@ export interface ApplicationData {
   advertId?: string;
   // New: 1-3 students
   students?: StudentEntry[];
+  /**
+   * Feature: Education Level Selection (Step 2 of the wizard).
+   * Explicit applicant choice that determines which student-detail sub-steps
+   * appear next. Both flags may be true (mixed household).
+   */
+  educationLevels?: { secondary: boolean; higherEd: boolean };
 }
 
 interface ApplicationContextType {
