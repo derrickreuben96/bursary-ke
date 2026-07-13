@@ -26,6 +26,7 @@ import { ArrowLeft, ArrowRight, ClipboardCheck, Lock, Shuffle } from "lucide-rea
 import { useApplication } from "@/context/ApplicationContext";
 import { getRandomizedQuestions, calculatePovertyScoreFromAnswers, type PovertyQuestion } from "@/lib/povertyQuestions";
 import { DynamicPovertyBank } from "./DynamicPovertyBank";
+import { AssessmentRenderer } from "./AssessmentRenderer";
 
 interface PovertyQuestionnaireProps {
   onNext: () => void;
