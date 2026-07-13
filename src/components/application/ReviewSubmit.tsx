@@ -113,56 +113,120 @@ export function ReviewSubmit({ onBack, onSuccess, studentType }: ReviewSubmitPro
         </div>
       </Card>
 
-      {/* Student Information */}
-      <Card className="p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-            <GraduationCap className="h-5 w-5 text-primary" />
+      {/*
+        Student Information
+        Bug B-1 fix: prefer the multi-student repeater array (`data.students`).
+        A parent may add up to 3 students; the old markup only showed the legacy
+        single-student mirror, hiding students 2 and 3 from Review even though
+        the submission RPC saves them all. We now enumerate every entry and
+        keep the legacy fallback for older draft shapes with no students[].
+      */}
+      {data.students && data.students.length > 0 ? (
+        <div className="space-y-4">
+          {data.students.map((s, idx) => (
+            <Card key={s.id} className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                  <GraduationCap className="h-5 w-5 text-primary" />
+                </div>
+                <h3 className="font-semibold text-lg">
+                  Student {idx + 1}
+                  <span className="ml-2 text-xs font-normal text-muted-foreground uppercase tracking-wide">
+                    {s.studentType}
+                  </span>
+                </h3>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-muted-foreground">
+                    {s.studentType === "university" ? "Student ID" : "NEMIS ID"}
+                  </p>
+                  <p className="font-medium">{maskStudentId(s.identifier || "")}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Student Name</p>
+                  <p className="font-medium">{maskName(s.studentName || "")}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Institution</p>
+                  <p className="font-medium">{s.institution || "—"}</p>
+                </div>
+                {s.studentType === "secondary" ? (
+                  <div>
+                    <p className="text-muted-foreground">Class/Form</p>
+                    <p className="font-medium">
+                      {s.classForm?.replace("form", "Form ") || "—"}
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <p className="text-muted-foreground">Year of Study</p>
+                      <p className="font-medium">{s.yearOfStudy || "—"}</p>
+                    </div>
+                    {s.course && (
+                      <div>
+                        <p className="text-muted-foreground">Course</p>
+                        <p className="font-medium">{s.course}</p>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <Card className="p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+              <GraduationCap className="h-5 w-5 text-primary" />
+            </div>
+            <h3 className="font-semibold text-lg">Student Information</h3>
           </div>
-          <h3 className="font-semibold text-lg">Student Information</h3>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-          {studentType === "university" ? (
-            <>
-              <div>
-                <p className="text-muted-foreground">Student ID</p>
-                <p className="font-medium">{maskStudentId(data.universityStudent?.studentId || "")}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Institution</p>
-                <p className="font-medium">{data.universityStudent?.institution}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Course</p>
-                <p className="font-medium">{data.universityStudent?.course}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Year of Study</p>
-                <p className="font-medium">{data.universityStudent?.yearOfStudy}</p>
-              </div>
-            </>
-          ) : (
-            <>
-              <div>
-                <p className="text-muted-foreground">NEMIS ID</p>
-                <p className="font-medium">{maskStudentId(data.secondaryStudent?.nemisId || "")}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Student Name</p>
-                <p className="font-medium">{maskName(data.secondaryStudent?.studentName || "")}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">School</p>
-                <p className="font-medium">{data.secondaryStudent?.school}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Class/Form</p>
-                <p className="font-medium">{data.secondaryStudent?.classForm?.replace("form", "Form ")}</p>
-              </div>
-            </>
-          )}
-        </div>
-      </Card>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+            {studentType === "university" ? (
+              <>
+                <div>
+                  <p className="text-muted-foreground">Student ID</p>
+                  <p className="font-medium">{maskStudentId(data.universityStudent?.studentId || "")}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Institution</p>
+                  <p className="font-medium">{data.universityStudent?.institution}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Course</p>
+                  <p className="font-medium">{data.universityStudent?.course}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Year of Study</p>
+                  <p className="font-medium">{data.universityStudent?.yearOfStudy}</p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <p className="text-muted-foreground">NEMIS ID</p>
+                  <p className="font-medium">{maskStudentId(data.secondaryStudent?.nemisId || "")}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Student Name</p>
+                  <p className="font-medium">{maskName(data.secondaryStudent?.studentName || "")}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">School</p>
+                  <p className="font-medium">{data.secondaryStudent?.school}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Class/Form</p>
+                  <p className="font-medium">{data.secondaryStudent?.classForm?.replace("form", "Form ")}</p>
+                </div>
+              </>
+            )}
+          </div>
+        </Card>
+      )}
 
       {/* Assessment Summary */}
       <Card className="p-6">
