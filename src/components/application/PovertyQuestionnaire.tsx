@@ -128,6 +128,7 @@ export function PovertyQuestionnaire({ onNext, onBack }: PovertyQuestionnairePro
       povertyQuestionnaire: {
         ...formData,
         ...bankAnswers,
+        ...engineAnswers,
         householdIncome: percentage,
         numberOfDependents: 4,
         housingType: "Other" as const,
@@ -135,7 +136,7 @@ export function PovertyQuestionnaire({ onNext, onBack }: PovertyQuestionnairePro
         parentalEmployment: "One Employed" as const,
         otherChildrenInSchool: 2,
         receivesOtherAid: false,
-        _rawAnswers: { ...formData, ...bankAnswers },
+        _rawAnswers: { ...formData, ...bankAnswers, ...engineAnswers },
         _questions: questions.map((q) => q.id),
         _calculatedScore: percentage,
       } as never,
