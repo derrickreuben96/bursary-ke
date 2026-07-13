@@ -112,13 +112,13 @@ export function SuccessModal({ isOpen, trackingNumber, onClose, studentType = "s
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-3 pt-2">
             <Button asChild variant="outline" className="flex-1">
-              <Link to="/">
+              <Link to="/" onClick={handleClose}>
                 <Home className="mr-2 h-4 w-4" />
                 Go Home
               </Link>
             </Button>
             <Button asChild className="flex-1">
-              <Link to={`/track?number=${trackingNumber}`}>
+              <Link to={`/track?number=${trackingNumber}`} onClick={handleClose}>
                 <FileSearch className="mr-2 h-4 w-4" />
                 Track Application
               </Link>
