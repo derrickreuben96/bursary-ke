@@ -21,7 +21,7 @@ interface SuccessModalProps {
 
 export function SuccessModal({ isOpen, trackingNumber, onClose, studentType = "secondary" }: SuccessModalProps) {
   const [copied, setCopied] = useState(false);
-  const { data } = useApplication();
+  const { data, resetApplication } = useApplication();
 
   const handleDownloadReceipt = async () => {
     const { loadLogoDataUrl } = await import("@/lib/brandLogo");
@@ -41,8 +41,17 @@ export function SuccessModal({ isOpen, trackingNumber, onClose, studentType = "s
     }
   }, [copied]);
 
+  // Clear the persisted draft (B-2) once the user dismisses the success modal.
+  // We do NOT clear on mount — the PDF receipt button still needs `data` in
+  // memory. React state persists until the parent unmounts the provider.
+  const handleClose = () => {
+    resetApplication();
+    onClose();
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleClose(); }}>
+
       <DialogContent className="sm:max-w-md">
         <DialogHeader className="text-center">
           <div className="flex justify-center mb-4">
