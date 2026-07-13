@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { ApplicationProvider, useApplication } from "@/context/ApplicationContext";
 import { ApplicationStepper } from "@/components/application/ApplicationStepper";
 import { ParentGuardianForm } from "@/components/application/ParentGuardianForm";
+import { EducationLevelSelect } from "@/components/application/EducationLevelSelect";
 import { StudentsRepeater } from "@/components/application/StudentsRepeater";
 import { PovertyQuestionnaire } from "@/components/application/PovertyQuestionnaire";
 import { DocumentUpload } from "@/components/application/DocumentUpload";
@@ -25,10 +26,19 @@ const DEFAULT_DOCS = [
   "Academic Transcripts",
 ];
 
+type StepKey =
+  | "parent"
+  | "education"
+  | "secondary"
+  | "university"
+  | "assessment"
+  | "documents"
+  | "review";
+
 function ApplicationFormContent() {
   const [searchParams] = useSearchParams();
   const advertId = searchParams.get("advert");
-  const { updateData } = useApplication();
+  const { data, updateData } = useApplication();
   const [currentStep, setCurrentStep] = useState(1);
   const [showSuccess, setShowSuccess] = useState(false);
   const [trackingNumber, setTrackingNumber] = useState("");
@@ -37,7 +47,30 @@ function ApplicationFormContent() {
   const [uploadedDocs, setUploadedDocs] = useState<any[]>([]);
   const { t } = useI18n();
 
-  const steps = [t("step.parent_guardian"), t("step.student_info"), t("step.assessment"), t("step.documents"), t("step.review")];
+  // Build the dynamic step flow based on the applicant's Education Level
+  // selection. Parent + Education steps always show; student-detail sub-steps
+  // are inserted per selection; shared stages (assessment/docs/review) follow.
+  const flow = useMemo<StepKey[]>(() => {
+    const f: StepKey[] = ["parent", "education"];
+    const levels = data.educationLevels;
+    if (levels?.secondary) f.push("secondary");
+    if (levels?.higherEd) f.push("university");
+    f.push("assessment", "documents", "review");
+    return f;
+  }, [data.educationLevels]);
+
+  const stepLabels: Record<StepKey, string> = {
+    parent: t("step.parent_guardian"),
+    education: t("step.education_level"),
+    secondary: t("step.secondary_student"),
+    university: t("step.university_student"),
+    assessment: t("step.assessment"),
+    documents: t("step.documents"),
+    review: t("step.review"),
+  };
+
+  const steps = flow.map((k) => stepLabels[k]);
+  const activeKey = flow[currentStep - 1] ?? "parent";
 
   useEffect(() => {
     if (advertId) {
@@ -56,12 +89,22 @@ function ApplicationFormContent() {
           }
         });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [advertId]);
 
   const handleSuccess = (tracking: string) => {
     setTrackingNumber(tracking);
     setShowSuccess(true);
   };
+
+  const goNext = () => setCurrentStep((s) => Math.min(s + 1, flow.length));
+  const goBack = () => setCurrentStep((s) => Math.max(s - 1, 1));
+
+  // For ReviewSubmit's top-level `studentType` tag: prefer secondary when
+  // present (entry route), else university. Per-student type is preserved
+  // inside `data.students` and consumed server-side.
+  const reviewStudentType: "secondary" | "university" =
+    data.educationLevels?.secondary ? "secondary" : "university";
 
   return (
     <div className="min-h-screen flex flex-col bg-secondary/30">
@@ -102,43 +145,40 @@ function ApplicationFormContent() {
         </div>
 
         <div className="max-w-2xl mx-auto">
-          {currentStep === 1 && (
-            <ParentGuardianForm onNext={() => setCurrentStep(2)} />
+          {activeKey === "parent" && <ParentGuardianForm onNext={goNext} />}
+          {activeKey === "education" && (
+            <EducationLevelSelect onNext={goNext} onBack={goBack} />
           )}
-          {currentStep === 2 && (
-            <StudentsRepeater
-              defaultType="secondary"
-              onNext={() => setCurrentStep(3)}
-              onBack={() => setCurrentStep(1)}
-            />
+          {activeKey === "secondary" && (
+            <StudentsRepeater defaultType="secondary" onNext={goNext} onBack={goBack} />
           )}
-          {currentStep === 3 && (
-            <PovertyQuestionnaire 
-              onNext={() => setCurrentStep(4)} 
-              onBack={() => setCurrentStep(2)} 
-            />
+          {activeKey === "university" && (
+            <StudentsRepeater defaultType="university" onNext={goNext} onBack={goBack} />
           )}
-          {currentStep === 4 && (
+          {activeKey === "assessment" && (
+            <PovertyQuestionnaire onNext={goNext} onBack={goBack} />
+          )}
+          {activeKey === "documents" && (
             <div className="space-y-6 py-6">
               <DocumentUpload
                 requiredDocs={requiredDocs}
                 onDocumentsChange={setUploadedDocs}
               />
               <div className="flex justify-between">
-                <Button variant="outline" onClick={() => setCurrentStep(3)}>
+                <Button variant="outline" onClick={goBack}>
                   <ArrowLeft className="h-4 w-4 mr-2" />{t("apply.back")}
                 </Button>
-                <Button onClick={() => setCurrentStep(5)}>
+                <Button onClick={goNext}>
                   {t("apply.continue_review")}<ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
               </div>
             </div>
           )}
-          {currentStep === 5 && (
-            <ReviewSubmit 
-              onBack={() => setCurrentStep(4)} 
+          {activeKey === "review" && (
+            <ReviewSubmit
+              onBack={goBack}
               onSuccess={handleSuccess}
-              studentType="secondary"
+              studentType={reviewStudentType}
             />
           )}
         </div>
@@ -147,7 +187,7 @@ function ApplicationFormContent() {
           isOpen={showSuccess}
           trackingNumber={trackingNumber}
           onClose={() => setShowSuccess(false)}
-          studentType="secondary"
+          studentType={reviewStudentType}
         />
       </main>
       <Footer />
