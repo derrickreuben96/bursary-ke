@@ -1610,3 +1610,57 @@ export default function CommissionerDashboard() {
     </div>
   );
 }
+
+/**
+ * Household-centric view. Uses the shared HouseholdList / rendering engine so
+ * Commissioner, Treasury and Admin display one tracking # = one household with
+ * identical layout, cohort grouping, audit timeline and action panel.
+ */
+function CommissionerHouseholdsTab({ ward, county }: { ward: string | null; county: string | null }) {
+  const { toast } = useToast();
+  const { households, historyByHouseholdId, loading, pendingNewCount, refresh, acknowledgeNew } =
+    useHouseholds({ ward, county });
+  const [busy, setBusy] = useState<HouseholdAction | null>(null);
+
+  const onAction = async (action: HouseholdAction, h: Household) => {
+    if (action === "view") return; // expansion handled by card
+    if (action === "release_to_treasury") {
+      setBusy(action);
+      try {
+        await releaseHouseholdToTreasury(h);
+        toast({ title: "Released to Treasury", description: `${h.tracking_number} sent for allocation.` });
+        await refresh();
+      } catch (e: any) {
+        toast({ title: "Release failed", description: e?.message ?? "Please try again", variant: "destructive" });
+      } finally { setBusy(null); }
+      return;
+    }
+    if (action === "print_summary") {
+      window.print();
+      return;
+    }
+    // approve / reject / return_for_correction are AI-owned in this project;
+    // surface a guardrail toast rather than silently doing nothing.
+    toast({
+      title: "AI-owned decision",
+      description: "Scoring, approval and rejection are performed by the AI Allocation Engine. Use Release to Treasury once AI has approved.",
+    });
+  };
+
+  if (loading) {
+    return <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+  }
+  return (
+    <HouseholdList
+      households={households}
+      role="commissioner"
+      storageKey="commissioner.households"
+      historyByHouseholdId={historyByHouseholdId}
+      onAction={onAction}
+      busyAction={busy}
+      pendingNewCount={pendingNewCount}
+      onAcknowledgeNew={acknowledgeNew}
+      onRefresh={refresh}
+    />
+  );
+}
