@@ -16,6 +16,7 @@ import { useDashboardRealtime } from "@/hooks/useDashboardRealtime";
 import { supabase } from "@/integrations/supabase/client";
 import { useHouseholds } from "@/lib/household/useHouseholds";
 import { HouseholdList } from "@/components/household/HouseholdList";
+import { HouseholdReportPanel } from "@/components/reporting/HouseholdReportPanel";
 import type { HouseholdAction } from "@/lib/household/workflowEngine";
 import type { Household } from "@/lib/household/types";
 import {
