@@ -1248,3 +1248,63 @@ export default function TreasuryDashboard() {
     </div>
   );
 }
+
+/**
+ * Household-centric view for Treasury. Uses the shared HouseholdList so the
+ * "one tracking # = one household" rendering matches Commissioner and Admin
+ * exactly. Actions here map to disburse (Allocated once finalised).
+ */
+function TreasuryHouseholdsSection({ county }: { county: string | null }) {
+  const { toast } = useToast();
+  const { households, historyByHouseholdId, loading, pendingNewCount, refresh, acknowledgeNew } =
+    useHouseholds({ county });
+
+  // Treasury only cares about households the Commissioner has already released.
+  const releasedHouseholds = households.filter(h => h.released_to_treasury);
+
+  const onAction = async (action: HouseholdAction, h: Household) => {
+    if (action === "view" || action === "print_summary") {
+      if (action === "print_summary") window.print();
+      return;
+    }
+    if (action === "allocate" || action === "disburse") {
+      // Delegate to existing disbursement pathway via student_beneficiaries
+      // status flip. Existing DB triggers handle downstream propagation.
+      try {
+        const approvedStudentIds = h.students
+          .filter(s => s.released_to_treasury && s.status === "approved")
+          .map(s => s.id);
+        if (approvedStudentIds.length === 0) {
+          toast({ title: "Nothing to disburse", description: "No approved students in this household.", variant: "destructive" });
+          return;
+        }
+        const { error } = await supabase
+          .from("student_beneficiaries")
+          .update({ status: "disbursed", allocation_date: new Date().toISOString() })
+          .in("id", approvedStudentIds);
+        if (error) throw error;
+        toast({ title: "Household disbursed", description: `${h.tracking_number} marked Allocated / Disbursed.` });
+        await refresh();
+      } catch (e: any) {
+        toast({ title: "Disbursement failed", description: e?.message ?? "Please try again", variant: "destructive" });
+      }
+      return;
+    }
+  };
+
+  if (loading) {
+    return <div className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+  }
+  return (
+    <HouseholdList
+      households={releasedHouseholds}
+      role="treasury"
+      storageKey="treasury.households"
+      historyByHouseholdId={historyByHouseholdId}
+      onAction={onAction}
+      pendingNewCount={pendingNewCount}
+      onAcknowledgeNew={acknowledgeNew}
+      onRefresh={refresh}
+    />
+  );
+}
