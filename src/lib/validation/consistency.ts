@@ -108,5 +108,42 @@ export function detectConsistencyWarnings(
     });
   }
 
+  // 6. Day school declared but boarding-level fees entered
+  const schoolType = answer(pq, "schoolType") || answer(pq, "school_type");
+  if (schoolType === "day") {
+    for (const s of students) {
+      if (s.studentType === "secondary" && (s.feeBalance ?? 0) > 30000) {
+        out.push({
+          code: "day_school_high_fees",
+          studentId: s.id,
+          message: `${s.studentName || "This student"} is listed as a day scholar but the fee balance suggests boarding-level charges. Please review.`,
+        });
+      }
+    }
+  }
+
+  // 7. NCPWD number provided but disability not declared
+  const disabilityDeclared =
+    answer(pq, "disabilityInHousehold") || answer(pq, "disability_in_household");
+  const anyNcpwd = students.some((s) => s.ncpwdRegistrationNumber);
+  if (anyNcpwd && disabilityDeclared === "no") {
+    out.push({
+      code: "ncpwd_without_declaration",
+      message:
+        "An NCPWD registration number was provided, but the questionnaire indicates no disability in the household. Please clarify.",
+    });
+  }
+
+  // 8. Declared children count vs number of student records
+  const rawDeclared =
+    pq?.["numberOfChildren"] ?? pq?.["number_of_children"] ?? pq?.["householdDependents"];
+  const declared = Number(rawDeclared);
+  if (Number.isFinite(declared) && declared > 0 && students.length > declared) {
+    out.push({
+      code: "students_exceed_declared",
+      message: `You declared ${declared} child(ren) in the household but added ${students.length} student record(s). Please confirm.`,
+    });
+  }
+
   return out;
 }
