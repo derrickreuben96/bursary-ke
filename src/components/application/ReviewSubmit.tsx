@@ -302,7 +302,7 @@ export function ReviewSubmit({ onBack, onSuccess, studentType }: ReviewSubmitPro
         </Button>
         <Button
           size="lg"
-          disabled={!confirmed || isSubmitting}
+          disabled={!confirmed || isSubmitting || (warnings.length > 0 && !ackWarnings)}
           onClick={handleSubmit}
           className="min-w-[180px] hover:scale-105 transition-transform"
         >
