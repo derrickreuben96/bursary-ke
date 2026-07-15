@@ -12,6 +12,12 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useDashboardRealtime } from "@/hooks/useDashboardRealtime";
 import { supabase } from "@/integrations/supabase/client";
+import { useDashboardState } from "@/hooks/useDashboardState";
+import { useHouseholds } from "@/lib/household/useHouseholds";
+import { HouseholdList } from "@/components/household/HouseholdList";
+import { releaseHouseholdToTreasury } from "@/lib/household/workflowEngine";
+import type { HouseholdAction } from "@/lib/household/workflowEngine";
+import type { Household } from "@/lib/household/types";
 import { 
   GraduationCap, LogOut, CheckCircle2, XCircle, Clock, 
   Loader2, RefreshCw, AlertTriangle, BarChart3, Users, Banknote,
@@ -139,7 +145,7 @@ export default function CommissionerDashboard() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isReleasing, setIsReleasing] = useState(false);
   const [generatingSummary, setGeneratingSummary] = useState(false);
-  const [activeTab, setActiveTab] = useState("incoming");
+  const [activeTab, setActiveTab] = useDashboardState<string>("commissioner.activeTab", "households");
   const [assignedWard, setAssignedWard] = useState<string | null>(null);
   const [assignedCounty, setAssignedCounty] = useState<string | null>(null);
   const [wardAdverts, setWardAdverts] = useState<BursaryAdvert[]>([]);
@@ -1315,6 +1321,7 @@ export default function CommissionerDashboard() {
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="mb-4">
+            <TabsTrigger value="households"><Users className="h-4 w-4 mr-2" />Households</TabsTrigger>
             <TabsTrigger value="incoming"><Inbox className="h-4 w-4 mr-2" />Incoming ({stats.pending})</TabsTrigger>
             <TabsTrigger value="summary"><BarChart3 className="h-4 w-4 mr-2" />Summary</TabsTrigger>
             <TabsTrigger value="approved"><CheckCircle2 className="h-4 w-4 mr-2" />Approved ({stats.approved})</TabsTrigger>
@@ -1322,6 +1329,13 @@ export default function CommissionerDashboard() {
             <TabsTrigger value="history"><History className="h-4 w-4 mr-2" />History ({completedCycles.length})</TabsTrigger>
             <TabsTrigger value="archive"><Archive className="h-4 w-4 mr-2" />Audit Archive</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="households">
+            <CommissionerHouseholdsTab
+              ward={assignedWard}
+              county={assignedCounty}
+            />
+          </TabsContent>
 
           {/* Incoming Applications Tab */}
           <TabsContent value="incoming">
