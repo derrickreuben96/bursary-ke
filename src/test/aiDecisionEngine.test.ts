@@ -11,7 +11,7 @@ const student = (over: Partial<HouseholdStudent> = {}): HouseholdStudent => ({
   name_masked: over.name_masked ?? "Test Student",
   student_type: over.student_type ?? "secondary",
   cohort: over.cohort ?? "secondary",
-  institution_name: over.institution_name ?? "Test School",
+  institution_name: over.institution_name !== undefined ? over.institution_name : "Test School",
   class_form: over.class_form ?? null,
   year_of_study: over.year_of_study ?? null,
   status: "received",
