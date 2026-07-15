@@ -16,6 +16,7 @@ import { useDashboardRealtime } from "@/hooks/useDashboardRealtime";
 import { supabase } from "@/integrations/supabase/client";
 import { useHouseholds } from "@/lib/household/useHouseholds";
 import { HouseholdList } from "@/components/household/HouseholdList";
+import { HouseholdReportPanel } from "@/components/reporting/HouseholdReportPanel";
 import type { HouseholdAction } from "@/lib/household/workflowEngine";
 import type { Household } from "@/lib/household/types";
 import {
@@ -1296,15 +1297,18 @@ function TreasuryHouseholdsSection({ county }: { county: string | null }) {
     return <div className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
   }
   return (
-    <HouseholdList
-      households={releasedHouseholds}
-      role="treasury"
-      storageKey="treasury.households"
-      historyByHouseholdId={historyByHouseholdId}
-      onAction={onAction}
-      pendingNewCount={pendingNewCount}
-      onAcknowledgeNew={acknowledgeNew}
-      onRefresh={refresh}
-    />
+    <div className="space-y-6">
+      <HouseholdList
+        households={releasedHouseholds}
+        role="treasury"
+        storageKey="treasury.households"
+        historyByHouseholdId={historyByHouseholdId}
+        onAction={onAction}
+        pendingNewCount={pendingNewCount}
+        onAcknowledgeNew={acknowledgeNew}
+        onRefresh={refresh}
+      />
+      <HouseholdReportPanel households={releasedHouseholds} role="treasury" />
+    </div>
   );
 }
