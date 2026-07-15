@@ -297,6 +297,11 @@ export default function AdminDashboard() {
           />
         </div>
 
+        {/* Household Statistics — one tracking number = one household */}
+        <AdminHouseholdStats />
+
+
+
         {/* Charts Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* Poverty Distribution Pie Chart */}
