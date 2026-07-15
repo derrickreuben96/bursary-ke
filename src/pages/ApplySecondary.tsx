@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { usePersistedStep } from "@/hooks/usePersistedStep";
 import { useSearchParams } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
@@ -39,7 +40,7 @@ function ApplicationFormContent() {
   const [searchParams] = useSearchParams();
   const advertId = searchParams.get("advert");
   const { data, updateData } = useApplication();
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = usePersistedStep("bursary-ke-apply-secondary-step-v1", 1);
   const [showSuccess, setShowSuccess] = useState(false);
   const [trackingNumber, setTrackingNumber] = useState("");
   const [advertTitle, setAdvertTitle] = useState<string | null>(null);
