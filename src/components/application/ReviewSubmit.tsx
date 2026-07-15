@@ -19,7 +19,9 @@ export function ReviewSubmit({ onBack, onSuccess, studentType }: ReviewSubmitPro
   const { data } = useApplication();
   const { toast } = useToast();
   const [confirmed, setConfirmed] = useState(false);
+  const [ackWarnings, setAckWarnings] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const warnings = useMemo(() => detectConsistencyWarnings(data), [data]);
 
   const povertyScore = data.povertyQuestionnaire
     ? calculatePovertyScore(data.povertyQuestionnaire)
