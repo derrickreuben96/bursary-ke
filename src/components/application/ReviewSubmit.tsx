@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, Send, Loader2, User, GraduationCap, ClipboardCheck, Shield } from "lucide-react";
+import { ArrowLeft, Send, Loader2, User, GraduationCap, ClipboardCheck, Shield, AlertTriangle } from "lucide-react";
 import { useApplication } from "@/context/ApplicationContext";
 import { maskId, maskPhone, maskEmail, maskStudentId, maskName } from "@/lib/maskData";
 import { useToast } from "@/hooks/use-toast";
 import { calculatePovertyScore, getPovertyTier } from "@/lib/validationSchemas";
+import { detectConsistencyWarnings } from "@/lib/validation/consistency";
 
 interface ReviewSubmitProps {
   onBack: () => void;
