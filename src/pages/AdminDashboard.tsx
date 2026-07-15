@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useHouseholds } from "@/lib/household/useHouseholds";
 import { HouseholdList } from "@/components/household/HouseholdList";
+import { HouseholdReportPanel } from "@/components/reporting/HouseholdReportPanel";
 import type { HouseholdAction } from "@/lib/household/workflowEngine";
 import { DangerZoneResetCard } from "@/components/admin/DangerZoneResetCard";
 import { ResetAuditLogPanel } from "@/components/admin/ResetAuditLogPanel";
