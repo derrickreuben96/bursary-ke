@@ -1,80 +1,73 @@
-# Bursary KE v2.0 — Phase 1 Plan
+## Phase 2 Plan — Household-Centric Dashboards
 
-Convert application from student-centric to household-centric, additively. Nothing that currently works is removed or renamed. All changes are extensions on top of existing tables/flows.
+Scope is limited to dashboards, workflow engine, rendering, persistence and audit UI. Application wizard (Phase 1) is untouched. No destructive DB changes — all additive.
 
-## Current state (verified from codebase)
+### 1. Centralized engines (new shared code)
 
-- `parent_applications` already models a household: `household_tracking_id`, `total_students`, links to `student_beneficiaries` (max 3). `submit_parent_application` RPC already accepts 1–3 students in one submission.
-- `bursary_applications` (legacy student-centric) is kept in sync via `submit_parent_application` and `propagate_legacy_to_students` trigger. Tracking numbers already resolve to households.
-- Step 2 "Education Level Selection" already exists (`EducationLevelSelect.tsx`) and gates Secondary vs Higher Ed steps.
-- Assessment engine (`src/lib/assessment/engine.ts`) already renders household questions once and per-student questions with `{studentName}` / `{institution}` interpolation, filtered by education category.
-- Draft autosave to `sessionStorage` already implemented in `ApplicationContext`.
-- Disability fields (`ncpwd_registration_number`, `disability_type`, `disability_card_url`) already exist on `student_beneficiaries` and are collected per-student.
-- Duplicate prevention: `enforce_unique_student_per_advert` trigger + `enforce_max_three_students` already in DB.
+`src/lib/household/` — single source of truth reused by Commissioner, Treasury, Admin:
 
-Most of Phase 1 is already implemented. Remaining gaps below.
+- `types.ts` — `Household`, `HouseholdStudent`, `HouseholdStatus`, `HouseholdCohort`.
+- `useHouseholds.ts` — one hook that calls `get_parent_applications_for_commissioner` (admin/commissioner) or filters treasury RPC, returns normalized households + status history. Handles silent refresh; exposes `newCount` for "N New Applications" banner.
+- `statusEngine.ts` — derives display status per role:
+  - Commissioner: `Pending Review` → `Approved · Pending Treasurer Allocation` / `Rejected` / `Returned`
+  - Treasury: `Pending Allocation` → `Allocated` → `Disbursed`
+  - Admin: raw pipeline stages.
+  - Never shows "Allocated" in commissioner view.
+- `workflowEngine.ts` — role-gated actions: `approve`, `reject`, `return_for_correction` (commissioner); `allocate`, `disburse` (treasury). Wraps existing supabase mutations already used by the two dashboards; no new RPCs.
+- `auditEngine.ts` — merges `application_status_history` + `dvl_verified_at` + `allocation_date` + `released_to_treasury` timestamp into a unified timeline with actor + action.
 
-## Gaps to close in Phase 1
+### 2. Household Rendering Engine (new shared components)
 
-### 1. Wizard flow — "Both" cohort ordering
-Today `StudentsRepeater` renders one repeater for the chosen type. For "Both", user must complete **Secondary section first (save)** → **Higher Education section (save)** → continue. Implement a two-phase repeater: Phase A collects secondary students; Phase B collects higher-ed students; each with its own "Save & Continue". Single-cohort selections keep current single-phase behavior.
+`src/components/household/`:
 
-### 2. Per-student disability capture in-form (not on reviewer dashboards)
-Verify `StudentsRepeater` shows NCPWD number / card upload **inline** the moment a student's disability is declared. If it currently only appears in a later assessment step, move the trigger to the student card. Keep DB fields as-is.
+- `HouseholdCard.tsx` — summary: tracking #, parent (masked), ward, date, status badge, metrics chip (`4 Beneficiaries · 2 Secondary · 2 Higher Ed`). Auto-hides empty cohort sections.
+- `HouseholdCohortList.tsx` — renders "Secondary Students" and "Higher Education Students" sub-lists; hides section if empty. Determines cohort from `student_type`.
+- `HouseholdExpanded.tsx` — expanded panel: Details → Secondary → Higher Ed → Assessment Summary → Audit Timeline → Officer Actions.
+- `HouseholdAuditTimeline.tsx` — vertical timeline (Submitted → Reviewed → Approved → Pending Allocation → Allocated → Disbursed) using `auditEngine` output.
+- `HouseholdActionPanel.tsx` — one unified panel; buttons rendered from `workflowEngine.availableActions(role, household)`. Deduplicates the ad-hoc buttons currently scattered across dashboards.
+- `HouseholdList.tsx` — virtualized list wrapper (React.memo per card + `useDeferredValue` for filter input) for performance with large wards.
 
-### 3. Duplicate NEMIS / Admission Number — client-side pre-check with clear messaging
-DB trigger already blocks duplicates across the advert cycle, but the client shows a generic RPC error. Add:
-- Intra-submission duplicate check (already covered by test) with human message.
-- Optional pre-flight `supabase.rpc` check or graceful mapping of `enforce_unique_student_per_advert` error to a friendly toast naming the offending student.
+### 3. Dashboard state persistence
 
-### 4. Intelligent cross-field validation (soft prompts, not hard blocks)
-Add a lightweight consistency checker on Review step that surfaces *warnings* (not blockers) for:
-- Orphan status vs "parent alive" answers
-- Employment "unemployed" but income > 0
-- Boarding fee_balance = 0 for a boarding school
-- Disability declared but no NCPWD number / card
-- HELB "received" but higher-ed not selected
+`src/hooks/useDashboardState.ts` — generic `useState`-like hook that syncs to `sessionStorage` under a scoped key. Applied to:
 
-Rendered as an amber "Please review these responses" panel above the submit button. User can edit or acknowledge and proceed.
+- search query, filters, active tab, pagination page, sort key/dir
+- expanded household id set, selected record id, open modal id
+- scroll position (via `useScrollRestoration` on the main container)
+- officer notes drafts (per-household, keyed by tracking #)
 
-### 5. State preservation on tab switch / refocus
-`sessionStorage` autosave exists. Add:
-- `visibilitychange` listener → flush current step + form values.
-- Restore `currentStep` (not just `data`) from session on mount.
+Rehydrates on mount; `visibilitychange` does NOT trigger reloads or reset UI. Silent polling continues in background but data merges without collapsing expansions.
 
-### 6. Migration — no schema changes needed
-Existing rows already have `household_tracking_id` assigned by trigger. Add a one-time backfill migration only if any legacy `parent_applications` rows lack it. Verify with a read query first; only ship migration if backfill is required.
+### 4. Background sync
 
-### 7. Regression tests
-Add Vitest cases for:
-- Both-cohort ordering (Secondary students length > 0 before Higher-Ed phase unlocks)
-- Cross-field warning detector returns expected warnings for known contradictions
-- Restoring `currentStep` from sessionStorage
+Extend existing `useDashboardRealtime` consumers to:
 
-## Out of scope for Phase 1
-- Reviewer/commissioner UI changes beyond removing standalone DVL section (already inline per memory)
-- New DB tables
-- AI allocation changes
-- Notification changes
+- Diff incoming ids vs prev; surface a non-blocking sticky pill: **"3 New Applications Received — Refresh"**.
+- Never auto-scroll or auto-close expanded rows.
+- Manual refresh button applies the pending diff.
 
-## Technical details
+### 5. Dashboard integration (edits only, no rewrites)
 
-Files to touch:
-- `src/components/application/StudentsRepeater.tsx` — two-phase mode when `educationLevels.secondary && educationLevels.higherEd`.
-- `src/components/application/ReviewSubmit.tsx` — add consistency warnings panel.
-- `src/context/ApplicationContext.tsx` — persist/restore `currentStep`; `visibilitychange` flush.
-- `src/lib/validation/consistency.ts` (new) — pure function returning warnings from `ApplicationData`.
-- `src/test/householdFlow.test.ts` (new) — regression coverage.
-- Error mapping for RPC duplicate errors in `applicationService.ts`.
+- `src/pages/CommissionerDashboard.tsx` — replace ad-hoc row rendering with `<HouseholdList>`. Remove any "Allocated" labels; use `statusEngine` for badge text. Add "Recommended Allocation KES x" display for approved rows.
+- `src/pages/TreasuryDashboard.tsx` — render households with `<HouseholdList>`; show AI Recommendation vs Officer Decision columns; only Treasury path flips status to `Allocated` / `Disbursed`.
+- `src/pages/AdminDashboard.tsx` — add Household Statistics tile (households, avg students/HH, cohort mix) using existing data. Keep current cards; do not overload.
 
-No DB migration expected. Will confirm via `supabase--read_query` before starting: `select count(*) from parent_applications where household_tracking_id is null`. Backfill migration added only if count > 0.
+### 6. Regression tests (Vitest)
 
-## Acceptance
-- Secondary-only: unchanged flow.
-- Higher-Ed-only: unchanged flow.
-- Both: Secondary form(s) → save → Higher-Ed form(s) → save → household assessment → per-student assessments → review with soft warnings → submit.
-- Refresh mid-wizard restores step + data.
-- Duplicate NEMIS/Admission → friendly named error.
-- Existing tracking numbers, dashboards, reports, APIs, auth: untouched.
+`src/test/householdRendering.test.tsx`:
+- secondary-only household hides Higher Ed section
+- higher-ed-only hides Secondary section
+- mixed shows both
+- commissioner never shows "Allocated"
+- treasury shows "Allocated" after allocation
+- audit timeline order
 
-Please approve and I'll implement in this order: (1) confirm no backfill needed, (2) two-phase repeater, (3) consistency warnings, (4) step persistence, (5) error mapping, (6) tests.
+`src/test/dashboardPersistence.test.ts`:
+- tab, filter, expanded set survive unmount/remount
+- silent poll does not collapse expanded rows
+
+### Out of scope
+- No schema changes, no new RPCs, no notification/AI/allocation logic changes, no wizard changes, no visual redesign.
+
+### Deliverable
+Implementation report at `.lovable/reports/phase-2-report.md`: modules modified, shared components, DB impact (none), regression results, risks.

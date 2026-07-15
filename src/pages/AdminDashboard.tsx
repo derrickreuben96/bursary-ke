@@ -15,6 +15,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDashboardRealtime } from "@/hooks/useDashboardRealtime";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useHouseholds } from "@/lib/household/useHouseholds";
+import { HouseholdList } from "@/components/household/HouseholdList";
+import type { HouseholdAction } from "@/lib/household/workflowEngine";
 import { DangerZoneResetCard } from "@/components/admin/DangerZoneResetCard";
 import { ResetAuditLogPanel } from "@/components/admin/ResetAuditLogPanel";
 import { downloadAiSummaryPdf } from "@/lib/aiSummaryPdf";
@@ -297,6 +300,11 @@ export default function AdminDashboard() {
           />
         </div>
 
+        {/* Household Statistics — one tracking number = one household */}
+        <AdminHouseholdStats />
+
+
+
         {/* Charts Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* Poverty Distribution Pie Chart */}
@@ -466,5 +474,58 @@ export default function AdminDashboard() {
       </main>
       <Footer />
     </div>
+  );
+}
+
+/**
+ * Household statistics tile. Reuses the shared useHouseholds hook so the
+ * admin, commissioner and treasury dashboards agree on the household count.
+ */
+
+
+
+function AdminHouseholdStats() {
+  const { households, historyByHouseholdId, loading, pendingNewCount, refresh, acknowledgeNew } =
+    useHouseholds({});
+  const total = households.length;
+  const beneficiaries = households.reduce((n, h) => n + h.students.length, 0);
+  const secondary = households.reduce((n, h) => n + h.students.filter(s => s.cohort === "secondary").length, 0);
+  const higherEd = households.reduce((n, h) => n + h.students.filter(s => s.cohort === "higher_ed").length, 0);
+  const mixed = households.filter(h =>
+    h.students.some(s => s.cohort === "secondary") && h.students.some(s => s.cohort === "higher_ed")
+  ).length;
+
+  const onAction: (a: HouseholdAction) => void = () => { /* admin read-only */ };
+
+  return (
+    <Card className="mb-8">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <Users className="h-5 w-5 text-primary" />
+          Household Statistics
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6 text-sm">
+          <div><p className="text-muted-foreground">Households</p><p className="text-2xl font-bold">{total}</p></div>
+          <div><p className="text-muted-foreground">Beneficiaries</p><p className="text-2xl font-bold">{beneficiaries}</p></div>
+          <div><p className="text-muted-foreground">Secondary</p><p className="text-2xl font-bold">{secondary}</p></div>
+          <div><p className="text-muted-foreground">Higher Education</p><p className="text-2xl font-bold">{higherEd}</p></div>
+          <div><p className="text-muted-foreground">Mixed HHs</p><p className="text-2xl font-bold">{mixed}</p></div>
+        </div>
+        {loading ? null : (
+          <HouseholdList
+            households={households.slice(0, 25)}
+            role="admin"
+            storageKey="admin.households"
+            historyByHouseholdId={historyByHouseholdId}
+            onAction={onAction}
+            pendingNewCount={pendingNewCount}
+            onAcknowledgeNew={acknowledgeNew}
+            onRefresh={refresh}
+          />
+        )}
+      </CardContent>
+    </Card>
   );
 }

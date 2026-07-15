@@ -12,6 +12,12 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useDashboardRealtime } from "@/hooks/useDashboardRealtime";
 import { supabase } from "@/integrations/supabase/client";
+import { useDashboardState } from "@/hooks/useDashboardState";
+import { useHouseholds } from "@/lib/household/useHouseholds";
+import { HouseholdList } from "@/components/household/HouseholdList";
+import { releaseHouseholdToTreasury } from "@/lib/household/workflowEngine";
+import type { HouseholdAction } from "@/lib/household/workflowEngine";
+import type { Household } from "@/lib/household/types";
 import { 
   GraduationCap, LogOut, CheckCircle2, XCircle, Clock, 
   Loader2, RefreshCw, AlertTriangle, BarChart3, Users, Banknote,
@@ -139,7 +145,7 @@ export default function CommissionerDashboard() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isReleasing, setIsReleasing] = useState(false);
   const [generatingSummary, setGeneratingSummary] = useState(false);
-  const [activeTab, setActiveTab] = useState("incoming");
+  const [activeTab, setActiveTab] = useDashboardState<string>("commissioner.activeTab", "households");
   const [assignedWard, setAssignedWard] = useState<string | null>(null);
   const [assignedCounty, setAssignedCounty] = useState<string | null>(null);
   const [wardAdverts, setWardAdverts] = useState<BursaryAdvert[]>([]);
@@ -1315,6 +1321,7 @@ export default function CommissionerDashboard() {
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="mb-4">
+            <TabsTrigger value="households"><Users className="h-4 w-4 mr-2" />Households</TabsTrigger>
             <TabsTrigger value="incoming"><Inbox className="h-4 w-4 mr-2" />Incoming ({stats.pending})</TabsTrigger>
             <TabsTrigger value="summary"><BarChart3 className="h-4 w-4 mr-2" />Summary</TabsTrigger>
             <TabsTrigger value="approved"><CheckCircle2 className="h-4 w-4 mr-2" />Approved ({stats.approved})</TabsTrigger>
@@ -1322,6 +1329,13 @@ export default function CommissionerDashboard() {
             <TabsTrigger value="history"><History className="h-4 w-4 mr-2" />History ({completedCycles.length})</TabsTrigger>
             <TabsTrigger value="archive"><Archive className="h-4 w-4 mr-2" />Audit Archive</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="households">
+            <CommissionerHouseholdsTab
+              ward={assignedWard}
+              county={assignedCounty}
+            />
+          </TabsContent>
 
           {/* Incoming Applications Tab */}
           <TabsContent value="incoming">
@@ -1594,5 +1608,59 @@ export default function CommissionerDashboard() {
       </main>
       <Footer />
     </div>
+  );
+}
+
+/**
+ * Household-centric view. Uses the shared HouseholdList / rendering engine so
+ * Commissioner, Treasury and Admin display one tracking # = one household with
+ * identical layout, cohort grouping, audit timeline and action panel.
+ */
+function CommissionerHouseholdsTab({ ward, county }: { ward: string | null; county: string | null }) {
+  const { toast } = useToast();
+  const { households, historyByHouseholdId, loading, pendingNewCount, refresh, acknowledgeNew } =
+    useHouseholds({ ward, county });
+  const [busy, setBusy] = useState<HouseholdAction | null>(null);
+
+  const onAction = async (action: HouseholdAction, h: Household) => {
+    if (action === "view") return; // expansion handled by card
+    if (action === "release_to_treasury") {
+      setBusy(action);
+      try {
+        await releaseHouseholdToTreasury(h);
+        toast({ title: "Released to Treasury", description: `${h.tracking_number} sent for allocation.` });
+        await refresh();
+      } catch (e: any) {
+        toast({ title: "Release failed", description: e?.message ?? "Please try again", variant: "destructive" });
+      } finally { setBusy(null); }
+      return;
+    }
+    if (action === "print_summary") {
+      window.print();
+      return;
+    }
+    // approve / reject / return_for_correction are AI-owned in this project;
+    // surface a guardrail toast rather than silently doing nothing.
+    toast({
+      title: "AI-owned decision",
+      description: "Scoring, approval and rejection are performed by the AI Allocation Engine. Use Release to Treasury once AI has approved.",
+    });
+  };
+
+  if (loading) {
+    return <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+  }
+  return (
+    <HouseholdList
+      households={households}
+      role="commissioner"
+      storageKey="commissioner.households"
+      historyByHouseholdId={historyByHouseholdId}
+      onAction={onAction}
+      busyAction={busy}
+      pendingNewCount={pendingNewCount}
+      onAcknowledgeNew={acknowledgeNew}
+      onRefresh={refresh}
+    />
   );
 }
