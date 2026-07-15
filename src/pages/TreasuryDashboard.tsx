@@ -14,6 +14,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useDashboardRealtime } from "@/hooks/useDashboardRealtime";
 import { supabase } from "@/integrations/supabase/client";
+import { useHouseholds } from "@/lib/household/useHouseholds";
+import { HouseholdList } from "@/components/household/HouseholdList";
+import type { HouseholdAction } from "@/lib/household/workflowEngine";
+import type { Household } from "@/lib/household/types";
 import {
   Landmark, LogOut, Search, Download,
   Loader2, RefreshCw, Copy, FileText, CheckCircle2, Sparkles, FileDown,
@@ -809,6 +813,21 @@ export default function TreasuryDashboard() {
         </div>
 
         <TreasurySummaryCards totalApproved={activeApps.length} totalAmount={activeTotalAmount} disbursedCount={activeDisbursedCount} />
+
+        <Card className="my-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><Users className="h-5 w-5" />Household View</CardTitle>
+            <CardDescription>
+              One tracking number = one household. Expand any card to review the full audit timeline
+              and finalise allocation.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <TreasuryHouseholdsSection county={assignedCounty} />
+          </CardContent>
+        </Card>
+
+
 
 
         <Card>
