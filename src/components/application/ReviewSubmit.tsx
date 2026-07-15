@@ -251,6 +251,35 @@ export function ReviewSubmit({ onBack, onSuccess, studentType }: ReviewSubmitPro
         </div>
       </Card>
 
+      {/* Soft consistency prompts — never a hard block. Applicant may edit or acknowledge. */}
+      {warnings.length > 0 && (
+        <Card className="p-5 border-amber-500/40 bg-amber-500/5">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/15">
+              <AlertTriangle className="h-5 w-5 text-amber-600" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg">Please review these responses</h3>
+              <p className="text-xs text-muted-foreground">
+                We noticed some answers that may be inconsistent. You can go back to edit them, or acknowledge and continue.
+              </p>
+            </div>
+          </div>
+          <ul className="space-y-1.5 text-sm list-disc pl-5">
+            {warnings.map((w, i) => (
+              <li key={`${w.code}-${i}`}>{w.message}</li>
+            ))}
+          </ul>
+          <label className="flex items-start gap-3 mt-4 cursor-pointer text-sm">
+            <Checkbox
+              checked={ackWarnings}
+              onCheckedChange={(v) => setAckWarnings(Boolean(v))}
+            />
+            <span>I have reviewed the items above and confirm my responses are correct.</span>
+          </label>
+        </Card>
+      )}
+
       {/* Confirmation Checkbox */}
       <div className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
         <Checkbox
@@ -263,6 +292,7 @@ export function ReviewSubmit({ onBack, onSuccess, studentType }: ReviewSubmitPro
           providing false information may result in disqualification and legal action.
         </label>
       </div>
+
 
       {/* Action Buttons */}
       <div className="flex justify-between pt-4">
