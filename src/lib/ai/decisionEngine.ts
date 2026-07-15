@@ -300,7 +300,7 @@ export function evaluateHousehold(input: EvaluateInput): HouseholdRecommendation
         policy_profile_id: profile.id,
         history_adjustment: 0,
         eligible: false,
-        ineligibility_reason: elig.reason,
+        ineligibility_reason: "reason" in elig ? elig.reason : "Ineligible",
       };
     }
 
