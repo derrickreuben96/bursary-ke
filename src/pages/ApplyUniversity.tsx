@@ -37,7 +37,7 @@ type StepKey =
 
 function ApplicationFormContent() {
   const { data, updateData, resetApplication } = useApplication();
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = usePersistedStep("bursary-ke-apply-university-step-v1", 1);
   const [showSuccess, setShowSuccess] = useState(false);
   const [trackingNumber, setTrackingNumber] = useState("");
   const [uploadedDocs, setUploadedDocs] = useState<any[]>([]);
