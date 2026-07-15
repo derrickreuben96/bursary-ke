@@ -514,16 +514,21 @@ function AdminHouseholdStats() {
           <div><p className="text-muted-foreground">Mixed HHs</p><p className="text-2xl font-bold">{mixed}</p></div>
         </div>
         {loading ? null : (
-          <HouseholdList
-            households={households.slice(0, 25)}
-            role="admin"
-            storageKey="admin.households"
-            historyByHouseholdId={historyByHouseholdId}
-            onAction={onAction}
-            pendingNewCount={pendingNewCount}
-            onAcknowledgeNew={acknowledgeNew}
-            onRefresh={refresh}
-          />
+          <>
+            <HouseholdList
+              households={households.slice(0, 25)}
+              role="admin"
+              storageKey="admin.households"
+              historyByHouseholdId={historyByHouseholdId}
+              onAction={onAction}
+              pendingNewCount={pendingNewCount}
+              onAcknowledgeNew={acknowledgeNew}
+              onRefresh={refresh}
+            />
+            <div className="mt-6">
+              <HouseholdReportPanel households={households} role="admin" />
+            </div>
+          </>
         )}
       </CardContent>
     </Card>
