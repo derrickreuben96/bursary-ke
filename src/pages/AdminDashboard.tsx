@@ -481,9 +481,8 @@ export default function AdminDashboard() {
  * Household statistics tile. Reuses the shared useHouseholds hook so the
  * admin, commissioner and treasury dashboards agree on the household count.
  */
-import { useHouseholds } from "@/lib/household/useHouseholds";
-import { HouseholdList } from "@/components/household/HouseholdList";
-import type { HouseholdAction } from "@/lib/household/workflowEngine";
+
+
 
 function AdminHouseholdStats() {
   const { households, historyByHouseholdId, loading, pendingNewCount, refresh, acknowledgeNew } =
