@@ -1651,16 +1651,19 @@ function CommissionerHouseholdsTab({ ward, county }: { ward: string | null; coun
     return <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
   }
   return (
-    <HouseholdList
-      households={households}
-      role="commissioner"
-      storageKey="commissioner.households"
-      historyByHouseholdId={historyByHouseholdId}
-      onAction={onAction}
-      busyAction={busy}
-      pendingNewCount={pendingNewCount}
-      onAcknowledgeNew={acknowledgeNew}
-      onRefresh={refresh}
-    />
+    <div className="space-y-6">
+      <HouseholdList
+        households={households}
+        role="commissioner"
+        storageKey="commissioner.households"
+        historyByHouseholdId={historyByHouseholdId}
+        onAction={onAction}
+        busyAction={busy}
+        pendingNewCount={pendingNewCount}
+        onAcknowledgeNew={acknowledgeNew}
+        onRefresh={refresh}
+      />
+      <HouseholdReportPanel households={households} role="commissioner" />
+    </div>
   );
 }
