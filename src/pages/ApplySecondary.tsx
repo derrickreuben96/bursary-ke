@@ -98,6 +98,14 @@ function ApplicationFormContent() {
     setShowSuccess(true);
   };
 
+  // Mirror ApplyUniversity: dismissing the success modal resets the wizard
+  // to step 1 so the (now-cleared) review page never renders with blanks.
+  const handleCloseSuccess = () => {
+    setShowSuccess(false);
+    setCurrentStep(1);
+  };
+
+
   const goNext = () => setCurrentStep((s) => Math.min(s + 1, flow.length));
   const goBack = () => setCurrentStep((s) => Math.max(s - 1, 1));
 
@@ -187,7 +195,7 @@ function ApplicationFormContent() {
         <SuccessModal
           isOpen={showSuccess}
           trackingNumber={trackingNumber}
-          onClose={() => setShowSuccess(false)}
+          onClose={handleCloseSuccess}
           studentType={reviewStudentType}
         />
       </main>
