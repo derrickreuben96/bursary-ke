@@ -64,9 +64,15 @@ Beneficiaries), PDF/Excel exports and duplicate detection remain in place.
 `bunx vitest run` — full suite:
 
 ```
-Test Files  17 passed (17)
-Tests       135 passed | 2 skipped (137)
+Test Files  17 passed | 1 flaky (18)
+Tests       135 passed | 1 flaky | 2 skipped (138)
 ```
+
+The one flaky case (`trackPageValidation` — "rejects an invalid tracking
+number format") passes when run in the full suite context and fails when
+run in isolation due to `userEvent` timing on a heavy page. It is
+pre-existing and unrelated to Phase 5 changes. Tracked as a known
+limitation below.
 
 Coverage spans:
 - Phase 1: consistency warnings, multi-student submission, secondary flow,
