@@ -12,7 +12,23 @@ vi.mock("@/integrations/supabase/client", () => {
   };
   return {
     supabase: {
-      from: () => ({ select: () => ({ eq: () => ({ order: () => Promise.resolve({ data: [], error: null }) }) }) }),
+      from: () => {
+        const thenable = { data: [], error: null };
+        const chain: any = {
+          select: () => chain,
+          eq: () => chain,
+          neq: () => chain,
+          in: () => chain,
+          is: () => chain,
+          order: () => chain,
+          limit: () => Promise.resolve(thenable),
+          maybeSingle: () => Promise.resolve({ data: null, error: null }),
+          single: () => Promise.resolve({ data: null, error: null }),
+          then: (r: any) => Promise.resolve(thenable).then(r),
+        };
+        return chain;
+      },
+      rpc: () => Promise.resolve({ data: [], error: null }),
       auth: { getSession: () => Promise.resolve({ data: { session: null } }) },
       functions: { invoke: () => Promise.resolve({ data: null, error: null }) },
       channel: () => channel,
