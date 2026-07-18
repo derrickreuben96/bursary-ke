@@ -22,6 +22,7 @@ import type { HouseholdAction } from "@/lib/household/workflowEngine";
 import { DangerZoneResetCard } from "@/components/admin/DangerZoneResetCard";
 import { ResetAuditLogPanel } from "@/components/admin/ResetAuditLogPanel";
 import { downloadAiSummaryPdf } from "@/lib/aiSummaryPdf";
+import { featureFlags } from "@/lib/featureFlags";
 import {
   Users,
   CheckCircle,
@@ -253,6 +254,16 @@ export default function AdminDashboard() {
               <Users className="mr-2 h-4 w-4" />
               Manage Users
             </Button>
+            {featureFlags.governance && (
+              <Button
+                onClick={() => navigate("/admin/governance")}
+                variant="secondary"
+                className="hover:scale-105 transition-transform"
+              >
+                <Sparkles className="mr-2 h-4 w-4" />
+                AI Governance
+              </Button>
+            )}
             <Button
               onClick={openSummaryDialog}
               variant="secondary"

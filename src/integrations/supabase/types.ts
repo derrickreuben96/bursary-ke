@@ -53,6 +53,56 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_recommendation_log: {
+        Row: {
+          confidence: string | null
+          generated_at: string
+          household_id: string | null
+          id: string
+          input_hash: string | null
+          needs_score: number
+          policy_id: string | null
+          policy_version: string
+          reasons: Json
+          recommended_allocation: number
+          student_beneficiary_id: string | null
+        }
+        Insert: {
+          confidence?: string | null
+          generated_at?: string
+          household_id?: string | null
+          id?: string
+          input_hash?: string | null
+          needs_score: number
+          policy_id?: string | null
+          policy_version: string
+          reasons?: Json
+          recommended_allocation?: number
+          student_beneficiary_id?: string | null
+        }
+        Update: {
+          confidence?: string | null
+          generated_at?: string
+          household_id?: string | null
+          id?: string
+          input_hash?: string | null
+          needs_score?: number
+          policy_id?: string | null
+          policy_version?: string
+          reasons?: Json
+          recommended_allocation?: number
+          student_beneficiary_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_recommendation_log_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policy_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       allocation_cycles: {
         Row: {
           advert_id: string | null
@@ -1070,6 +1120,39 @@ export type Database = {
           },
         ]
       }
+      governance_notifications: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          created_at: string
+          detail: Json
+          id: string
+          kind: string
+          severity: string
+          title: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          created_at?: string
+          detail?: Json
+          id?: string
+          kind: string
+          severity?: string
+          title: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          created_at?: string
+          detail?: Json
+          id?: string
+          kind?: string
+          severity?: string
+          title?: string
+        }
+        Relationships: []
+      }
       household_child_codes: {
         Row: {
           child_code: string
@@ -1396,6 +1479,95 @@ export type Database = {
           },
         ]
       }
+      policy_audit_log: {
+        Row: {
+          action: string
+          actor: string | null
+          diff: Json
+          id: string
+          note: string | null
+          occurred_at: string
+          policy_id: string | null
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          diff?: Json
+          id?: string
+          note?: string | null
+          occurred_at?: string
+          policy_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          diff?: Json
+          id?: string
+          note?: string | null
+          occurred_at?: string
+          policy_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_audit_log_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policy_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      policy_profiles: {
+        Row: {
+          activated_at: string | null
+          approved_at: string | null
+          approved_by: string | null
+          archived_at: string | null
+          body: Json
+          change_summary: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          reason: string | null
+          status: Database["public"]["Enums"]["policy_status"]
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          activated_at?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          archived_at?: string | null
+          body: Json
+          change_summary?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          reason?: string | null
+          status?: Database["public"]["Enums"]["policy_status"]
+          updated_at?: string
+          version: string
+        }
+        Update: {
+          activated_at?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          archived_at?: string | null
+          body?: Json
+          change_summary?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          reason?: string | null
+          status?: Database["public"]["Enums"]["policy_status"]
+          updated_at?: string
+          version?: string
+        }
+        Relationships: []
+      }
       poverty_question_bank: {
         Row: {
           applies_to: string
@@ -1590,6 +1762,44 @@ export type Database = {
           url?: string
         }
         Relationships: []
+      }
+      simulation_runs: {
+        Row: {
+          actor: string | null
+          created_at: string
+          id: string
+          kind: string
+          params: Json
+          policy_id: string | null
+          results: Json
+        }
+        Insert: {
+          actor?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          params?: Json
+          policy_id?: string | null
+          results?: Json
+        }
+        Update: {
+          actor?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          params?: Json
+          policy_id?: string | null
+          results?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "simulation_runs_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policy_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sms_logs: {
         Row: {
@@ -2227,7 +2437,12 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "user" | "county_treasury" | "county_commissioner"
+      app_role:
+        | "admin"
+        | "user"
+        | "county_treasury"
+        | "county_commissioner"
+        | "governance_approver"
       application_status:
         | "received"
         | "review"
@@ -2237,6 +2452,7 @@ export type Database = {
         | "disbursed"
       assessment_pipeline: "basic_education" | "higher_education"
       education_category: "high_school" | "university" | "college" | "tvet"
+      policy_status: "draft" | "pending" | "active" | "archived"
       poverty_tier: "Low" | "Medium" | "High"
       student_type: "secondary" | "university"
     }
@@ -2366,7 +2582,13 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user", "county_treasury", "county_commissioner"],
+      app_role: [
+        "admin",
+        "user",
+        "county_treasury",
+        "county_commissioner",
+        "governance_approver",
+      ],
       application_status: [
         "received",
         "review",
@@ -2377,6 +2599,7 @@ export const Constants = {
       ],
       assessment_pipeline: ["basic_education", "higher_education"],
       education_category: ["high_school", "university", "college", "tvet"],
+      policy_status: ["draft", "pending", "active", "archived"],
       poverty_tier: ["Low", "Medium", "High"],
       student_type: ["secondary", "university"],
     },

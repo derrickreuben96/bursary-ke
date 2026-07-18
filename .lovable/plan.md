@@ -1,73 +1,108 @@
-## Phase 2 Plan — Household-Centric Dashboards
 
-Scope is limited to dashboards, workflow engine, rendering, persistence and audit UI. Application wizard (Phase 1) is untouched. No destructive DB changes — all additive.
+# Phase 6 — AI Governance Layer
 
-### 1. Centralized engines (new shared code)
+Additive-only. No changes to Phases 1–5 behaviour, applicant flow, dashboards, or existing RPCs. All new work sits behind admin-only routes and a new `governance` feature flag.
 
-`src/lib/household/` — single source of truth reused by Commissioner, Treasury, Admin:
+## Scope Confirmation
 
-- `types.ts` — `Household`, `HouseholdStudent`, `HouseholdStatus`, `HouseholdCohort`.
-- `useHouseholds.ts` — one hook that calls `get_parent_applications_for_commissioner` (admin/commissioner) or filters treasury RPC, returns normalized households + status history. Handles silent refresh; exposes `newCount` for "N New Applications" banner.
-- `statusEngine.ts` — derives display status per role:
-  - Commissioner: `Pending Review` → `Approved · Pending Treasurer Allocation` / `Rejected` / `Returned`
-  - Treasury: `Pending Allocation` → `Allocated` → `Disbursed`
-  - Admin: raw pipeline stages.
-  - Never shows "Allocated" in commissioner view.
-- `workflowEngine.ts` — role-gated actions: `approve`, `reject`, `return_for_correction` (commissioner); `allocate`, `disburse` (treasury). Wraps existing supabase mutations already used by the two dashboards; no new RPCs.
-- `auditEngine.ts` — merges `application_status_history` + `dvl_verified_at` + `allocation_date` + `released_to_treasury` timestamp into a unified timeline with actor + action.
+This is a large module (~15 subsystems in the brief). To ship safely without breaking production I propose splitting it into **three sub-phases** and executing them in order. Confirm the split, or tell me to compress.
 
-### 2. Household Rendering Engine (new shared components)
+---
 
-`src/components/household/`:
+## Sub-Phase 6A — Policy Administration + Versioning (foundation)
 
-- `HouseholdCard.tsx` — summary: tracking #, parent (masked), ward, date, status badge, metrics chip (`4 Beneficiaries · 2 Secondary · 2 Higher Ed`). Auto-hides empty cohort sections.
-- `HouseholdCohortList.tsx` — renders "Secondary Students" and "Higher Education Students" sub-lists; hides section if empty. Determines cohort from `student_type`.
-- `HouseholdExpanded.tsx` — expanded panel: Details → Secondary → Higher Ed → Assessment Summary → Audit Timeline → Officer Actions.
-- `HouseholdAuditTimeline.tsx` — vertical timeline (Submitted → Reviewed → Approved → Pending Allocation → Allocated → Disbursed) using `auditEngine` output.
-- `HouseholdActionPanel.tsx` — one unified panel; buttons rendered from `workflowEngine.availableActions(role, household)`. Deduplicates the ad-hoc buttons currently scattered across dashboards.
-- `HouseholdList.tsx` — virtualized list wrapper (React.memo per card + `useDeferredValue` for filter input) for performance with large wards.
+**Goal:** move policy config out of `src/lib/ai/policyProfile.ts` into a versioned DB table, with an admin CRUD UI and a read-through cache. Every recommendation records the version it used.
 
-### 3. Dashboard state persistence
+**DB (single migration)**
+- `policy_profiles` — id, name, version (semver), body jsonb (full `PolicyProfile`), status enum (`draft|pending|active|archived`), created_by, approved_by, approved_at, activated_at, reason, change_summary, timestamps.
+- `policy_audit_log` — policy_id, action (`create|edit|submit|approve|activate|archive|simulate`), actor uuid, diff jsonb, occurred_at.
+- `ai_recommendation_log` — student_beneficiary_id, policy_version, needs_score, recommended_allocation, reasons jsonb, input_hash, generated_at. (Enables drift + consistency later.)
+- GRANTs for `authenticated` + `service_role`. RLS: read = admin; write = admin; approve/activate = admin with a second `governance_approver` app_role check (added to `app_role` enum).
+- `has_role` unchanged.
 
-`src/hooks/useDashboardState.ts` — generic `useState`-like hook that syncs to `sessionStorage` under a scoped key. Applied to:
+**Code**
+- `src/lib/ai/policyProfile.ts` — extend `loadPolicyProfile(id)` to fall back to DB when `governance` flag on; default profile still returned when DB empty.
+- `src/lib/ai/decisionEngine.ts` — no logic change; already stores `policy_version` on output. Add optional side-effect: when caller passes `logRun: true`, write to `ai_recommendation_log` via service RPC.
+- New `src/pages/admin/PolicyAdministration.tsx` (route `/admin/governance/policies`) — list, create draft, edit, submit for approval, approve, activate, archive, view diff/history.
+- Reused shadcn: Table, Dialog, Form (RHF+Zod), Tabs.
 
-- search query, filters, active tab, pagination page, sort key/dir
-- expanded household id set, selected record id, open modal id
-- scroll position (via `useScrollRestoration` on the main container)
-- officer notes drafts (per-household, keyed by tracking #)
+**Tests**
+- `policyProfileVersioning.test.ts` — CRUD, status transitions, diff generation.
 
-Rehydrates on mount; `visibilitychange` does NOT trigger reloads or reset UI. Silent polling continues in background but data merges without collapsing expansions.
+---
 
-### 4. Background sync
+## Sub-Phase 6B — Simulation (Policy + Budget)
 
-Extend existing `useDashboardRealtime` consumers to:
+**Goal:** dry-run policy or budget changes against a snapshot of pending/approved household data. Zero writes to allocation tables.
 
-- Diff incoming ids vs prev; surface a non-blocking sticky pill: **"3 New Applications Received — Refresh"**.
-- Never auto-scroll or auto-close expanded rows.
-- Manual refresh button applies the pending diff.
+**Code**
+- `src/lib/ai/simulator.ts` — `simulatePolicy({ profile, households, budget? })` → aggregates estimated beneficiaries, avg allocation, tier distribution, deficit/surplus. Reuses `evaluateHousehold` in-memory only.
+- `src/pages/admin/PolicySimulator.tsx` (`/admin/governance/simulator`) — side-by-side compare (active vs draft), Recharts distribution chart.
+- `src/pages/admin/BudgetSimulator.tsx` (`/admin/governance/budget`) — enter budget + cohort caps → estimated coverage %.
+- `simulation_runs` table (id, actor, policy_id, params jsonb, results jsonb, created_at) — audit only.
 
-### 5. Dashboard integration (edits only, no rewrites)
+**Tests**
+- `simulator.test.ts` — deterministic outputs for fixed inputs; no DB mutation.
 
-- `src/pages/CommissionerDashboard.tsx` — replace ad-hoc row rendering with `<HouseholdList>`. Remove any "Allocated" labels; use `statusEngine` for badge text. Add "Recommended Allocation KES x" display for approved rows.
-- `src/pages/TreasuryDashboard.tsx` — render households with `<HouseholdList>`; show AI Recommendation vs Officer Decision columns; only Treasury path flips status to `Allocated` / `Disbursed`.
-- `src/pages/AdminDashboard.tsx` — add Household Statistics tile (households, avg students/HH, cohort mix) using existing data. Keep current cards; do not overload.
+---
 
-### 6. Regression tests (Vitest)
+## Sub-Phase 6C — Governance Monitoring & Health Dashboard
 
-`src/test/householdRendering.test.tsx`:
-- secondary-only household hides Higher Ed section
-- higher-ed-only hides Secondary section
-- mixed shows both
-- commissioner never shows "Allocated"
-- treasury shows "Allocated" after allocation
-- audit timeline order
+**Goal:** observability only. No behavioural change.
 
-`src/test/dashboardPersistence.test.ts`:
-- tab, filter, expanded set survive unmount/remount
-- silent poll does not collapse expanded rows
+**Code**
+- `src/lib/ai/governance/drift.ts` — compare last-N cycle averages by cohort; flag > configurable stddev.
+- `src/lib/ai/governance/fairness.ts` — aggregate approval rates by disability / orphan / county / cohort from `ai_recommendation_log` + `student_beneficiaries`.
+- `src/lib/ai/governance/consistency.ts` — cluster similar households (income band + cohort + vulnerability flags), flag pairs with allocation delta > threshold.
+- `src/lib/ai/governance/overrides.ts` — read `application_status_history` + officer overrides → override rate, top reasons.
+- `src/lib/ai/governance/dataQuality.ts` — reuse existing `duplicateDetector` + new checks (missing docs, orphaned household refs).
+- `src/pages/admin/AIGovernanceDashboard.tsx` (`/admin/governance`) — tiles: engine status, active policy, avg recommendation time, consistency score, fairness summary, drift status, last review timestamps, quick links.
+- `governance_notifications` table + list view — surfaced in existing admin notification area, no toast/interrupt.
+- Monthly report generator reuses `src/lib/reporting/exportPdf.ts`.
 
-### Out of scope
-- No schema changes, no new RPCs, no notification/AI/allocation logic changes, no wizard changes, no visual redesign.
+**Tests**
+- `governance/drift.test.ts`, `fairness.test.ts`, `consistency.test.ts`, `overrides.test.ts` — pure-function unit tests on fixture data.
 
-### Deliverable
-Implementation report at `.lovable/reports/phase-2-report.md`: modules modified, shared components, DB impact (none), regression results, risks.
+---
+
+## Cross-cutting
+
+- Feature flag: `VITE_FF_GOVERNANCE` (default **off** until 6A+6B+6C all pass). Legacy `DEFAULT_POLICY_PROFILE` remains the fallback when off — instant rollback.
+- New nav entry visible only when `isAdmin && featureFlags.governance`.
+- All new tables use `SECURITY DEFINER` RPCs for admin reads (mirrors existing pattern).
+- No changes to: applicant wizard, tracking, notifications, dashboards' existing tabs, RLS on Phase 1–5 tables, edge functions.
+- Regression: run existing 135-test suite after each sub-phase.
+
+---
+
+## Technical Details
+
+Files to add (~18):
+```
+supabase/migrations/<ts>_phase6_governance.sql
+src/lib/ai/simulator.ts
+src/lib/ai/governance/{drift,fairness,consistency,overrides,dataQuality}.ts
+src/pages/admin/{PolicyAdministration,PolicySimulator,BudgetSimulator,AIGovernanceDashboard}.tsx
+src/components/governance/{PolicyDiffCard,PolicyVersionBadge,GovernanceTile,DriftAlert}.tsx
+src/test/governance/*.test.ts (5)
+.lovable/reports/phase-6-report.md
+```
+
+Files touched (minimal, additive only):
+```
+src/App.tsx                          – 4 new admin routes
+src/lib/ai/policyProfile.ts          – DB fallback path (flag-gated)
+src/lib/ai/decisionEngine.ts         – optional logRun side-effect
+src/lib/featureFlags.ts              – add `governance`
+src/pages/AdminDashboard.tsx         – 1 nav card linking to /admin/governance
+```
+
+No modifications to `bursary_applications`, `parent_applications`, `student_beneficiaries`, `disbursements`, or any existing RPC.
+
+---
+
+## Confirm before I build
+
+1. **Split into 6A → 6B → 6C** (safer, ~1 turn each), or one shot?
+2. **Add `governance_approver` app_role** for the two-person policy activation rule, or reuse `admin`?
+3. Ship with governance flag **off** by default (recommended) so no user-visible change until admins opt in?

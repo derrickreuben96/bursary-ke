@@ -25,6 +25,10 @@ import TreasuryDashboard from "./pages/TreasuryDashboard";
 import CommissionerLogin from "./pages/CommissionerLogin";
 import CommissionerDashboard from "./pages/CommissionerDashboard";
 import NotFound from "./pages/NotFound";
+import AIGovernanceDashboard from "./pages/admin/AIGovernanceDashboard";
+import PolicyAdministration from "./pages/admin/PolicyAdministration";
+import PolicySimulator from "./pages/admin/PolicySimulator";
+import BudgetSimulator from "./pages/admin/BudgetSimulator";
 
 const queryClient = new QueryClient();
 
@@ -105,6 +109,10 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route path="/admin/governance" element={<ProtectedRoute requireAdmin><AIGovernanceDashboard /></ProtectedRoute>} />
+            <Route path="/admin/governance/policies" element={<ProtectedRoute requireAdmin><PolicyAdministration /></ProtectedRoute>} />
+            <Route path="/admin/governance/simulator" element={<ProtectedRoute requireAdmin><PolicySimulator /></ProtectedRoute>} />
+            <Route path="/admin/governance/budget" element={<ProtectedRoute requireAdmin><BudgetSimulator /></ProtectedRoute>} />
 
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
