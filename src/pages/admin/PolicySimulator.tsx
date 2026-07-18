@@ -15,32 +15,60 @@ import { toast } from "@/hooks/use-toast";
 
 // Static demo household to prove the simulator without touching live data.
 // Real integrations can pass in fetched households later.
+const mkStudent = (over: Partial<Household["students"][number]> & { id: string; cohort: "secondary" | "higher_ed" }): Household["students"][number] => ({
+  id: over.id,
+  name_masked: over.name_masked ?? "A***",
+  student_type: over.cohort === "secondary" ? "secondary" : "university",
+  cohort: over.cohort,
+  institution_name: over.institution_name ?? null,
+  class_form: null,
+  year_of_study: null,
+  status: "received",
+  allocated_amount: null,
+  released_to_treasury: false,
+  ai_decision_reason: null,
+  fraud_score: null,
+  disability_status: over.disability_status ?? "none",
+  ncpwd_registration_number: null,
+  disability_card_url: null,
+  dvl_verified_at: null,
+});
+
+const mkHousehold = (over: Partial<Household> & { id: string; students: Household["students"] }): Household => ({
+  id: over.id,
+  tracking_number: over.tracking_number ?? "BKE-DEMO",
+  parent_name_masked: over.parent_name_masked ?? "J***",
+  parent_county: over.parent_county ?? "Nairobi",
+  parent_ward: over.parent_ward ?? null,
+  household_income: over.household_income ?? null,
+  household_dependents: over.household_dependents ?? null,
+  poverty_tier: null,
+  poverty_score: null,
+  total_students: over.students.length,
+  released_to_treasury: false,
+  ai_decision_reason: null,
+  advert_id: null,
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+  status: over.status ?? "received",
+  current_stage: null,
+  students: over.students,
+});
+
 const demoHouseholds: Household[] = [
-  {
-    id: "demo-1",
-    tracking_number: "BKE-DEMO01",
-    parent_name_masked: "J***",
-    county: "Nairobi",
-    ward: "Karen",
-    status: "under_review",
-    created_at: new Date().toISOString(),
+  mkHousehold({
+    id: "demo-1", tracking_number: "BKE-DEMO01", parent_county: "Nairobi", parent_ward: "Karen",
     students: [
-      { id: "s1", name_masked: "A***", cohort: "secondary", institution_name: "Alliance High", disability_status: "none" },
-      { id: "s2", name_masked: "B***", cohort: "higher_ed", institution_name: "UoN", disability_status: "none" },
+      mkStudent({ id: "s1", name_masked: "A***", cohort: "secondary", institution_name: "Alliance High" }),
+      mkStudent({ id: "s2", name_masked: "B***", cohort: "higher_ed", institution_name: "UoN" }),
     ],
-  },
-  {
-    id: "demo-2",
-    tracking_number: "BKE-DEMO02",
-    parent_name_masked: "M***",
-    county: "Kisumu",
-    ward: "Kisumu Central",
-    status: "approved",
-    created_at: new Date().toISOString(),
+  }),
+  mkHousehold({
+    id: "demo-2", tracking_number: "BKE-DEMO02", parent_county: "Kisumu", parent_ward: "Kisumu Central",
     students: [
-      { id: "s3", name_masked: "C***", cohort: "secondary", institution_name: "Maseno School", disability_status: "physical" },
+      mkStudent({ id: "s3", name_masked: "C***", cohort: "secondary", institution_name: "Maseno School", disability_status: "physical" }),
     ],
-  },
+  }),
 ];
 
 export default function PolicySimulator() {
