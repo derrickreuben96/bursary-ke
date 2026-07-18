@@ -9,7 +9,8 @@ type FlagKey =
   | "householdDashboards"   // Phase 2 household-centric rendering
   | "reportingEngine"       // Phase 3 reports/exports
   | "aiRecommendations"     // Phase 4 policy-driven AI engine
-  | "consistencyWarnings";  // Phase 1 non-blocking validation warnings
+  | "consistencyWarnings"   // Phase 1 non-blocking validation warnings
+  | "governance";           // Phase 6 AI governance (off by default)
 
 const parse = (v: unknown, fallback = true): boolean => {
   if (v === undefined || v === null || v === "") return fallback;
@@ -23,6 +24,7 @@ export const featureFlags: Record<FlagKey, boolean> = {
   reportingEngine: parse(env.VITE_FF_REPORTING_ENGINE),
   aiRecommendations: parse(env.VITE_FF_AI_RECOMMENDATIONS),
   consistencyWarnings: parse(env.VITE_FF_CONSISTENCY_WARNINGS),
+  governance: parse(env.VITE_FF_GOVERNANCE, false),
 };
 
 export const isEnabled = (key: FlagKey): boolean => featureFlags[key];
