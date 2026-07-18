@@ -109,6 +109,10 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route path="/admin/governance" element={<ProtectedRoute requireAdmin><AIGovernanceDashboard /></ProtectedRoute>} />
+            <Route path="/admin/governance/policies" element={<ProtectedRoute requireAdmin><PolicyAdministration /></ProtectedRoute>} />
+            <Route path="/admin/governance/simulator" element={<ProtectedRoute requireAdmin><PolicySimulator /></ProtectedRoute>} />
+            <Route path="/admin/governance/budget" element={<ProtectedRoute requireAdmin><BudgetSimulator /></ProtectedRoute>} />
 
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
