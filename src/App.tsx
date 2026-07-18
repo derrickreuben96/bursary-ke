@@ -25,6 +25,10 @@ import TreasuryDashboard from "./pages/TreasuryDashboard";
 import CommissionerLogin from "./pages/CommissionerLogin";
 import CommissionerDashboard from "./pages/CommissionerDashboard";
 import NotFound from "./pages/NotFound";
+import AIGovernanceDashboard from "./pages/admin/AIGovernanceDashboard";
+import PolicyAdministration from "./pages/admin/PolicyAdministration";
+import PolicySimulator from "./pages/admin/PolicySimulator";
+import BudgetSimulator from "./pages/admin/BudgetSimulator";
 
 const queryClient = new QueryClient();
 
