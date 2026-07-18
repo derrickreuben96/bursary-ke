@@ -22,6 +22,7 @@ import type { HouseholdAction } from "@/lib/household/workflowEngine";
 import { DangerZoneResetCard } from "@/components/admin/DangerZoneResetCard";
 import { ResetAuditLogPanel } from "@/components/admin/ResetAuditLogPanel";
 import { downloadAiSummaryPdf } from "@/lib/aiSummaryPdf";
+import { featureFlags } from "@/lib/featureFlags";
 import {
   Users,
   CheckCircle,
