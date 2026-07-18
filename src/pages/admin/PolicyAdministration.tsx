@@ -122,7 +122,7 @@ export default function PolicyAdministration() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Seo title="Policy Administration — Bursary KE" description="Manage AI policy versions" />
+      <Seo title="Policy Administration — Bursary KE" description="Manage AI policy versions" path="/admin/governance/policies" />
       <Header />
       <main className="flex-1 container py-8 space-y-6">
         <div className="flex items-center justify-between">
