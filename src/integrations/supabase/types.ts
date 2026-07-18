@@ -2227,7 +2227,12 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "user" | "county_treasury" | "county_commissioner"
+      app_role:
+        | "admin"
+        | "user"
+        | "county_treasury"
+        | "county_commissioner"
+        | "governance_approver"
       application_status:
         | "received"
         | "review"
@@ -2366,7 +2371,13 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user", "county_treasury", "county_commissioner"],
+      app_role: [
+        "admin",
+        "user",
+        "county_treasury",
+        "county_commissioner",
+        "governance_approver",
+      ],
       application_status: [
         "received",
         "review",
