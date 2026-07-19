@@ -66,6 +66,36 @@ function ApplicationFormContent() {
   const steps = flow.map((k) => stepLabels[k]);
   const activeKey = flow[currentStep - 1] ?? "parent";
 
+  // Guard: if sessionStorage restores a step whose prerequisites are
+  // missing (empty parent form, unset education level, no student added),
+  // snap back so the applicant never skips Education Level → Student.
+  useEffect(() => {
+    const idxOf = (k: StepKey) => flow.indexOf(k);
+    if (currentStep > 1 && !data.parentGuardian) {
+      setCurrentStep(1);
+      return;
+    }
+    const eduIdx = idxOf("education");
+    if (eduIdx >= 0 && currentStep > eduIdx + 1 && !data.educationLevels) {
+      setCurrentStep(eduIdx + 1);
+      return;
+    }
+    const needsSecondary = data.educationLevels?.secondary;
+    const needsHigher = data.educationLevels?.higherEd;
+    const hasSecondaryStudent = (data.students || []).some((s) => s.studentType === "secondary");
+    const hasHigherStudent = (data.students || []).some((s) => s.studentType === "university");
+    const secIdx = idxOf("secondary");
+    const uniIdx = idxOf("university");
+    if (needsSecondary && secIdx >= 0 && currentStep > secIdx + 1 && !hasSecondaryStudent) {
+      setCurrentStep(secIdx + 1);
+      return;
+    }
+    if (needsHigher && uniIdx >= 0 && currentStep > uniIdx + 1 && !hasHigherStudent) {
+      setCurrentStep(uniIdx + 1);
+    }
+  }, [currentStep, flow, data.parentGuardian, data.educationLevels, data.students, setCurrentStep]);
+
+
   const goNext = () => setCurrentStep((s) => Math.min(s + 1, flow.length));
   const goBack = () => setCurrentStep((s) => Math.max(s - 1, 1));
 
