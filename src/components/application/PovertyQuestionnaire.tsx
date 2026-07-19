@@ -308,7 +308,9 @@ export function PovertyQuestionnaire({ onNext, onBack }: PovertyQuestionnairePro
           students={studentList}
           value={engineAnswers}
           onChange={setEngineAnswers}
+          hideHousehold
         />
+
 
         <DynamicPovertyBank
           pipeline={pipeline}
