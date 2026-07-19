@@ -73,6 +73,38 @@ function ApplicationFormContent() {
   const steps = flow.map((k) => stepLabels[k]);
   const activeKey = flow[currentStep - 1] ?? "parent";
 
+  // Guard against stale persisted step values that would skip required
+  // stages (e.g. Education Level, Student Details) after sessionStorage
+  // out-lives the in-memory context. If required upstream data is missing
+  // for the currently-rendered step, snap back to the earliest incomplete
+  // step so the applicant never jumps straight from Parent → Assessment.
+  useEffect(() => {
+    const idxOf = (k: StepKey) => flow.indexOf(k);
+    if (currentStep > 1 && !data.parentGuardian) {
+      setCurrentStep(1);
+      return;
+    }
+    const eduIdx = idxOf("education");
+    if (eduIdx >= 0 && currentStep > eduIdx + 1 && !data.educationLevels) {
+      setCurrentStep(eduIdx + 1);
+      return;
+    }
+    const needsSecondary = data.educationLevels?.secondary;
+    const needsHigher = data.educationLevels?.higherEd;
+    const hasSecondaryStudent = (data.students || []).some((s) => s.studentType === "secondary");
+    const hasHigherStudent = (data.students || []).some((s) => s.studentType === "university");
+    const secIdx = idxOf("secondary");
+    const uniIdx = idxOf("university");
+    if (needsSecondary && secIdx >= 0 && currentStep > secIdx + 1 && !hasSecondaryStudent) {
+      setCurrentStep(secIdx + 1);
+      return;
+    }
+    if (needsHigher && uniIdx >= 0 && currentStep > uniIdx + 1 && !hasHigherStudent) {
+      setCurrentStep(uniIdx + 1);
+    }
+  }, [currentStep, flow, data.parentGuardian, data.educationLevels, data.students, setCurrentStep]);
+
+
   useEffect(() => {
     if (advertId) {
       updateData({ advertId });
