@@ -22,16 +22,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, ArrowRight, ClipboardCheck, Lock, Shuffle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ArrowLeft, ArrowRight, ClipboardCheck, Lock, Shuffle, AlertTriangle } from "lucide-react";
 import { useApplication } from "@/context/ApplicationContext";
 import { getRandomizedQuestions, calculatePovertyScoreFromAnswers, type PovertyQuestion } from "@/lib/povertyQuestions";
 import { DynamicPovertyBank } from "./DynamicPovertyBank";
 import { AssessmentRenderer } from "./AssessmentRenderer";
+import { detectPovertyCoherenceIssues, type CoherenceIssue } from "@/lib/validation/povertyCoherence";
 
 interface PovertyQuestionnaireProps {
   onNext: () => void;
   onBack: () => void;
 }
+
 
 export function PovertyQuestionnaire({ onNext, onBack }: PovertyQuestionnaireProps) {
   const { data, updateData } = useApplication();
