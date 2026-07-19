@@ -352,12 +352,18 @@ export function getRandomizedQuestions(count: number = 10): PovertyQuestion[] {
     }
   }
 
-  // Fill remaining slots from unused questions
-  const usedIds = new Set(selectedQuestions.map(q => q.id));
-  const remaining = shuffleArray(allQuestions.filter(q => !usedIds.has(q.id)));
+  // Fill remaining slots from unused questions — but never add a second
+  // question from a category already covered above. This prevents visually
+  // duplicate/near-identical prompts (e.g. two income questions in a row).
+  const usedIds = new Set(selectedQuestions.map((q) => q.id));
+  const usedCategories = new Set(selectedQuestions.map((q) => q.category));
+  const remaining = shuffleArray(
+    allQuestions.filter((q) => !usedIds.has(q.id) && !usedCategories.has(q.category)),
+  );
   const slotsToFill = count - selectedQuestions.length;
   for (let i = 0; i < slotsToFill && i < remaining.length; i++) {
     selectedQuestions.push(remaining[i]);
+    usedCategories.add(remaining[i].category);
   }
 
   // Final shuffle so mandatory questions don't always appear first
