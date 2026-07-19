@@ -343,16 +343,41 @@ export function PovertyQuestionnaire({ onNext, onBack }: PovertyQuestionnairePro
           )}
         />
 
+        {coherenceIssues.length > 0 && (
+          <Alert variant="destructive" className="border-destructive/40 bg-destructive/5">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Some answers don't seem to match</AlertTitle>
+            <AlertDescription className="space-y-3">
+              <ul className="list-disc pl-5 space-y-1 text-sm">
+                {coherenceIssues.map((iss) => (
+                  <li key={iss.code}>{iss.message}</li>
+                ))}
+              </ul>
+              <label className="flex items-start gap-2 text-sm cursor-pointer">
+                <Checkbox
+                  checked={ackedCoherence}
+                  onCheckedChange={(v) => setAckedCoherence(Boolean(v))}
+                  className="mt-0.5"
+                />
+                <span>
+                  I've reviewed the flagged answers and confirm they are correct.
+                </span>
+              </label>
+            </AlertDescription>
+          </Alert>
+        )}
+
         <div className="flex justify-between pt-4">
           <Button type="button" variant="outline" size="lg" onClick={onBack}>
             <ArrowLeft className="mr-2 h-5 w-5" />
             Back
           </Button>
-          <Button type="submit" size="lg">
+          <Button type="submit" size="lg" disabled={!canProceed}>
             Next: Review
             <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
         </div>
+
       </form>
     </Form>
   );
