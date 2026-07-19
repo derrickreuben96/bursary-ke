@@ -31,10 +31,18 @@ interface Props {
   students: StudentEntry[];
   value: Record<string, string>;
   onChange: (next: Record<string, string>) => void;
+  /** When true, hide the shared "Household Assessment" section — used on the
+   *  main poverty questionnaire where legacy income/vulnerability questions
+   *  already cover the same ground, preventing duplicate prompts. */
+  hideHousehold?: boolean;
 }
 
-export function AssessmentRenderer({ students, value, onChange }: Props) {
-  const sections = useMemo(() => buildAssessmentSections(students), [students]);
+export function AssessmentRenderer({ students, value, onChange, hideHousehold }: Props) {
+  const sections = useMemo(() => {
+    const all = buildAssessmentSections(students);
+    return hideHousehold ? all.filter((s) => s.key !== "household") : all;
+  }, [students, hideHousehold]);
+
 
   if (sections.length === 0) return null;
 
