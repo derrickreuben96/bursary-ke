@@ -24,7 +24,7 @@ export const featureFlags: Record<FlagKey, boolean> = {
   reportingEngine: parse(env.VITE_FF_REPORTING_ENGINE),
   aiRecommendations: parse(env.VITE_FF_AI_RECOMMENDATIONS),
   consistencyWarnings: parse(env.VITE_FF_CONSISTENCY_WARNINGS),
-  governance: parse(env.VITE_FF_GOVERNANCE, false),
+  governance: parse(env.VITE_FF_GOVERNANCE, true),
 };
 
 export const isEnabled = (key: FlagKey): boolean => featureFlags[key];
