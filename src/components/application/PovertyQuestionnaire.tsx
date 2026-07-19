@@ -22,16 +22,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, ArrowRight, ClipboardCheck, Lock, Shuffle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ArrowLeft, ArrowRight, ClipboardCheck, Lock, Shuffle, AlertTriangle } from "lucide-react";
 import { useApplication } from "@/context/ApplicationContext";
 import { getRandomizedQuestions, calculatePovertyScoreFromAnswers, type PovertyQuestion } from "@/lib/povertyQuestions";
 import { DynamicPovertyBank } from "./DynamicPovertyBank";
 import { AssessmentRenderer } from "./AssessmentRenderer";
+import { detectPovertyCoherenceIssues, type CoherenceIssue } from "@/lib/validation/povertyCoherence";
 
 interface PovertyQuestionnaireProps {
   onNext: () => void;
   onBack: () => void;
 }
+
 
 export function PovertyQuestionnaire({ onNext, onBack }: PovertyQuestionnaireProps) {
   const { data, updateData } = useApplication();
@@ -117,7 +120,37 @@ export function PovertyQuestionnaire({ onNext, onBack }: PovertyQuestionnairePro
     defaultValues,
   });
 
+  // --- Coherence detection --------------------------------------------
+  // Live-detect logical contradictions across the answered questions so the
+  // applicant is prompted to fix mismatches BEFORE proceeding to the next
+  // step. Warnings can be acknowledged (one-click) if the applicant insists
+  // the answers are correct.
+  const watched = form.watch();
+  const [ackedCoherence, setAckedCoherence] = useState(false);
+
+  const coherenceIssues = useMemo<CoherenceIssue[]>(() => {
+    const flat = { ...(watched as Record<string, string>) };
+    return detectPovertyCoherenceIssues(flat, questions, studentCount);
+  }, [watched, questions, studentCount]);
+
+  // Reset the acknowledgement whenever the set of issues changes so the
+  // applicant sees any new mismatch introduced by a later edit.
+  useEffect(() => {
+    setAckedCoherence(false);
+  }, [coherenceIssues.map((i) => i.code).join("|")]);
+
+  const canProceed = coherenceIssues.length === 0 || ackedCoherence;
+
   const onSubmit = (formData: DynamicFormData) => {
+    // Belt-and-suspenders: if any coherence issue is still present and the
+    // applicant hasn't acknowledged, block here even if they bypass the UI.
+    const finalIssues = detectPovertyCoherenceIssues(
+      formData as Record<string, string>,
+      questions,
+      studentCount,
+    );
+    if (finalIssues.length > 0 && !ackedCoherence) return;
+
     const { percentage } = calculatePovertyScoreFromAnswers(
       formData as Record<string, string>,
       questions,
@@ -143,6 +176,7 @@ export function PovertyQuestionnaire({ onNext, onBack }: PovertyQuestionnairePro
     });
     onNext();
   };
+
 
   const groupedQuestions = useMemo(() => {
     const groups: Record<string, PovertyQuestion[]> = {};
@@ -274,7 +308,9 @@ export function PovertyQuestionnaire({ onNext, onBack }: PovertyQuestionnairePro
           students={studentList}
           value={engineAnswers}
           onChange={setEngineAnswers}
+          hideHousehold
         />
+
 
         <DynamicPovertyBank
           pipeline={pipeline}
@@ -309,16 +345,41 @@ export function PovertyQuestionnaire({ onNext, onBack }: PovertyQuestionnairePro
           )}
         />
 
+        {coherenceIssues.length > 0 && (
+          <Alert variant="destructive" className="border-destructive/40 bg-destructive/5">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Some answers don't seem to match</AlertTitle>
+            <AlertDescription className="space-y-3">
+              <ul className="list-disc pl-5 space-y-1 text-sm">
+                {coherenceIssues.map((iss) => (
+                  <li key={iss.code}>{iss.message}</li>
+                ))}
+              </ul>
+              <label className="flex items-start gap-2 text-sm cursor-pointer">
+                <Checkbox
+                  checked={ackedCoherence}
+                  onCheckedChange={(v) => setAckedCoherence(Boolean(v))}
+                  className="mt-0.5"
+                />
+                <span>
+                  I've reviewed the flagged answers and confirm they are correct.
+                </span>
+              </label>
+            </AlertDescription>
+          </Alert>
+        )}
+
         <div className="flex justify-between pt-4">
           <Button type="button" variant="outline" size="lg" onClick={onBack}>
             <ArrowLeft className="mr-2 h-5 w-5" />
             Back
           </Button>
-          <Button type="submit" size="lg">
+          <Button type="submit" size="lg" disabled={!canProceed}>
             Next: Review
             <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
         </div>
+
       </form>
     </Form>
   );
