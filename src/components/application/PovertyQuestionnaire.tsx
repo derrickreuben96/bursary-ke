@@ -120,7 +120,37 @@ export function PovertyQuestionnaire({ onNext, onBack }: PovertyQuestionnairePro
     defaultValues,
   });
 
+  // --- Coherence detection --------------------------------------------
+  // Live-detect logical contradictions across the answered questions so the
+  // applicant is prompted to fix mismatches BEFORE proceeding to the next
+  // step. Warnings can be acknowledged (one-click) if the applicant insists
+  // the answers are correct.
+  const watched = form.watch();
+  const [ackedCoherence, setAckedCoherence] = useState(false);
+
+  const coherenceIssues = useMemo<CoherenceIssue[]>(() => {
+    const flat = { ...(watched as Record<string, string>) };
+    return detectPovertyCoherenceIssues(flat, questions, studentCount);
+  }, [watched, questions, studentCount]);
+
+  // Reset the acknowledgement whenever the set of issues changes so the
+  // applicant sees any new mismatch introduced by a later edit.
+  useEffect(() => {
+    setAckedCoherence(false);
+  }, [coherenceIssues.map((i) => i.code).join("|")]);
+
+  const canProceed = coherenceIssues.length === 0 || ackedCoherence;
+
   const onSubmit = (formData: DynamicFormData) => {
+    // Belt-and-suspenders: if any coherence issue is still present and the
+    // applicant hasn't acknowledged, block here even if they bypass the UI.
+    const finalIssues = detectPovertyCoherenceIssues(
+      formData as Record<string, string>,
+      questions,
+      studentCount,
+    );
+    if (finalIssues.length > 0 && !ackedCoherence) return;
+
     const { percentage } = calculatePovertyScoreFromAnswers(
       formData as Record<string, string>,
       questions,
@@ -146,6 +176,7 @@ export function PovertyQuestionnaire({ onNext, onBack }: PovertyQuestionnairePro
     });
     onNext();
   };
+
 
   const groupedQuestions = useMemo(() => {
     const groups: Record<string, PovertyQuestion[]> = {};
