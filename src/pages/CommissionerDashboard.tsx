@@ -72,11 +72,20 @@ interface FairnessInfo {
   consistencyFlags: string[];
 }
 
+interface HouseholdMember {
+  id: string;
+  name: string;
+  studentType: string;
+  status: string;
+  allocatedAmount: number;
+}
 interface StudentDvlInfo {
   fraudMax: number;
   rankMin: number | null;
   pipeline: string | null;
   disability: Array<{ id: string; name: string; type: string | null; ncpwd: string | null; cardUrl: string | null; verifiedAt: string | null; notes: string | null }>;
+  members: HouseholdMember[];
+  householdTotal: number;
 }
 
 interface BursaryAdvert {
