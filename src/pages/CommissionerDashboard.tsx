@@ -330,7 +330,15 @@ export default function CommissionerDashboard() {
               verifiedAt: s.dvl_verified_at ?? null,
               notes: s.dvl_notes ?? null,
             }));
-          detailMap[row.tracking_number] = { fraudMax, rankMin, pipeline, disability };
+          const members: HouseholdMember[] = students.map((s) => ({
+            id: s.id,
+            name: s.student_name_masked || "Student",
+            studentType: s.student_type || "—",
+            status: s.status || "received",
+            allocatedAmount: Number(s.allocated_amount) || 0,
+          }));
+          const householdTotal = members.reduce((sum, m) => sum + m.allocatedAmount, 0);
+          detailMap[row.tracking_number] = { fraudMax, rankMin, pipeline, disability, members, householdTotal };
         });
         setStudentDetailsMap(detailMap);
       } catch (e) {
