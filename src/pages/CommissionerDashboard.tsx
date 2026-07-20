@@ -72,11 +72,20 @@ interface FairnessInfo {
   consistencyFlags: string[];
 }
 
+interface HouseholdMember {
+  id: string;
+  name: string;
+  studentType: string;
+  status: string;
+  allocatedAmount: number;
+}
 interface StudentDvlInfo {
   fraudMax: number;
   rankMin: number | null;
   pipeline: string | null;
   disability: Array<{ id: string; name: string; type: string | null; ncpwd: string | null; cardUrl: string | null; verifiedAt: string | null; notes: string | null }>;
+  members: HouseholdMember[];
+  householdTotal: number;
 }
 
 interface BursaryAdvert {
@@ -321,7 +330,15 @@ export default function CommissionerDashboard() {
               verifiedAt: s.dvl_verified_at ?? null,
               notes: s.dvl_notes ?? null,
             }));
-          detailMap[row.tracking_number] = { fraudMax, rankMin, pipeline, disability };
+          const members: HouseholdMember[] = students.map((s) => ({
+            id: s.id,
+            name: s.student_name_masked || "Student",
+            studentType: s.student_type || "—",
+            status: s.status || "received",
+            allocatedAmount: Number(s.allocated_amount) || 0,
+          }));
+          const householdTotal = members.reduce((sum, m) => sum + m.allocatedAmount, 0);
+          detailMap[row.tracking_number] = { fraudMax, rankMin, pipeline, disability, members, householdTotal };
         });
         setStudentDetailsMap(detailMap);
       } catch (e) {
@@ -916,6 +933,32 @@ export default function CommissionerDashboard() {
                   <AIReasonCell reason={app.ai_decision_reason} />
                 </TableCell>
               </TableRow>
+              {(() => {
+                const info = studentDetailsMap[app.tracking_number];
+                if (!info || info.members.length < 2) return null;
+                return (
+                  <TableRow>
+                    <TableCell colSpan={showAmount ? 12 : 11} className="py-2 px-6 bg-primary/5">
+                      <div className="space-y-1">
+                        <p className="text-xs font-semibold text-primary">Household Members ({info.members.length})</p>
+                        <div className="grid gap-1">
+                          {info.members.map((m) => (
+                            <div key={m.id} className="text-xs flex flex-wrap items-center gap-x-4 gap-y-1">
+                              <span className="font-medium min-w-[140px]">{m.name}</span>
+                              <span className="capitalize text-muted-foreground">{m.studentType}</span>
+                              {getStatusBadge(m.status, false)}
+                              <span className="font-mono ml-auto">KES {m.allocatedAmount.toLocaleString()}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="flex justify-end pt-1 border-t border-primary/20 text-xs font-semibold text-primary">
+                          Household Total: KES {info.householdTotal.toLocaleString()}
+                        </div>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })()}
               {studentDetailsMap[app.tracking_number]?.disability?.length > 0 && (
                 <TableRow>
                   <TableCell colSpan={showAmount ? 12 : 11} className="py-1 px-6 bg-amber-50/40 dark:bg-amber-950/10">
