@@ -194,6 +194,12 @@ Deno.serve(async (req) => {
       };
     });
 
+    // Aggregate household totals so the UI can display "KES X across N students".
+    const householdTotal = applicants.reduce(
+      (sum, a) => sum + (Number(a.allocated_amount) || 0),
+      0,
+    );
+
     return new Response(
       JSON.stringify({
         found: true,
@@ -202,6 +208,20 @@ Deno.serve(async (req) => {
         status: data.status,
         createdAt: data.created_at,
         stages,
+        // Every applicant tied to this tracking number, each with its own
+        // independent status + allocation. Never collapsed to a single row.
+        applicants: applicants.map((a) => ({
+          student_full_name: a.student_full_name,
+          institution_name: a.institution_name,
+          student_type: a.student_type,
+          class_form: a.class_form,
+          year_of_study: a.year_of_study,
+          status: a.status,
+          allocated_amount: a.allocated_amount,
+          released_to_treasury: a.released_to_treasury,
+        })),
+        householdTotal,
+        applicantCount: applicants.length,
       }),
       { headers: { 
         ...corsHeaders, 
