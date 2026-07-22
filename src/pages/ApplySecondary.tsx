@@ -12,6 +12,7 @@ import { PovertyQuestionnaire } from "@/components/application/PovertyQuestionna
 import { DocumentUpload } from "@/components/application/DocumentUpload";
 import { ReviewSubmit } from "@/components/application/ReviewSubmit";
 import { SuccessModal } from "@/components/application/SuccessModal";
+import { LeaveApplicationGuard } from "@/components/application/LeaveApplicationGuard";
 import { FormAssistant } from "@/components/chat/FormAssistant";
 import { Button } from "@/components/ui/button";
 import { GraduationCap, Shield, Lock, ArrowLeft, ArrowRight } from "lucide-react";
