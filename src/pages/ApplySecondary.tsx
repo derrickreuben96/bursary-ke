@@ -231,6 +231,7 @@ function ApplicationFormContent() {
           onClose={handleCloseSuccess}
           studentType={reviewStudentType}
         />
+        <LeaveApplicationGuard submitted={showSuccess} />
       </main>
       <Footer />
     </div>
