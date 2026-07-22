@@ -156,7 +156,23 @@ export default function Track() {
           })),
         });
 
-        // Fetch linked students (parent+children) — best-effort, won't block on error
+        // Seed the students list from the edge function's applicants array so
+        // EVERY sibling tied to this tracking number is rendered immediately —
+        // even if the parent_applications RPC has no matching row.
+        const fnApplicants = (funcData.applicants ?? []) as Array<{
+          student_full_name: string;
+          institution_name: string;
+          student_type: string;
+          class_form?: string | null;
+          year_of_study?: string | null;
+          status: string;
+          allocated_amount: number | null;
+        }>;
+        if (fnApplicants.length > 0) {
+          setStudents(fnApplicants);
+        }
+
+        // Enrich with parent-level metadata + newer per-student rows when available.
         if (verVal) {
           try {
             const { data: pData } = await supabase.rpc("get_parent_application_by_tracking", {
@@ -179,14 +195,23 @@ export default function Track() {
                 }>;
               };
               setParentInfo({
-                total_students: p.total_students,
+                total_students: p.total_students ?? fnApplicants.length,
                 parent_county: p.parent_county,
                 parent_ward: p.parent_ward,
               });
-              setStudents(p.students || []);
+              // Prefer the RPC's list ONLY if it covers every applicant — never
+              // let it shrink the visible siblings.
+              if (p.students && p.students.length >= fnApplicants.length) {
+                setStudents(p.students);
+              }
+            } else if (fnApplicants.length > 0) {
+              setParentInfo({ total_students: fnApplicants.length });
             }
           } catch (e) {
             console.warn("Parent/students lookup failed (non-fatal):", e);
+            if (fnApplicants.length > 0) {
+              setParentInfo({ total_students: fnApplicants.length });
+            }
           }
         }
       } else {

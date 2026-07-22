@@ -68,9 +68,14 @@ Deno.serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
+    // Fetch EVERY applicant tied to this tracking number (not just one).
+    // One tracking number can carry multiple siblings (e.g. Victor + Tony) and
+    // each carries an independent status + allocation.
     let query = supabaseAdmin
       .from("bursary_applications")
-      .select("tracking_number, student_type, status, created_at, updated_at, allocated_amount, institution_name, released_to_treasury");
+      .select(
+        "tracking_number, student_type, status, created_at, updated_at, allocated_amount, institution_name, released_to_treasury, student_full_name, class_form, year_of_study",
+      );
 
     query = query.eq("tracking_number", trackingNumber.toUpperCase());
     if (verificationType === "phone") {
@@ -79,11 +84,14 @@ Deno.serve(async (req) => {
     } else {
       query = query.eq("parent_national_id", verificationValue);
     }
-    query = query.limit(1);
+    query = query.order("created_at", { ascending: true });
 
 
     const { data: rows, error } = await query;
-    const data = rows && rows.length > 0 ? rows[0] : null;
+    const applicants = rows ?? [];
+    // Pick a representative row for the timeline (earliest). Timeline is
+    // household-scoped; per-applicant status/allocation is returned separately.
+    const data = applicants.length > 0 ? applicants[0] : null;
 
     if (error) {
       console.error("[TRACK] Database error:", error);
@@ -186,6 +194,12 @@ Deno.serve(async (req) => {
       };
     });
 
+    // Aggregate household totals so the UI can display "KES X across N students".
+    const householdTotal = applicants.reduce(
+      (sum, a) => sum + (Number(a.allocated_amount) || 0),
+      0,
+    );
+
     return new Response(
       JSON.stringify({
         found: true,
@@ -194,6 +208,20 @@ Deno.serve(async (req) => {
         status: data.status,
         createdAt: data.created_at,
         stages,
+        // Every applicant tied to this tracking number, each with its own
+        // independent status + allocation. Never collapsed to a single row.
+        applicants: applicants.map((a) => ({
+          student_full_name: a.student_full_name,
+          institution_name: a.institution_name,
+          student_type: a.student_type,
+          class_form: a.class_form,
+          year_of_study: a.year_of_study,
+          status: a.status,
+          allocated_amount: a.allocated_amount,
+          released_to_treasury: a.released_to_treasury,
+        })),
+        householdTotal,
+        applicantCount: applicants.length,
       }),
       { headers: { 
         ...corsHeaders, 
