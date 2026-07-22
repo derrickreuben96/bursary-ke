@@ -221,9 +221,10 @@ describe("Multi-applicant household — total integrity", () => {
       // Scaling must respect the floor — nobody drops to zero.
       expect(p.recommended_allocation).toBeGreaterThanOrEqual(min);
     }
-    // Total should be <= budget OR bounded by the min_allocation floor across siblings.
+    // Total is bounded by the min_allocation floor across siblings — the engine
+    // preserves every eligible sibling rather than dropping one to fit budget.
     const total = rec.per_student.reduce((n, p) => n + p.recommended_allocation, 0);
-    expect(total).toBeLessThanOrEqual(Math.max(20000, min * hh.students.length));
+    expect(total).toBeLessThanOrEqual(min * hh.students.length);
     expect(rec.household_recommended_total).toBe(total);
   });
 });
