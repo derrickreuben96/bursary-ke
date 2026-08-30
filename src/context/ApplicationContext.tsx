@@ -49,11 +49,51 @@ export interface ApplicationData {
    * appear next. Both flags may be true (mixed household).
    */
   educationLevels?: { secondary: boolean; higherEd: boolean };
+  /**
+   * Returning-guardian reuse: previously verified students fetched (with the
+   * guardian's explicit consent) from their earlier applications. These are
+   * suggestions only — nothing is submitted until the guardian confirms.
+   */
+  reusableStudents?: ReusableStudent[];
+  /** True once the guardian consented to reuse their stored verified data. */
+  reuseConsentGiven?: boolean;
+}
+
+export interface ReusableStudent {
+  student_full_name: string;
+  student_identifier: string;
+  student_type: "secondary" | "university" | string;
+  education_category?: string | null;
+  institution_name?: string | null;
+  admission_number?: string | null;
+  class_form?: string | null;
+  year_of_study?: string | null;
+  disability_status?: string | null;
+  disability_type?: string | null;
+  ncpwd_registration_number?: string | null;
+  disability_verified?: boolean | null;
+}
+
+export interface LiveParentFields {
+  fullName?: string;
+  nationalId?: string;
+  phoneNumber?: string;
+  email?: string;
+  county?: string;
+  ward?: string;
+  selectedAdvertId?: string;
 }
 
 interface ApplicationContextType {
   data: ApplicationData;
   updateData: (newData: Partial<ApplicationData>) => void;
+  /**
+   * Uncommitted guardian-step keystrokes, used only to drive the live
+   * completion meter. Deliberately NOT persisted (no PII written to storage
+   * before the step is submitted).
+   */
+  liveParent: LiveParentFields;
+  setLiveParent: (fields: LiveParentFields) => void;
   currentStep: number;
   setCurrentStep: (step: number) => void;
   resetApplication: () => void;
@@ -112,6 +152,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
     return restored ?? { students: [] };
   });
   const [currentStep, setCurrentStep] = useState(1);
+  const [liveParent, setLiveParent] = useState<LiveParentFields>({});
 
   const updateData = (newData: Partial<ApplicationData>) => {
     setData((prev) => {
@@ -125,13 +166,14 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
   const resetApplication = () => {
     setData({ students: [] });
     setCurrentStep(1);
+    setLiveParent({});
     // Wipe the draft — called after a successful submission or explicit reset.
     clearDraft();
   };
 
   return (
     <ApplicationContext.Provider
-      value={{ data, updateData, currentStep, setCurrentStep, resetApplication }}
+      value={{ data, updateData, liveParent, setLiveParent, currentStep, setCurrentStep, resetApplication }}
     >
       {children}
     </ApplicationContext.Provider>
