@@ -250,6 +250,48 @@ export function StudentsRepeater({ onNext, onBack, defaultType }: Props) {
 
   const atMax = students.length >= MAX_STUDENTS;
 
+  /**
+   * Returning-guardian reuse (consented): previously verified students of this
+   * repeater's education type that are not already on the form. Tapping one
+   * fills a card instead of retyping NEMIS/admission details.
+   */
+  const reusableForType = (data.reusableStudents || []).filter((r) => {
+    const type = r.student_type === "secondary" ? "secondary" : "university";
+    if (type !== defaultType) return false;
+    return !students.some(
+      (s) =>
+        s.identifier.trim() === (r.student_identifier || "").trim() ||
+        s.studentName.trim().toLowerCase() === (r.student_full_name || "").trim().toLowerCase(),
+    );
+  });
+
+  const applyReusable = (r: (typeof reusableForType)[number]) => {
+    const entry: StudentEntry = {
+      ...newStudent(defaultType),
+      studentName: r.student_full_name || "",
+      identifier: (r.student_identifier || "").trim(),
+      institution: r.institution_name || "",
+      admissionNumber: r.admission_number || (defaultType === "university" ? (r.student_identifier || "") : ""),
+      classForm: r.class_form || "",
+      yearOfStudy: r.year_of_study || "",
+      educationCategory: (r.education_category as StudentEntry["educationCategory"]) ||
+        (defaultType === "secondary" ? "high_school" : "university"),
+      ncpwdRegistrationNumber: r.ncpwd_registration_number || undefined,
+      disabilityType: r.disability_type || undefined,
+    };
+    // Fill the first empty card if there is one, otherwise append.
+    const emptyCard = students.find((s) => !s.studentName.trim() && !s.identifier.trim());
+    if (emptyCard) {
+      update(emptyCard.id, { ...entry, id: emptyCard.id });
+    } else if (students.length < MAX_STUDENTS) {
+      setStudents((prev) => [...prev, entry]);
+    } else {
+      toast({ variant: "destructive", title: "Maximum of 3 students reached" });
+      return;
+    }
+    toast({ title: "Student details reused", description: "Please confirm the school and class/year are still correct." });
+  };
+
   return (
     <div className="space-y-6 py-4">
       <div className="flex items-center gap-3">
@@ -265,6 +307,29 @@ export function StudentsRepeater({ onNext, onBack, defaultType }: Props) {
           </p>
         </div>
       </div>
+
+      {reusableForType.length > 0 && (
+        <Card className="p-4 border-primary/20 bg-primary/5 space-y-2">
+          <p className="text-sm font-medium text-foreground">Reuse a student from your previous application</p>
+          <p className="text-xs text-muted-foreground">
+            These records were verified earlier. Tap to fill the form, then confirm anything that changed.
+          </p>
+          <div className="flex flex-wrap gap-2 pt-1">
+            {reusableForType.map((r) => (
+              <Button
+                key={`${r.student_identifier}-${r.student_full_name}`}
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => applyReusable(r)}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                {maskName(r.student_full_name)}
+              </Button>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {students.map((s, idx) => {
         const ls: { loading?: boolean; error?: string; verified?: boolean } = lookupState[s.id] || {};
