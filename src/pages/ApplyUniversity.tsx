@@ -141,7 +141,7 @@ function ApplicationFormContent() {
 
           <ApplicationStepper steps={steps} currentStep={currentStep} />
           <ApplicationProgressBar
-            requiredDocsCount={requiredDocs.length}
+            requiredDocsCount={DEFAULT_DOCS.length}
             uploadedDocsCount={uploadedDocs.length}
           />
 
