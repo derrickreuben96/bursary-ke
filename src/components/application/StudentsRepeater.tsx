@@ -1,4 +1,4 @@
-import { useState, useId } from "react";
+import { useState, useId, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,7 +36,7 @@ const newStudent = (defaultType: "secondary" | "university"): StudentEntry => ({
 });
 
 export function StudentsRepeater({ onNext, onBack, defaultType }: Props) {
-  const { data, updateData } = useApplication();
+  const { data, updateData, setLiveStudents } = useApplication();
   const instListId = useId();
   const courseListId = useId();
 
@@ -52,6 +52,11 @@ export function StudentsRepeater({ onNext, onBack, defaultType }: Props) {
   const [lookupState, setLookupState] = useState<Record<string, { loading: boolean; error?: string; verified?: boolean }>>({});
 
   const [dvlUploading, setDvlUploading] = useState<Record<string, boolean>>({});
+
+  // Keep the completion meter in sync with in-progress (uncommitted) entries.
+  useEffect(() => {
+    setLiveStudents(students);
+  }, [students, setLiveStudents]);
 
   const update = (id: string, patch: Partial<StudentEntry>) =>
     setStudents((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));

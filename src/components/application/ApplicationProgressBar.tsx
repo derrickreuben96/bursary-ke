@@ -21,11 +21,11 @@ export function ApplicationProgressBar({
   uploadedDocsCount = 0,
   className,
 }: Props) {
-  const { data, liveParent } = useApplication();
+  const { data, liveParent, liveStudents } = useApplication();
 
   const result = useMemo(
-    () => computeCompletion({ data, liveParent, requiredDocsCount, uploadedDocsCount }),
-    [data, liveParent, requiredDocsCount, uploadedDocsCount]
+    () => computeCompletion({ data, liveParent, liveStudents, requiredDocsCount, uploadedDocsCount }),
+    [data, liveParent, liveStudents, requiredDocsCount, uploadedDocsCount]
   );
 
   const pct = result.percent;

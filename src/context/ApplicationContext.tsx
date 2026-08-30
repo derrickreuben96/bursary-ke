@@ -94,6 +94,9 @@ interface ApplicationContextType {
    */
   liveParent: LiveParentFields;
   setLiveParent: (fields: LiveParentFields) => void;
+  /** Uncommitted student-step entries, used only by the completion meter. */
+  liveStudents: StudentEntry[];
+  setLiveStudents: (students: StudentEntry[]) => void;
   currentStep: number;
   setCurrentStep: (step: number) => void;
   resetApplication: () => void;
@@ -153,6 +156,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
   });
   const [currentStep, setCurrentStep] = useState(1);
   const [liveParent, setLiveParent] = useState<LiveParentFields>({});
+  const [liveStudents, setLiveStudents] = useState<StudentEntry[]>([]);
 
   const updateData = (newData: Partial<ApplicationData>) => {
     setData((prev) => {
@@ -167,13 +171,14 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
     setData({ students: [] });
     setCurrentStep(1);
     setLiveParent({});
+    setLiveStudents([]);
     // Wipe the draft — called after a successful submission or explicit reset.
     clearDraft();
   };
 
   return (
     <ApplicationContext.Provider
-      value={{ data, updateData, liveParent, setLiveParent, currentStep, setCurrentStep, resetApplication }}
+      value={{ data, updateData, liveParent, setLiveParent, liveStudents, setLiveStudents, currentStep, setCurrentStep, resetApplication }}
     >
       {children}
     </ApplicationContext.Provider>

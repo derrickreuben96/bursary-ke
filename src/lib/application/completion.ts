@@ -46,6 +46,8 @@ export interface CompletionInput {
   data: ApplicationData;
   /** Values currently typed into the parent step but not yet committed. */
   liveParent?: LiveParentFields;
+  /** Uncommitted student-step entries (live typing on the students step). */
+  liveStudents?: StudentEntry[];
   requiredDocsCount?: number;
   uploadedDocsCount?: number;
 }
@@ -67,7 +69,7 @@ function studentFilled(s: StudentEntry): { filled: number; total: number } {
 }
 
 export function computeCompletion(input: CompletionInput): CompletionResult {
-  const { data, liveParent, requiredDocsCount = 0, uploadedDocsCount = 0 } = input;
+  const { data, liveParent, liveStudents, requiredDocsCount = 0, uploadedDocsCount = 0 } = input;
 
   // ---- Guardian ------------------------------------------------------
   const parent = { ...(data.parentGuardian ?? {}), ...(liveParent ?? {}) } as LiveParentFields;
@@ -101,7 +103,14 @@ export function computeCompletion(input: CompletionInput): CompletionResult {
   };
 
   // ---- Students --------------------------------------------------------
-  const students = data.students ?? [];
+  const committed = data.students ?? [];
+  // Live entries replace committed entries of the same education type so the
+  // meter reacts while the applicant types, before the step is submitted.
+  const liveTypes = new Set((liveStudents ?? []).map((s) => s.studentType));
+  const students =
+    liveStudents && liveStudents.length > 0
+      ? [...committed.filter((s) => !liveTypes.has(s.studentType)), ...liveStudents]
+      : committed;
   const expectedTypes: Array<"secondary" | "university"> = [];
   if (levels?.secondary) expectedTypes.push("secondary");
   if (levels?.higherEd) expectedTypes.push("university");
