@@ -101,6 +101,22 @@ export function SuccessModal({
             </div>
           </div>
 
+          {/* Submitted snapshot: completion meter + step-by-step status */}
+          <div className="rounded-lg border border-border p-4">
+            <ApplicationProgressBar
+              title="Submitted application completeness"
+              requiredDocsCount={requiredDocsCount}
+              uploadedDocsCount={uploadedDocsCount}
+              showChecklist={false}
+              forceStatic
+              className="mb-3"
+            />
+            <CompletionStepStatus
+              requiredDocsCount={requiredDocsCount}
+              uploadedDocsCount={uploadedDocsCount}
+            />
+          </div>
+
           {/* Important Notice */}
           <div className="bg-accent/10 border border-accent/20 rounded-lg p-4 text-sm">
             <p className="font-medium text-foreground mb-1">Important!</p>
