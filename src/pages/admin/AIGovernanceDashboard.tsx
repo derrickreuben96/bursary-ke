@@ -40,9 +40,25 @@ export default function AIGovernanceDashboard() {
         setAvgScore(Math.round(rows.reduce((n, r) => n + r.needs_score, 0) / rows.length));
         setAvgAlloc(Math.round(rows.reduce((n, r) => n + Number(r.recommended_allocation), 0) / rows.length));
       }
+      // Resolve each log entry's cohort from the linked student so the
+      // higher-education drift row reflects real data.
+      const studentIds = Array.from(
+        new Set(rows.map((r) => r.student_beneficiary_id).filter((x): x is string => !!x)),
+      );
+      const cohortById = new Map<string, "secondary" | "higher_ed">();
+      if (studentIds.length) {
+        const { data: studs } = await supabase
+          .from("student_beneficiaries" as never)
+          .select("id, student_type, education_category")
+          .in("id", studentIds);
+        for (const s of ((studs as Array<{ id: string; student_type: string | null; education_category: string | null }> | null) ?? [])) {
+          const t = (s.education_category ?? s.student_type ?? "").toLowerCase();
+          cohortById.set(s.id, t === "secondary" || t === "high_school" ? "secondary" : "higher_ed");
+        }
+      }
       const samples: RecommendationSample[] = rows.map((r) => ({
         policy_version: r.policy_version,
-        cohort: "secondary",
+        cohort: (r.student_beneficiary_id && cohortById.get(r.student_beneficiary_id)) || "secondary",
         needs_score: r.needs_score,
         recommended_allocation: Number(r.recommended_allocation),
         generated_at: r.generated_at,
