@@ -22,6 +22,20 @@ export interface CompletionSection {
   weight: number;
   filled: number;
   total: number;
+  /** Plain-language explanation of what raises the meter in this section. */
+  hint: string;
+  /** Named items still outstanding in this section. */
+  missing: string[];
+}
+
+/** Non-colour indicator of the completion band (shape + text + symbol). */
+export interface CompletionLevel {
+  key: "empty" | "started" | "halfway" | "nearly" | "complete";
+  label: string;
+  /** Text symbol usable without relying on colour. */
+  symbol: string;
+  /** Filled blocks out of 4, for a text/shape based gauge. */
+  steps: number;
 }
 
 export interface CompletionResult {
@@ -30,6 +44,10 @@ export interface CompletionResult {
   sections: CompletionSection[];
   /** First section that is not fully complete (used for the hint text). */
   nextSection?: CompletionSection;
+  /** Non-colour completion band. */
+  level: CompletionLevel;
+  /** Flat, ordered list of what is still outstanding across all sections. */
+  remaining: Array<{ sectionKey: string; sectionLabel: string; item: string }>;
 }
 
 export interface LiveParentFields {
@@ -60,12 +78,31 @@ function ratio(filled: number, total: number) {
   return Math.max(0, Math.min(1, filled / total));
 }
 
-function studentFilled(s: StudentEntry): { filled: number; total: number } {
-  const required: unknown[] =
+function studentFilled(s: StudentEntry): { filled: number; total: number; missing: string[] } {
+  const required: Array<[string, unknown]> =
     s.studentType === "secondary"
-      ? [s.studentName, s.identifier, s.institution, s.classForm]
-      : [s.studentName, s.identifier, s.institution, s.yearOfStudy];
-  return { filled: required.filter(nonEmpty).length, total: required.length };
+      ? [
+          ["Student name", s.studentName],
+          ["NEMIS ID", s.identifier],
+          ["School", s.institution],
+          ["Class / Form", s.classForm],
+        ]
+      : [
+          ["Student name", s.studentName],
+          ["Student ID", s.identifier],
+          ["Institution", s.institution],
+          ["Year of study", s.yearOfStudy],
+        ];
+  const missing = required.filter(([, v]) => !nonEmpty(v)).map(([k]) => k);
+  return { filled: required.length - missing.length, total: required.length, missing };
+}
+
+function levelFor(percent: number): CompletionLevel {
+  if (percent <= 0) return { key: "empty", label: "Not started", symbol: "○", steps: 0 };
+  if (percent < 40) return { key: "started", label: "Just started", symbol: "◔", steps: 1 };
+  if (percent < 70) return { key: "halfway", label: "Halfway there", symbol: "◑", steps: 2 };
+  if (percent < 100) return { key: "nearly", label: "Almost done", symbol: "◕", steps: 3 };
+  return { key: "complete", label: "Ready to submit", symbol: "●", steps: 4 };
 }
 
 export function computeCompletion(input: CompletionInput): CompletionResult {
@@ -73,21 +110,24 @@ export function computeCompletion(input: CompletionInput): CompletionResult {
 
   // ---- Guardian ------------------------------------------------------
   const parent = { ...(data.parentGuardian ?? {}), ...(liveParent ?? {}) } as LiveParentFields;
-  const parentRequired = [
-    parent.fullName,
-    parent.nationalId,
-    parent.phoneNumber,
-    parent.county,
-    parent.ward,
-    parent.selectedAdvertId,
+  const parentRequired: Array<[string, unknown]> = [
+    ["Full name", parent.fullName],
+    ["National ID", parent.nationalId],
+    ["Phone number", parent.phoneNumber],
+    ["County", parent.county],
+    ["Ward", parent.ward],
+    ["Bursary advert", parent.selectedAdvertId],
   ];
+  const parentMissing = parentRequired.filter(([, v]) => !nonEmpty(v)).map(([k]) => k);
   const parentSection: CompletionSection = {
     key: "parent",
     label: "Guardian details",
     weight: 30,
-    filled: parentRequired.filter(nonEmpty).length,
+    filled: parentRequired.length - parentMissing.length,
     total: parentRequired.length,
-    ratio: ratio(parentRequired.filter(nonEmpty).length, parentRequired.length),
+    ratio: ratio(parentRequired.length - parentMissing.length, parentRequired.length),
+    hint: "Each guardian field you complete — name, National ID, phone, county, ward and the bursary you are applying to — adds about 5% to the meter.",
+    missing: parentMissing,
   };
 
   // ---- Education level ------------------------------------------------
@@ -100,6 +140,8 @@ export function computeCompletion(input: CompletionInput): CompletionResult {
     filled: eduPicked ? 1 : 0,
     total: 1,
     ratio: eduPicked ? 1 : 0,
+    hint: "Choosing Secondary, University/College or Both adds 10% and decides which student steps appear next.",
+    missing: eduPicked ? [] : ["Choose Secondary, University/College or Both"],
   };
 
   // ---- Students --------------------------------------------------------
@@ -117,18 +159,30 @@ export function computeCompletion(input: CompletionInput): CompletionResult {
 
   let sFilled = 0;
   let sTotal = 0;
+  const studentMissing: string[] = [];
   if (students.length > 0) {
-    for (const s of students) {
+    students.forEach((s, i) => {
       const r = studentFilled(s);
       sFilled += r.filled;
       sTotal += r.total;
-    }
+      for (const m of r.missing) {
+        studentMissing.push(`Student ${i + 1}: ${m}`);
+      }
+    });
   }
   // Any selected level with no student yet still counts as outstanding work.
   for (const t of expectedTypes) {
-    if (!students.some((s) => s.studentType === t)) sTotal += 4;
+    if (!students.some((s) => s.studentType === t)) {
+      sTotal += 4;
+      studentMissing.push(
+        t === "secondary" ? "Add a secondary school student" : "Add a university/college student"
+      );
+    }
   }
-  if (sTotal === 0) sTotal = 4;
+  if (sTotal === 0) {
+    sTotal = 4;
+    if (studentMissing.length === 0) studentMissing.push("Add at least one student");
+  }
   const studentSection: CompletionSection = {
     key: "students",
     label: "Student details",
@@ -136,6 +190,8 @@ export function computeCompletion(input: CompletionInput): CompletionResult {
     filled: sFilled,
     total: sTotal,
     ratio: ratio(sFilled, sTotal),
+    hint: "Adding each student and filling their name, ID, institution and class/year moves the meter — this stage is worth 25% in total.",
+    missing: studentMissing,
   };
 
   // ---- Assessment ------------------------------------------------------
@@ -149,26 +205,41 @@ export function computeCompletion(input: CompletionInput): CompletionResult {
     filled: assessmentDone ? 1 : 0,
     total: 1,
     ratio: assessmentDone ? 1 : 0,
+    hint: "Completing the household assessment questions adds 20%. Answers must be consistent before you can continue.",
+    missing: assessmentDone ? [] : ["Answer the household assessment questions"],
   };
 
   // ---- Documents -------------------------------------------------------
   const docTotal = Math.max(1, requiredDocsCount);
+  const uploaded = Math.min(uploadedDocsCount, docTotal);
   const docSection: CompletionSection = {
     key: "documents",
     label: "Supporting documents",
     weight: 15,
-    filled: Math.min(uploadedDocsCount, docTotal),
+    filled: uploaded,
     total: docTotal,
     ratio: ratio(uploadedDocsCount, docTotal),
+    hint: `Each supporting document you upload adds an equal share of 15% (${docTotal} required in total).`,
+    missing:
+      uploaded >= docTotal
+        ? []
+        : [`Upload ${docTotal - uploaded} more supporting document${docTotal - uploaded === 1 ? "" : "s"}`],
   };
 
   const sections = [parentSection, eduSection, studentSection, assessmentSection, docSection];
   const totalWeight = sections.reduce((a, s) => a + s.weight, 0);
   const score = sections.reduce((a, s) => a + s.ratio * s.weight, 0);
+  const percent = Math.round((score / totalWeight) * 100);
+
+  const remaining = sections.flatMap((s) =>
+    s.missing.map((item) => ({ sectionKey: s.key, sectionLabel: s.label, item }))
+  );
 
   return {
-    percent: Math.round((score / totalWeight) * 100),
+    percent,
     sections,
     nextSection: sections.find((s) => s.ratio < 1),
+    level: levelFor(percent),
+    remaining,
   };
 }
