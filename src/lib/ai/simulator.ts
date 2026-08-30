@@ -89,6 +89,8 @@ export function simulatePolicy(input: SimulationInput): SimulationResult {
     const sorted = [...perStudent]
       .filter((p) => p.eligible)
       .sort((a, b) => b.score - a.score);
+    // Capture total need BEFORE the greedy loop clamps allocations down.
+    const requested = sorted.reduce((n, p) => n + p.allocation, 0);
     let remaining = input.budget;
     for (const p of sorted) {
       if (remaining >= p.allocation) {
@@ -103,7 +105,6 @@ export function simulatePolicy(input: SimulationInput): SimulationResult {
       }
     }
     budgetRemaining = Math.max(0, remaining);
-    const requested = sorted.reduce((n, p) => n + p.allocation, 0);
     budgetDeficit = Math.max(0, requested - input.budget);
   }
 

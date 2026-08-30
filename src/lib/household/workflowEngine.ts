@@ -21,9 +21,9 @@ export function availableActions(role: DashboardRole, h: Household): HouseholdAc
     if (raw === "approved" && !h.released_to_treasury) {
       return ["view", "release_to_treasury", "print_summary"];
     }
-    if (raw === "approved") return ["view", "print_summary"];
-    if (raw === "rejected" || raw === "disbursed") return ["view", "print_summary"];
-    return ["view", "approve", "reject", "return_for_correction", "print_summary"];
+    // Approval / rejection are owned by the AI Allocation Engine in this
+    // project, so no manual decision buttons are offered here.
+    return ["view", "print_summary"];
   }
   if (role === "treasury") {
     if (!h.released_to_treasury) return ["view"];
