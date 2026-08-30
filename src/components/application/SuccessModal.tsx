@@ -11,15 +11,26 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle2, Copy, Check, Home, FileSearch, Download } from "lucide-react";
 import { useApplication } from "@/context/ApplicationContext";
 import { downloadApplicationReceipt } from "@/lib/applicationReceipt";
+import { ApplicationProgressBar } from "@/components/application/ApplicationProgressBar";
+import { CompletionStepStatus } from "@/components/application/CompletionStepStatus";
 
 interface SuccessModalProps {
   isOpen: boolean;
+  requiredDocsCount?: number;
+  uploadedDocsCount?: number;
   trackingNumber: string;
   onClose: () => void;
   studentType?: "secondary" | "university";
 }
 
-export function SuccessModal({ isOpen, trackingNumber, onClose, studentType = "secondary" }: SuccessModalProps) {
+export function SuccessModal({
+  isOpen,
+  trackingNumber,
+  onClose,
+  studentType = "secondary",
+  requiredDocsCount = 0,
+  uploadedDocsCount = 0,
+}: SuccessModalProps) {
   const [copied, setCopied] = useState(false);
   const { data, resetApplication } = useApplication();
 

@@ -226,6 +226,8 @@ function ApplicationFormContent() {
               onBack={goBack}
               onSuccess={handleSuccess}
               studentType={reviewStudentType}
+              requiredDocsCount={requiredDocs.length}
+              uploadedDocsCount={uploadedDocs.length}
             />
           )}
         </div>
@@ -235,6 +237,8 @@ function ApplicationFormContent() {
           trackingNumber={trackingNumber}
           onClose={handleCloseSuccess}
           studentType={reviewStudentType}
+          requiredDocsCount={requiredDocs.length}
+          uploadedDocsCount={uploadedDocs.length}
         />
         <LeaveApplicationGuard submitted={showSuccess} />
       </main>
