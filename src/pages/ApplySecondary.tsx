@@ -5,6 +5,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { ApplicationProvider, useApplication } from "@/context/ApplicationContext";
 import { ApplicationStepper } from "@/components/application/ApplicationStepper";
+import { ApplicationProgressBar } from "@/components/application/ApplicationProgressBar";
 import { ParentGuardianForm } from "@/components/application/ParentGuardianForm";
 import { EducationLevelSelect } from "@/components/application/EducationLevelSelect";
 import { StudentsRepeater } from "@/components/application/StudentsRepeater";
@@ -184,6 +185,10 @@ function ApplicationFormContent() {
 
         <div className="max-w-3xl mx-auto">
           <ApplicationStepper steps={steps} currentStep={currentStep} />
+          <ApplicationProgressBar
+            requiredDocsCount={requiredDocs.length}
+            uploadedDocsCount={uploadedDocs.length}
+          />
         </div>
 
         <div className="max-w-2xl mx-auto">

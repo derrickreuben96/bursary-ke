@@ -5,6 +5,7 @@ import { Footer } from "@/components/layout/Footer";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ApplicationStepper } from "@/components/application/ApplicationStepper";
+import { ApplicationProgressBar } from "@/components/application/ApplicationProgressBar";
 import { ParentGuardianForm } from "@/components/application/ParentGuardianForm";
 import { EducationLevelSelect } from "@/components/application/EducationLevelSelect";
 import { StudentsRepeater } from "@/components/application/StudentsRepeater";
@@ -139,6 +140,10 @@ function ApplicationFormContent() {
           </div>
 
           <ApplicationStepper steps={steps} currentStep={currentStep} />
+          <ApplicationProgressBar
+            requiredDocsCount={requiredDocs.length}
+            uploadedDocsCount={uploadedDocs.length}
+          />
 
           <Card className="p-6 md:p-8 shadow-card">
             {activeKey === "parent" && <ParentGuardianForm onNext={goNext} />}
