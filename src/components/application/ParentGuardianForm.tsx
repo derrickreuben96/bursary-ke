@@ -26,6 +26,7 @@ import { parentGuardianSchema, type ParentGuardianFormData } from "@/lib/validat
 import { useApplication } from "@/context/ApplicationContext";
 import { PhoneConsentModal } from "./PhoneConsentModal";
 import { useKenyaLocations } from "@/lib/useKenyaLocations";
+import { ReturningGuardianPrefill, type ReusableParentProfile } from "./ReturningGuardianPrefill";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -44,7 +45,7 @@ interface ParentGuardianFormProps {
 }
 
 export function ParentGuardianForm({ onNext }: ParentGuardianFormProps) {
-  const { data, updateData } = useApplication();
+  const { data, updateData, setLiveParent } = useApplication();
   const { wardsByCounty, countyNames, loading: locationsLoading } = useKenyaLocations();
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [pendingFormData, setPendingFormData] = useState<ParentGuardianFormData | null>(null);
@@ -67,6 +68,52 @@ export function ParentGuardianForm({ onNext }: ParentGuardianFormProps) {
 
   const selectedCounty = form.watch("county");
   const selectedWard = form.watch("ward");
+
+  // Feed the live completion meter (Document Intelligence) with the values
+  // currently typed in, so the bar moves field-by-field rather than only on
+  // step submission. Values are kept in memory only.
+  const watched = form.watch();
+  useEffect(() => {
+    setLiveParent({
+      fullName: watched.fullName,
+      nationalId: watched.nationalId,
+      phoneNumber: watched.phoneNumber,
+      email: watched.email,
+      county: watched.county,
+      ward: watched.ward,
+      selectedAdvertId: watched.selectedAdvertId,
+    });
+  }, [
+    watched.fullName,
+    watched.nationalId,
+    watched.phoneNumber,
+    watched.email,
+    watched.county,
+    watched.ward,
+    watched.selectedAdvertId,
+    setLiveParent,
+  ]);
+
+  /**
+   * Returning-guardian reuse: copy the consented, already-verified profile
+   * into the form. County/ward are applied last (and the reset guards are
+   * primed) so the cascading selects do not wipe the restored ward.
+   */
+  const applyReusedProfile = (p: ReusableParentProfile) => {
+    if (p.full_name) form.setValue("fullName", p.full_name, { shouldValidate: true });
+    if (p.national_id) form.setValue("nationalId", p.national_id, { shouldValidate: true });
+    if (p.phone) form.setValue("phoneNumber", p.phone, { shouldValidate: true });
+    if (p.email) form.setValue("email", p.email);
+    if (p.county) {
+      prevCountyRef.current = p.county;
+      form.setValue("county", p.county, { shouldValidate: true });
+    }
+    // Ward options only exist once the county's ward list has loaded, so the
+    // ward is applied by the effect below when its option is available.
+    if (p.ward) setPendingWard(p.ward);
+  };
+
+  const [pendingWard, setPendingWard] = useState<string | null>(null);
 
   // Fetch open bursary adverts
   useEffect(() => {
@@ -102,6 +149,15 @@ export function ParentGuardianForm({ onNext }: ParentGuardianFormProps) {
     if (!selectedCounty) return [];
     return wardsByCounty[selectedCounty] || [];
   }, [selectedCounty]);
+
+  // Apply a reused ward once its option exists in the loaded ward list.
+  useEffect(() => {
+    if (!pendingWard) return;
+    if (!availableWards.includes(pendingWard)) return;
+    prevWardRef.current = pendingWard;
+    form.setValue("ward", pendingWard, { shouldValidate: true });
+    setPendingWard(null);
+  }, [pendingWard, availableWards]);
 
   // Filter adverts for selected county + ward
   const availableAdverts = useMemo(() => {
@@ -159,6 +215,9 @@ export function ParentGuardianForm({ onNext }: ParentGuardianFormProps) {
     <>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          {/* Returning guardian: consent-gated reuse of verified details */}
+          <ReturningGuardianPrefill onApply={applyReusedProfile} />
+
           {/* Security Notice */}
           <Card className="p-4 bg-primary/5 border-primary/20">
             <div className="flex gap-3">
