@@ -1,8 +1,8 @@
 import { useMemo } from "react";
-import { BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useApplication } from "@/context/ApplicationContext";
 import { computeCompletion } from "@/lib/application/completion";
+import { LOGO_URL } from "@/lib/brandLogo";
 
 interface Props {
   requiredDocsCount?: number;
@@ -11,10 +11,11 @@ interface Props {
 }
 
 /**
- * Kenyan-themed completion meter.
- * The travelling indicator is a book (education) sitting in a green → red
- * gradient track that mirrors the national palette used across the app.
- * All colours come from semantic tokens (primary / accent / foreground).
+ * Kenyan-flag themed completion meter.
+ * The track carries the flag's black → white → red → white → green
+ * horizontal stripes; the fill sweeps Kenya green into Kenya red, and the
+ * travelling indicator is a badge holding the Bursary-KE logo.
+ * All colours come from semantic tokens (kenya / primary / accent).
  */
 export function ApplicationProgressBar({
   requiredDocsCount = 0,
@@ -40,7 +41,11 @@ export function ApplicationProgressBar({
       </div>
 
       <div
-        className="relative h-3 w-full rounded-full bg-muted overflow-visible"
+        className="relative h-3 w-full rounded-full overflow-visible border border-border"
+        style={{
+          backgroundImage:
+            "linear-gradient(180deg, hsl(var(--kenya-black)) 0%, hsl(var(--kenya-black)) 28%, hsl(var(--kenya-white)) 28%, hsl(var(--kenya-white)) 38%, hsl(var(--kenya-red)) 38%, hsl(var(--kenya-red)) 62%, hsl(var(--kenya-white)) 62%, hsl(var(--kenya-white)) 72%, hsl(var(--kenya-green)) 72%, hsl(var(--kenya-green)) 100%)",
+        }}
         role="progressbar"
         aria-valuemin={0}
         aria-valuemax={100}
@@ -48,16 +53,30 @@ export function ApplicationProgressBar({
         aria-label="Application completeness"
       >
         <div
-          className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-primary via-primary to-accent transition-all duration-500 ease-out"
-          style={{ width: `${pct}%` }}
+          className="absolute inset-y-0 left-0 rounded-full transition-all duration-500 ease-out"
+          style={{
+            width: `${pct}%`,
+            backgroundImage:
+              "linear-gradient(90deg, hsl(var(--kenya-green)) 0%, hsl(var(--kenya-green) / 0.9) 55%, hsl(var(--kenya-red)) 100%)",
+          }}
         />
-        {/* Travelling book indicator */}
+        {/* Travelling Bursary-KE logo badge */}
         <div
           className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 transition-all duration-500 ease-out"
-          style={{ left: `${Math.min(Math.max(pct, 3), 97)}%` }}
+          style={{ left: `${Math.min(Math.max(pct, 4), 96)}%` }}
         >
-          <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-primary bg-background shadow-md">
-            <BookOpen className="h-4 w-4 text-primary" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-kenya-green bg-background shadow-kenya">
+            <img
+              src={LOGO_URL}
+              alt="Bursary-KE logo"
+              className="h-6 w-6 rounded-full object-contain"
+            />
+          </div>
+          {/* Kenyan flag tip under the badge */}
+          <div className="mx-auto mt-0.5 h-1.5 w-6 rounded-full overflow-hidden flex">
+            <span className="flex-1 bg-kenya-black" />
+            <span className="flex-1 bg-kenya-red" />
+            <span className="flex-1 bg-kenya-green" />
           </div>
         </div>
       </div>
