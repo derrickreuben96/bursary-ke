@@ -105,7 +105,6 @@ export function simulatePolicy(input: SimulationInput): SimulationResult {
       }
     }
     budgetRemaining = Math.max(0, remaining);
-    const requested = sorted.reduce((n, p) => n + p.allocation, 0);
     budgetDeficit = Math.max(0, requested - input.budget);
   }
 
