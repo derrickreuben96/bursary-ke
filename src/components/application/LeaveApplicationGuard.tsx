@@ -62,8 +62,9 @@ export function LeaveApplicationGuard({ submitted = false }: { submitted?: boole
     confirmedRef.current = true;
     resetApplication();
     setOpen(false);
-    // Step back past our sentinel + the original entry.
-    window.history.go(-1);
+    // Step back past our sentinel + the original entry so the applicant
+    // actually lands on the page they came from.
+    window.history.go(-2);
   }, [resetApplication]);
 
   const handleStay = useCallback(() => {
