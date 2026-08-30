@@ -265,6 +265,37 @@
   animation: attention-glow 2.2s ease-in-out infinite;
 }
 
+/* Lively completion meter: shimmer sweep across the fill, gentle logo bob,
+   and a small pop when the percentage changes. */
+@keyframes meter-shimmer {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(320%); }
+}
+
+@keyframes meter-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+@keyframes pct-pop {
+  0% { transform: scale(0.7); opacity: 0.4; }
+  60% { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-meter-shimmer {
+  animation: meter-shimmer 2.8s ease-in-out infinite;
+}
+
+.animate-meter-bob {
+  animation: meter-bob 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-meter-shimmer,
+  .animate-meter-bob { animation: none; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-attention-glow { animation: none; box-shadow: 0 0 0 2px hsl(var(--primary) / 0.5); }
 }
