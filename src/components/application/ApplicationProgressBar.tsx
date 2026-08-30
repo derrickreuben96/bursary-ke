@@ -56,6 +56,7 @@ export function ApplicationProgressBar({
   const level = result.level;
   const gauge = "■".repeat(level.steps) + "□".repeat(4 - level.steps);
   const motion = isStatic ? "" : "transition-all duration-500 ease-out";
+  const done = pct >= 100;
 
   return (
     <TooltipProvider delayDuration={150}>
@@ -66,11 +67,24 @@ export function ApplicationProgressBar({
             <span aria-hidden="true" className="font-mono tracking-[0.15em] text-muted-foreground">
               {gauge}
             </span>
-            <span className="rounded-full border border-border px-2 py-0.5">
+            <span
+              className={cn(
+                "rounded-full border border-border px-2 py-0.5",
+                done && !isStatic && "animate-attention-glow border-primary/60 text-primary"
+              )}
+            >
               <span aria-hidden="true" className="mr-1">{level.symbol}</span>
               {level.label}
             </span>
-            <span>{pct}%</span>
+            <span
+              key={pct}
+              className={cn(
+                "inline-block min-w-[3ch] text-right",
+                !isStatic && "animate-[pct-pop_0.4s_ease-out]"
+              )}
+            >
+              {pct}%
+            </span>
           </span>
         </div>
 
@@ -92,21 +106,38 @@ export function ApplicationProgressBar({
                 "linear-gradient(180deg, hsl(var(--kenya-black)) 0%, hsl(var(--kenya-black)) 28%, hsl(var(--kenya-white)) 28%, hsl(var(--kenya-white)) 38%, hsl(var(--kenya-red)) 38%, hsl(var(--kenya-red)) 62%, hsl(var(--kenya-white)) 62%, hsl(var(--kenya-white)) 72%, hsl(var(--kenya-green)) 72%, hsl(var(--kenya-green)) 100%)",
             }}
           />
-          {/* Fill: solid Kenya green→red plus a hatch pattern (non-colour cue) */}
+          {/* Fill: Kenya green→red, hatch (non-colour cue) + travelling shimmer */}
           <div
-            className={cn("absolute inset-y-0 left-0 rounded-full", motion)}
+            className={cn("absolute inset-y-0 left-0 overflow-hidden rounded-full", motion)}
             style={{
               width: `${pct}%`,
               backgroundImage:
                 "repeating-linear-gradient(45deg, hsl(var(--kenya-white) / 0.35) 0 4px, transparent 4px 9px), linear-gradient(90deg, hsl(var(--kenya-green)) 0%, hsl(var(--kenya-green)) 55%, hsl(var(--kenya-red)) 100%)",
             }}
-          />
+          >
+            {!isStatic && (
+              <div
+                aria-hidden="true"
+                className="animate-meter-shimmer absolute inset-y-0 w-1/2 rounded-full"
+                style={{
+                  backgroundImage:
+                    "linear-gradient(100deg, transparent 0%, hsl(var(--kenya-white) / 0.45) 45%, hsl(var(--kenya-white) / 0.6) 50%, hsl(var(--kenya-white) / 0.45) 55%, transparent 100%)",
+                }}
+              />
+            )}
+          </div>
           {/* Bursary-KE logo marker */}
           <div
             className={cn("absolute top-1/2 -translate-y-1/2 -translate-x-1/2", motion)}
             style={{ left: `${Math.min(Math.max(pct, 4), 96)}%` }}
           >
-            <div className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-kenya-green bg-background shadow-kenya">
+            <div
+              className={cn(
+                "flex h-9 w-9 items-center justify-center rounded-full border-2 border-kenya-green bg-background shadow-kenya",
+                !isStatic && "animate-meter-bob",
+                done && "border-primary"
+              )}
+            >
               <img
                 src={LOGO_URL}
                 alt=""
