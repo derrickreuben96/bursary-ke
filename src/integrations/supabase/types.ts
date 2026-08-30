@@ -2317,6 +2317,10 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_reusable_guardian_profile: {
+        Args: { _consent?: boolean; _national_id: string; _phone: string }
+        Returns: Json
+      }
       get_treasury_applications: {
         Args: never
         Returns: {
