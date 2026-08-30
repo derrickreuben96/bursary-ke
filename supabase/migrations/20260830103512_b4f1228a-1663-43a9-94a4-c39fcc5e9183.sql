@@ -1,0 +1,1 @@
+ALTER FUNCTION public.get_reusable_guardian_profile(text, text, boolean) VOLATILE;
