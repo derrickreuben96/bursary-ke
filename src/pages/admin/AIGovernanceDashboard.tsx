@@ -12,7 +12,7 @@ import { computeDrift, type RecommendationSample } from "@/lib/ai/governance/dri
 import { Activity, Gauge, ShieldCheck, TrendingUp, Sliders, PlayCircle } from "lucide-react";
 
 interface PolicyRow { id: string; name: string; version: string; status: string; activated_at: string | null }
-interface RecLogRow { policy_version: string; needs_score: number; recommended_allocation: number; generated_at: string; reasons: unknown }
+interface RecLogRow { policy_version: string; needs_score: number; recommended_allocation: number; generated_at: string; reasons: unknown; student_beneficiary_id: string | null }
 interface Notif { id: string; kind: string; severity: string; title: string; created_at: string; acknowledged_at: string | null }
 
 export default function AIGovernanceDashboard() {
