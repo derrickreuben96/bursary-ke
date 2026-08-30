@@ -180,6 +180,8 @@ function ApplicationFormContent() {
                 onBack={goBack}
                 onSuccess={handleSuccess}
                 studentType={reviewStudentType}
+                requiredDocsCount={DEFAULT_DOCS.length}
+                uploadedDocsCount={uploadedDocs.length}
               />
             )}
           </Card>
@@ -204,6 +206,8 @@ function ApplicationFormContent() {
         trackingNumber={trackingNumber}
         onClose={handleCloseSuccess}
         studentType={reviewStudentType}
+        requiredDocsCount={DEFAULT_DOCS.length}
+        uploadedDocsCount={uploadedDocs.length}
       />
       <LeaveApplicationGuard submitted={showSuccess} />
     </div>

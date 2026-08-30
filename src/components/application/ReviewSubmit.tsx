@@ -8,14 +8,24 @@ import { maskId, maskPhone, maskEmail, maskStudentId, maskName } from "@/lib/mas
 import { useToast } from "@/hooks/use-toast";
 import { calculatePovertyScore, getPovertyTier } from "@/lib/validationSchemas";
 import { detectConsistencyWarnings } from "@/lib/validation/consistency";
+import { ApplicationProgressBar } from "@/components/application/ApplicationProgressBar";
+import { CompletionStepStatus } from "@/components/application/CompletionStepStatus";
 
 interface ReviewSubmitProps {
   onBack: () => void;
   onSuccess: (trackingNumber: string) => void;
   studentType: "secondary" | "university";
+  requiredDocsCount?: number;
+  uploadedDocsCount?: number;
 }
 
-export function ReviewSubmit({ onBack, onSuccess, studentType }: ReviewSubmitProps) {
+export function ReviewSubmit({
+  onBack,
+  onSuccess,
+  studentType,
+  requiredDocsCount = 0,
+  uploadedDocsCount = 0,
+}: ReviewSubmitProps) {
   const { data } = useApplication();
   const { toast } = useToast();
   const [confirmed, setConfirmed] = useState(false);
@@ -71,6 +81,20 @@ export function ReviewSubmit({ onBack, onSuccess, studentType }: ReviewSubmitPro
 
   return (
     <div className="space-y-6">
+      {/* Completion meter + step-by-step status */}
+      <Card className="p-4">
+        <ApplicationProgressBar
+          title="Application completeness"
+          requiredDocsCount={requiredDocsCount}
+          uploadedDocsCount={uploadedDocsCount}
+          className="mb-4"
+        />
+        <CompletionStepStatus
+          requiredDocsCount={requiredDocsCount}
+          uploadedDocsCount={uploadedDocsCount}
+        />
+      </Card>
+
       {/* Info Card */}
       <Card className="p-4 bg-primary/5 border-primary/20">
         <div className="flex gap-3">
