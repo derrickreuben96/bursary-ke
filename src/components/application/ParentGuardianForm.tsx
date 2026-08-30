@@ -108,11 +108,12 @@ export function ParentGuardianForm({ onNext }: ParentGuardianFormProps) {
       prevCountyRef.current = p.county;
       form.setValue("county", p.county, { shouldValidate: true });
     }
-    if (p.ward) {
-      prevWardRef.current = p.ward;
-      form.setValue("ward", p.ward, { shouldValidate: true });
-    }
+    // Ward options only exist once the county's ward list has loaded, so the
+    // ward is applied by the effect below when its option is available.
+    if (p.ward) setPendingWard(p.ward);
   };
+
+  const [pendingWard, setPendingWard] = useState<string | null>(null);
 
   // Fetch open bursary adverts
   useEffect(() => {
@@ -148,6 +149,15 @@ export function ParentGuardianForm({ onNext }: ParentGuardianFormProps) {
     if (!selectedCounty) return [];
     return wardsByCounty[selectedCounty] || [];
   }, [selectedCounty]);
+
+  // Apply a reused ward once its option exists in the loaded ward list.
+  useEffect(() => {
+    if (!pendingWard) return;
+    if (!availableWards.includes(pendingWard)) return;
+    prevWardRef.current = pendingWard;
+    form.setValue("ward", pendingWard, { shouldValidate: true });
+    setPendingWard(null);
+  }, [pendingWard, availableWards]);
 
   // Filter adverts for selected county + ward
   const availableAdverts = useMemo(() => {
