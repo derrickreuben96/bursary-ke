@@ -116,7 +116,7 @@ export function ApplicationProgressBar({
                 className="h-7 w-7 shrink-0"
                 onClick={() => setCollapsed((value) => !value)}
                 aria-expanded={!collapsed}
-                aria-controls="application-progress-details"
+                aria-controls={detailsId}
                 aria-label={collapsed ? "Expand completion details" : "Collapse completion details"}
               >
                 {collapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
