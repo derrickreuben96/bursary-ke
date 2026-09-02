@@ -58,9 +58,22 @@ export function ApplicationProgressBar({
   const motion = isStatic ? "" : "transition-all duration-500 ease-out";
   const done = pct >= 100;
 
+  // Fire confetti once each time the meter newly reaches 100%.
+  const [celebrate, setCelebrate] = useState(false);
+  useEffect(() => {
+    if (!done || isStatic) {
+      setCelebrate(false);
+      return;
+    }
+    setCelebrate(true);
+    const timer = window.setTimeout(() => setCelebrate(false), 1800);
+    return () => window.clearTimeout(timer);
+  }, [done, isStatic]);
+
   return (
     <TooltipProvider delayDuration={150}>
       <div className={cn("w-full mb-6", className)} aria-live="polite">
+
         <div className="flex items-center justify-between gap-3 mb-2">
           <span className="text-xs font-semibold text-foreground">{title}</span>
           <span className="flex items-center gap-2 text-xs font-semibold text-foreground tabular-nums">
