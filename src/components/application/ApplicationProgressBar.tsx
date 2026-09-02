@@ -203,7 +203,7 @@ export function ApplicationProgressBar({
           </p>
         )}
 
-        <div id="application-progress-details" className={cn(isMobile && collapsed && "hidden")}>
+        <div id={detailsId} className={cn(isMobile && collapsed && "hidden")}>
           {/* Section chips with contextual tooltips */}
           <div className="mt-4 flex flex-wrap gap-x-3 gap-y-1.5">
             {result.sections.map((s) => (
