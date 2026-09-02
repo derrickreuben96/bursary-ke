@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useId, useMemo, useState, type CSSProperties } from "react";
 import { cn } from "@/lib/utils";
 import { useApplication } from "@/context/ApplicationContext";
 import { computeCompletion, type CompletionSection } from "@/lib/application/completion";
