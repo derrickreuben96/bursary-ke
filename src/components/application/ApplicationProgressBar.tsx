@@ -166,7 +166,20 @@ export function ApplicationProgressBar({
               </div>
             )}
           </div>
+          {celebrate && <ConfettiBurst />}
         </div>
+
+        {done && isStatic && (
+          <p
+            data-testid="completion-static-badge"
+            className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-primary/60 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary"
+          >
+            <Check className="h-3.5 w-3.5" aria-hidden="true" />
+            Application complete — ready to submit
+          </p>
+        )}
+
+
 
         {/* Section chips with contextual tooltips */}
         <div className="mt-4 flex flex-wrap gap-x-3 gap-y-1.5">
