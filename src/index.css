@@ -300,3 +300,18 @@
   .animate-attention-glow { animation: none; box-shadow: 0 0 0 2px hsl(var(--primary) / 0.5); }
 }
 
+
+/* Confetti celebration when the completion meter reaches 100% */
+@keyframes confetti-fall {
+  0% { transform: translate3d(0, -10px, 0) rotate(0deg); opacity: 0; }
+  10% { opacity: 1; }
+  100% { transform: translate3d(var(--confetti-x, 0px), 90px, 0) rotate(var(--confetti-r, 360deg)); opacity: 0; }
+}
+
+.animate-confetti-fall {
+  animation: confetti-fall 1.5s ease-in forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-confetti-fall { animation: none; display: none; }
+}
