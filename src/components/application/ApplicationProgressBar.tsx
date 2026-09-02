@@ -49,6 +49,7 @@ export function ApplicationProgressBar({
   const isMobile = useIsMobile();
   const prefersReduced = useReducedMotion();
   const isStatic = forceStatic || prefersReduced;
+  const detailsId = `application-progress-details-${useId()}`;
   const [collapsed, setCollapsed] = useState(false);
 
   const result = useMemo(
