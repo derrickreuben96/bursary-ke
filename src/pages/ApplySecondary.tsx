@@ -183,15 +183,12 @@ function ApplicationFormContent() {
           </div>
         </div>
 
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-2xl mx-auto">
           <ApplicationStepper steps={steps} currentStep={currentStep} />
           <ApplicationProgressBar
             requiredDocsCount={requiredDocs.length}
             uploadedDocsCount={uploadedDocs.length}
           />
-        </div>
-
-        <div className="max-w-2xl mx-auto">
           {activeKey === "parent" && <ParentGuardianForm onNext={goNext} />}
           {activeKey === "education" && (
             <EducationLevelSelect onNext={goNext} onBack={goBack} />
