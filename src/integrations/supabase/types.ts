@@ -2432,6 +2432,14 @@ export type Database = {
         Args: { _ids: string[] }
         Returns: Json
       }
+      treasury_disburse_students: {
+        Args: { _student_ids: string[] }
+        Returns: Json
+      }
+      update_guardian_profile: {
+        Args: { _national_id: string; _phone: string; _updates: Json }
+        Returns: Json
+      }
       workflow_backlog_snapshot: {
         Args: never
         Returns: {
