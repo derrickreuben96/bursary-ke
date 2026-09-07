@@ -141,7 +141,10 @@ export default function PolicySimulator() {
         <Card>
           <CardHeader>
             <CardTitle>Inputs</CardTitle>
-            <CardDescription>Uses the built-in default policy and a small demo household set.</CardDescription>
+            <CardDescription>
+              Runs the built-in default policy against live applicant records (secondary, university,
+              college and TVET). Falls back to a demo set only when no applications exist yet.
+            </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col sm:flex-row gap-4 items-end">
             <div className="flex-1">
