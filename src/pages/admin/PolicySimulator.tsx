@@ -75,6 +75,8 @@ export default function PolicySimulator() {
   const navigate = useNavigate();
   const [budget, setBudget] = useState<string>("500000");
   const [result, setResult] = useState<SimulationResult | null>(null);
+  const [running, setRunning] = useState(false);
+  const [source, setSource] = useState<"live" | "demo" | null>(null);
 
   if (!featureFlags.governance) {
     return (
@@ -89,25 +91,38 @@ export default function PolicySimulator() {
     );
   }
 
-  const run = () => {
+  const run = async () => {
+    setRunning(true);
     const b = Number(budget);
+    const snapshot = await loadLiveSnapshot();
+    const useLive = snapshot.households.length > 0;
+    setSource(useLive ? "live" : "demo");
     const out = simulatePolicy({
       profile: DEFAULT_POLICY_PROFILE,
-      households: demoHouseholds,
+      households: useLive ? snapshot.households : demoHouseholds,
       budget: Number.isFinite(b) && b > 0 ? b : undefined,
-      household_ctx: {
-        "demo-1": { monthly_income: 18000, single_parent: true, dependents: 4 },
-        "demo-2": { monthly_income: 8000, parent_employment: "unemployed", disabled_member: true, dependents: 5 },
-      },
-      student_ctx: {
-        s1: { school_type: "boarding", fee_balance: 45000, exam_class: true },
-        s2: { accommodation: "hostel", fee_balance: 60000 },
-        s3: { school_type: "boarding", fee_balance: 30000, walking_km: 6 },
-      },
+      household_ctx: useLive
+        ? snapshot.household_ctx
+        : {
+            "demo-1": { monthly_income: 18000, single_parent: true, dependents: 4 },
+            "demo-2": { monthly_income: 8000, parent_employment: "unemployed", disabled_member: true, dependents: 5 },
+          },
+      student_ctx: useLive
+        ? snapshot.student_ctx
+        : {
+            s1: { school_type: "boarding", fee_balance: 45000, exam_class: true },
+            s2: { accommodation: "hostel", fee_balance: 60000 },
+            s3: { school_type: "boarding", fee_balance: 30000, walking_km: 6 },
+          },
     });
     setResult(out);
-    toast({ title: "Simulation complete", description: `${out.students_funded} students would be funded.` });
+    setRunning(false);
+    toast({
+      title: "Simulation complete",
+      description: `${out.students_funded} students would be funded from ${useLive ? "live applicant data" : "the demo set"}.`,
+    });
   };
+
 
   return (
     <div className="min-h-screen flex flex-col">
