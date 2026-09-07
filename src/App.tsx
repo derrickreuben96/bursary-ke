@@ -22,6 +22,8 @@ import AdminDisbursements from "./pages/AdminDisbursements";
 import AdminUserManagement from "./pages/AdminUserManagement";
 import TreasuryLogin from "./pages/TreasuryLogin";
 import TreasuryDashboard from "./pages/TreasuryDashboard";
+import TreasuryDisbursements from "./pages/TreasuryDisbursements";
+import GuardianProfile from "./pages/GuardianProfile";
 import CommissionerLogin from "./pages/CommissionerLogin";
 import CommissionerDashboard from "./pages/CommissionerDashboard";
 import NotFound from "./pages/NotFound";
