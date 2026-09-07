@@ -10,6 +10,7 @@ import { Seo } from "@/components/seo/Seo";
 import { featureFlags } from "@/lib/featureFlags";
 import { DEFAULT_POLICY_PROFILE } from "@/lib/ai/policyProfile";
 import { simulatePolicy, type SimulationResult } from "@/lib/ai/simulator";
+import { loadLiveSnapshot } from "@/lib/ai/liveSnapshot";
 import type { Household } from "@/lib/household/types";
 import { toast } from "@/hooks/use-toast";
 
