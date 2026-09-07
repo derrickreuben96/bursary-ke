@@ -22,8 +22,7 @@ import type { Household } from "@/lib/household/types";
 import {
   Landmark, LogOut, Search, Download,
   Loader2, RefreshCw, Copy, FileText, CheckCircle2, Sparkles, FileDown,
-  Layers, Lock, ShieldCheck, Users, History as HistoryIcon
-  Banknote,
+  Layers, Lock, ShieldCheck, Users, History as HistoryIcon, Banknote
 } from "lucide-react";
 import { TreasurySummaryCards } from "@/components/treasury/TreasurySummaryCards";
 import { generateAiSummaryPdf, aiSummaryPdfFilename, type AiSummaryPayload } from "@/lib/aiSummaryPdf";
