@@ -158,7 +158,7 @@ export default function PolicySimulator() {
         {result && (
           <Card>
             <CardHeader>
-              <CardTitle>Result — Policy v{result.policy_version}</CardTitle>
+              <CardTitle>Result — Policy v{result.policy_version} {source === "live" ? "(live data)" : "(demo data)"}</CardTitle>
               <CardDescription>Generated {new Date(result.generated_at).toLocaleString()}</CardDescription>
             </CardHeader>
             <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
