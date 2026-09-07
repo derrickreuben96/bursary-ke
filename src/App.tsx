@@ -62,6 +62,15 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/treasury/disbursements"
+              element={
+                <ProtectedRoute requiredRole="county_treasury">
+                  <TreasuryDisbursements />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/guardian/profile" element={<GuardianProfile />} />
             <Route path="/commissioner/login" element={<CommissionerLogin />} />
             <Route
               path="/commissioner"
