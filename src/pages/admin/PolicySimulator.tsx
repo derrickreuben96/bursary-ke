@@ -151,7 +151,7 @@ export default function PolicySimulator() {
               <Label>Programme budget (KES)</Label>
               <Input value={budget} onChange={(e) => setBudget(e.target.value)} type="number" min={0} />
             </div>
-            <Button onClick={run}>Run simulation</Button>
+            <Button onClick={run} disabled={running}>{running ? "Running…" : "Run simulation"}</Button>
           </CardContent>
         </Card>
 
