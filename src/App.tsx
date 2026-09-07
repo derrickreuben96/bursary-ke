@@ -22,6 +22,8 @@ import AdminDisbursements from "./pages/AdminDisbursements";
 import AdminUserManagement from "./pages/AdminUserManagement";
 import TreasuryLogin from "./pages/TreasuryLogin";
 import TreasuryDashboard from "./pages/TreasuryDashboard";
+import TreasuryDisbursements from "./pages/TreasuryDisbursements";
+import GuardianProfile from "./pages/GuardianProfile";
 import CommissionerLogin from "./pages/CommissionerLogin";
 import CommissionerDashboard from "./pages/CommissionerDashboard";
 import NotFound from "./pages/NotFound";
@@ -60,6 +62,15 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/treasury/disbursements"
+              element={
+                <ProtectedRoute requiredRole="county_treasury">
+                  <TreasuryDisbursements />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/guardian/profile" element={<GuardianProfile />} />
             <Route path="/commissioner/login" element={<CommissionerLogin />} />
             <Route
               path="/commissioner"

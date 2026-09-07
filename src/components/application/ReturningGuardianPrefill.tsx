@@ -118,6 +118,12 @@ export function ReturningGuardianPrefill({ onApply }: Props) {
               Reuse the details we already verified for you instead of starting from zero. You
               decide what is reused, and nothing is copied without your consent.
             </p>
+            <a
+              href="/guardian/profile"
+              className="text-sm text-primary underline underline-offset-4 mt-1 inline-block"
+            >
+              View or edit my saved profile
+            </a>
           </div>
           <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)}>
             Retrieve my details

@@ -10,6 +10,7 @@ import { Seo } from "@/components/seo/Seo";
 import { featureFlags } from "@/lib/featureFlags";
 import { DEFAULT_POLICY_PROFILE } from "@/lib/ai/policyProfile";
 import { simulatePolicy, type SimulationResult } from "@/lib/ai/simulator";
+import { loadLiveSnapshot } from "@/lib/ai/liveSnapshot";
 import type { Household } from "@/lib/household/types";
 import { toast } from "@/hooks/use-toast";
 
@@ -75,6 +76,8 @@ export default function PolicySimulator() {
   const navigate = useNavigate();
   const [budget, setBudget] = useState<string>("500000");
   const [result, setResult] = useState<SimulationResult | null>(null);
+  const [running, setRunning] = useState(false);
+  const [source, setSource] = useState<"live" | "demo" | null>(null);
 
   if (!featureFlags.governance) {
     return (
@@ -89,25 +92,38 @@ export default function PolicySimulator() {
     );
   }
 
-  const run = () => {
+  const run = async () => {
+    setRunning(true);
     const b = Number(budget);
+    const snapshot = await loadLiveSnapshot();
+    const useLive = snapshot.households.length > 0;
+    setSource(useLive ? "live" : "demo");
     const out = simulatePolicy({
       profile: DEFAULT_POLICY_PROFILE,
-      households: demoHouseholds,
+      households: useLive ? snapshot.households : demoHouseholds,
       budget: Number.isFinite(b) && b > 0 ? b : undefined,
-      household_ctx: {
-        "demo-1": { monthly_income: 18000, single_parent: true, dependents: 4 },
-        "demo-2": { monthly_income: 8000, parent_employment: "unemployed", disabled_member: true, dependents: 5 },
-      },
-      student_ctx: {
-        s1: { school_type: "boarding", fee_balance: 45000, exam_class: true },
-        s2: { accommodation: "hostel", fee_balance: 60000 },
-        s3: { school_type: "boarding", fee_balance: 30000, walking_km: 6 },
-      },
+      household_ctx: useLive
+        ? snapshot.household_ctx
+        : {
+            "demo-1": { monthly_income: 18000, single_parent: true, dependents: 4 },
+            "demo-2": { monthly_income: 8000, parent_employment: "unemployed", disabled_member: true, dependents: 5 },
+          },
+      student_ctx: useLive
+        ? snapshot.student_ctx
+        : {
+            s1: { school_type: "boarding", fee_balance: 45000, exam_class: true },
+            s2: { accommodation: "hostel", fee_balance: 60000 },
+            s3: { school_type: "boarding", fee_balance: 30000, walking_km: 6 },
+          },
     });
     setResult(out);
-    toast({ title: "Simulation complete", description: `${out.students_funded} students would be funded.` });
+    setRunning(false);
+    toast({
+      title: "Simulation complete",
+      description: `${out.students_funded} students would be funded from ${useLive ? "live applicant data" : "the demo set"}.`,
+    });
   };
+
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -125,21 +141,24 @@ export default function PolicySimulator() {
         <Card>
           <CardHeader>
             <CardTitle>Inputs</CardTitle>
-            <CardDescription>Uses the built-in default policy and a small demo household set.</CardDescription>
+            <CardDescription>
+              Runs the built-in default policy against live applicant records (secondary, university,
+              college and TVET). Falls back to a demo set only when no applications exist yet.
+            </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col sm:flex-row gap-4 items-end">
             <div className="flex-1">
               <Label>Programme budget (KES)</Label>
               <Input value={budget} onChange={(e) => setBudget(e.target.value)} type="number" min={0} />
             </div>
-            <Button onClick={run}>Run simulation</Button>
+            <Button onClick={run} disabled={running}>{running ? "Running…" : "Run simulation"}</Button>
           </CardContent>
         </Card>
 
         {result && (
           <Card>
             <CardHeader>
-              <CardTitle>Result — Policy v{result.policy_version}</CardTitle>
+              <CardTitle>Result — Policy v{result.policy_version} {source === "live" ? "(live data)" : "(demo data)"}</CardTitle>
               <CardDescription>Generated {new Date(result.generated_at).toLocaleString()}</CardDescription>
             </CardHeader>
             <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
