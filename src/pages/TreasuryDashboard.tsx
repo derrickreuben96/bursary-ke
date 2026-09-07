@@ -713,6 +713,7 @@ export default function TreasuryDashboard() {
                   <><Sparkles className="h-4 w-4 mr-2" />AI PDF Summary</>
                 )}
               </Button>
+              <Button onClick={() => navigate("/treasury/disbursements")}><Banknote className="h-4 w-4 mr-2" />Disbursements</Button>
               <Button variant="outline" onClick={exportToCSV}><Download className="h-4 w-4 mr-2" />Export CSV</Button>
               <Button variant="outline" onClick={handleLogout}><LogOut className="h-4 w-4 mr-2" />Logout</Button>
             </div>
