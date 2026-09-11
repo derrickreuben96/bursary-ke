@@ -2,8 +2,7 @@
 // data (all education levels: secondary, university, college, TVET) instead of
 // a static demo set. Read-only; never writes to allocation tables.
 import { supabase } from "@/integrations/supabase/client";
-import type { Household } from "@/lib/household/types";
-import { cohortOf } from "@/lib/household/types";
+import type { Household, HouseholdCohort } from "@/lib/household/types";
 import type { HouseholdContext, StudentContext } from "./decisionEngine";
 import { maskName } from "@/lib/maskData";
 
@@ -54,6 +53,15 @@ interface ParentRow {
   created_at: string;
   updated_at: string;
 }
+
+const normalizeStudentType = (student: StudentRow): string => {
+  const category = student.education_category?.toLowerCase();
+  if (category === "high_school") return "secondary";
+  return category ?? student.student_type?.toLowerCase() ?? "secondary";
+};
+
+const cohortForStudent = (student: StudentRow): HouseholdCohort =>
+  normalizeStudentType(student) === "secondary" ? "secondary" : "higher_ed";
 
 export async function loadLiveSnapshot(limit = 200): Promise<LiveSnapshot> {
   const { data: parents } = await supabase
@@ -113,8 +121,8 @@ export async function loadLiveSnapshot(limit = 200): Promise<LiveSnapshot> {
       students: rows.map((s) => ({
         id: s.id,
         name_masked: maskName(s.student_full_name || ""),
-        student_type: s.education_category ?? s.student_type ?? "secondary",
-        cohort: cohortOf(s.education_category ?? s.student_type ?? "secondary"),
+        student_type: normalizeStudentType(s),
+        cohort: cohortForStudent(s),
         institution_name: s.institution_name ?? null,
         class_form: s.class_form ?? null,
         year_of_study: s.year_of_study ?? null,
@@ -131,7 +139,8 @@ export async function loadLiveSnapshot(limit = 200): Promise<LiveSnapshot> {
     });
 
     household_ctx[p.id] = {
-      monthly_income: p.household_income != null ? Math.round(Number(p.household_income) / 12) : undefined,
+      // household_income currently stores the 0–100 poverty assessment score,
+      // not a monetary amount. Do not feed it into income-based policy scoring.
       dependents: p.household_dependents ?? undefined,
       disabled_member: !!p.household_disability_burden,
     } as HouseholdContext;
