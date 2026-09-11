@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public.update_guardian_profile(text, text, jsonb) FROM public, anon, authenticated;
