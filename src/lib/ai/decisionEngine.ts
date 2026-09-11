@@ -142,8 +142,9 @@ function scoreSecondary(
 function scoreHigherEd(
   ctx: StudentContext,
   profile: PolicyProfile,
+  category: "university" | "college" | "tvet" | "higher_ed",
 ): ReasonCode[] {
-  const w = profile.higher_ed;
+  const w = profile[category];
   const rs: ReasonCode[] = [];
   switch (ctx.accommodation) {
     case "hostel":
@@ -257,7 +258,16 @@ function allocationFromScore(
   student: HouseholdStudent,
   profile: PolicyProfile,
 ): number {
-  const cap = student.cohort === "secondary" ? profile.caps.secondary_cap : profile.caps.higher_ed_cap;
+  const category = student.student_type?.toLowerCase();
+  const cap = student.cohort === "secondary"
+    ? profile.caps.secondary_cap
+    : category === "university"
+      ? profile.caps.university_cap
+      : category === "college"
+        ? profile.caps.college_cap
+        : category === "tvet"
+          ? profile.caps.tvet_cap
+          : profile.caps.higher_ed_cap;
   const base = Math.round((score / 100) * cap);
   const bonus =
     student.disability_status && student.disability_status !== "none"
@@ -304,8 +314,13 @@ export function evaluateHousehold(input: EvaluateInput): HouseholdRecommendation
       };
     }
 
-    const studentReasons =
-      s.cohort === "secondary" ? scoreSecondary(ctx, profile) : scoreHigherEd(ctx, profile);
+    const category = s.student_type?.toLowerCase();
+    const higherCategory = category === "university" || category === "college" || category === "tvet"
+      ? category
+      : "higher_ed";
+    const studentReasons = s.cohort === "secondary"
+      ? scoreSecondary(ctx, profile)
+      : scoreHigherEd(ctx, profile, higherCategory);
     const hist = historyAdjustment(ctx, profile);
     const reasons = [...studentReasons, ...householdReasons];
     if (hist.reason) reasons.push(hist.reason);

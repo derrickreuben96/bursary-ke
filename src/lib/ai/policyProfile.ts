@@ -55,6 +55,9 @@ export interface AllocationCaps {
   max_allocation: number;
   secondary_cap: number;
   higher_ed_cap: number;
+  university_cap: number;
+  college_cap: number;
+  tvet_cap: number;
   disability_bonus_amount: number;
 }
 
@@ -65,6 +68,9 @@ export interface PolicyProfile {
   income_threshold_kes: number;
   secondary: EducationFactorWeights;
   higher_ed: HigherEdFactorWeights;
+  university: HigherEdFactorWeights;
+  college: HigherEdFactorWeights;
+  tvet: HigherEdFactorWeights;
   household: HouseholdContextWeights;
   funding_history: FundingHistoryPolicy;
   caps: AllocationCaps;
@@ -100,6 +106,21 @@ export const DEFAULT_POLICY_PROFILE: PolicyProfile = {
     medical: 6,
     disability: 12,
   },
+  university: {
+    accommodation_hostel: 9, accommodation_private: 11, accommodation_rental: 12,
+    accommodation_family: 3, food: 6, transport: 5, outstanding_fees: 16,
+    helb_offset: -8, scholarship_offset: -10, medical: 6, disability: 12,
+  },
+  college: {
+    accommodation_hostel: 7, accommodation_private: 9, accommodation_rental: 10,
+    accommodation_family: 3, food: 5, transport: 7, outstanding_fees: 14,
+    helb_offset: -6, scholarship_offset: -10, medical: 6, disability: 12,
+  },
+  tvet: {
+    accommodation_hostel: 6, accommodation_private: 8, accommodation_rental: 9,
+    accommodation_family: 2, food: 5, transport: 9, outstanding_fees: 13,
+    helb_offset: -5, scholarship_offset: -9, medical: 6, disability: 12,
+  },
   household: {
     income_below_threshold: 10,
     parent_unemployed: 8,
@@ -119,6 +140,9 @@ export const DEFAULT_POLICY_PROFILE: PolicyProfile = {
     max_allocation: 100000,
     secondary_cap: 40000,
     higher_ed_cap: 80000,
+    university_cap: 80000,
+    college_cap: 65000,
+    tvet_cap: 50000,
     disability_bonus_amount: 10000,
   },
 };

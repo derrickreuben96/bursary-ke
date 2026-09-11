@@ -63,14 +63,16 @@ const normalizeStudentType = (student: StudentRow): string => {
 const cohortForStudent = (student: StudentRow): HouseholdCohort =>
   normalizeStudentType(student) === "secondary" ? "secondary" : "higher_ed";
 
-export async function loadLiveSnapshot(limit = 200): Promise<LiveSnapshot> {
-  const { data: parents } = await supabase
+export async function loadLiveSnapshot(limit = 200, county?: string): Promise<LiveSnapshot> {
+  let parentQuery = supabase
     .from("parent_applications")
     .select(
       "id, tracking_number, parent_full_name, parent_county, parent_ward, household_income, household_dependents, poverty_tier, poverty_score, total_students, released_to_treasury, ai_decision_reason, advert_id, status, current_stage, household_disability_burden, created_at, updated_at",
     )
     .order("created_at", { ascending: false })
     .limit(limit);
+  if (county && county !== "all") parentQuery = parentQuery.eq("parent_county", county);
+  const { data: parents } = await parentQuery;
 
   const parentRows = (parents as ParentRow[] | null) ?? [];
   if (parentRows.length === 0) {

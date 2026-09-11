@@ -9,6 +9,8 @@ import { evaluateHousehold, type HouseholdContext, type StudentContext } from ".
 import type { PolicyProfile } from "./policyProfile";
 import type { Household } from "@/lib/household/types";
 
+export type SimulationCohort = "secondary" | "university" | "college" | "tvet";
+
 export interface SimulationInput {
   profile: PolicyProfile;
   households: Household[];
@@ -19,7 +21,7 @@ export interface SimulationInput {
 }
 
 export interface CohortBreakdown {
-  cohort: "secondary" | "higher_ed";
+  cohort: SimulationCohort;
   beneficiaries: number;
   total_allocation: number;
   avg_allocation: number;
@@ -54,7 +56,7 @@ const bucketFor = (score: number): "0-24" | "25-49" | "50-74" | "75-100" => {
 
 export function simulatePolicy(input: SimulationInput): SimulationResult {
   const perStudent: Array<{
-    cohort: "secondary" | "higher_ed";
+    cohort: SimulationCohort;
     score: number;
     allocation: number;
     confidence: "high" | "medium" | "low";
@@ -70,7 +72,10 @@ export function simulatePolicy(input: SimulationInput): SimulationResult {
     });
     for (const p of rec.per_student) {
       const student = hh.students.find((s) => s.id === p.student_id);
-      const cohort = student?.cohort === "secondary" ? "secondary" : "higher_ed";
+      const raw = student?.student_type?.toLowerCase();
+      const cohort: SimulationCohort = student?.cohort === "secondary"
+        ? "secondary"
+        : raw === "college" || raw === "tvet" ? raw : "university";
       perStudent.push({
         cohort,
         score: p.needs_score,
@@ -120,7 +125,7 @@ export function simulatePolicy(input: SimulationInput): SimulationResult {
     conf[p.confidence] += 1;
   }
 
-  const cohorts: Array<"secondary" | "higher_ed"> = ["secondary", "higher_ed"];
+  const cohorts: SimulationCohort[] = ["secondary", "university", "college", "tvet"];
   const cohort_breakdown: CohortBreakdown[] = cohorts.map((c) => {
     const rows = funded.filter((p) => p.cohort === c);
     const sum = rows.reduce((n, p) => n + p.allocation, 0);
