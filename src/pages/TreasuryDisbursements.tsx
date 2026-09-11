@@ -12,7 +12,7 @@ import { Seo } from "@/components/seo/Seo";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatKES } from "@/lib/formatters";
-import { Banknote, Loader2, RefreshCw, Send, ArrowLeft } from "lucide-react";
+import { Banknote, Loader2, RefreshCw, Send, ArrowLeft, CheckCircle2 } from "lucide-react";
 
 interface PendingStudent {
   id: string;
@@ -94,11 +94,24 @@ export default function TreasuryDisbursements() {
     }
     const res = data as unknown as { paid: number; skipped: number; total_amount: number };
     toast({
-      title: "Payment recorded",
-      description: `${res?.paid ?? 0} student(s) paid — ${formatKES(Number(res?.total_amount || 0))}.`,
+      title: "Payment references created",
+      description: `${res?.paid ?? 0} student payment(s) queued — ${formatKES(Number(res?.total_amount || 0))}.`,
     });
     setSelected(new Set());
     setTab("paid");
+    await load(true);
+  };
+
+  const markProcessed = async (id: string) => {
+    setBusy(true);
+    const { data, error } = await supabase.rpc("treasury_mark_payment_processed" as never, { _disbursement_id: id } as never);
+    setBusy(false);
+    const res = data as unknown as { processed?: boolean; reference?: string } | null;
+    if (error || !res?.processed) {
+      toast({ title: "Could not process payment", description: error?.message ?? "Please refresh and try again.", variant: "destructive" });
+      return;
+    }
+    toast({ title: "Payment processed", description: `${res.reference ?? "Payment"} is complete.` });
     await load(true);
   };
 
@@ -153,7 +166,7 @@ export default function TreasuryDisbursements() {
                 </div>
                 <Button onClick={payNow} disabled={busy || selected.size === 0}>
                   {busy ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
-                  Pay {selected.size > 0 ? `(${selected.size})` : ""}
+                  Create payment {selected.size > 0 ? `(${selected.size})` : ""}
                 </Button>
               </CardHeader>
               <CardContent>
@@ -206,12 +219,12 @@ export default function TreasuryDisbursements() {
                       <TableHead>County</TableHead>
                       <TableHead className="text-right">Amount</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Date</TableHead>
+                      <TableHead>Date</TableHead><TableHead>Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {payments.length === 0 ? (
-                      <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No payments yet.</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No payments yet.</TableCell></TableRow>
                     ) : payments.map((p) => (
                       <TableRow key={p.id}>
                         <TableCell className="font-mono text-xs">{p.payment_reference}</TableCell>
@@ -225,6 +238,13 @@ export default function TreasuryDisbursements() {
                         </TableCell>
                         <TableCell className="text-sm">
                           {new Date(p.completed_at || p.triggered_at).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>
+                          {p.status === "pending" || p.status === "processing" ? (
+                            <Button size="sm" variant="outline" disabled={busy} onClick={() => markProcessed(p.id)}>
+                              <CheckCircle2 className="h-4 w-4 mr-2" />Mark processed
+                            </Button>
+                          ) : <span className="text-xs text-muted-foreground">Complete</span>}
                         </TableCell>
                       </TableRow>
                     ))}

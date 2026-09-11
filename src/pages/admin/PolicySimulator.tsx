@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Seo } from "@/components/seo/Seo";
 import { featureFlags } from "@/lib/featureFlags";
 import { DEFAULT_POLICY_PROFILE } from "@/lib/ai/policyProfile";
@@ -78,6 +79,7 @@ export default function PolicySimulator() {
   const [result, setResult] = useState<SimulationResult | null>(null);
   const [running, setRunning] = useState(false);
   const [source, setSource] = useState<"live" | "demo" | null>(null);
+  const [county, setCounty] = useState("all");
 
   if (!featureFlags.governance) {
     return (
@@ -95,7 +97,7 @@ export default function PolicySimulator() {
   const run = async () => {
     setRunning(true);
     const b = Number(budget);
-    const snapshot = await loadLiveSnapshot();
+    const snapshot = await loadLiveSnapshot(200, county);
     const useLive = snapshot.households.length > 0;
     setSource(useLive ? "live" : "demo");
     const out = simulatePolicy({
@@ -146,10 +148,20 @@ export default function PolicySimulator() {
               college and TVET). Falls back to a demo set only when no applications exist yet.
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col sm:flex-row gap-4 items-end">
+          <CardContent className="grid gap-4 sm:grid-cols-[1fr_1fr_auto] items-end">
             <div className="flex-1">
               <Label>Programme budget (KES)</Label>
               <Input value={budget} onChange={(e) => setBudget(e.target.value)} type="number" min={0} />
+            </div>
+            <div>
+              <Label>County view</Label>
+              <Select value={county} onValueChange={setCounty}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All counties</SelectItem>
+                  {["Nairobi", "Mombasa", "Kisumu", "Nakuru", "Kiambu", "Uasin Gishu", "Kakamega", "Kilifi"].map((name) => <SelectItem key={name} value={name}>{name}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <Button onClick={run} disabled={running}>{running ? "Running…" : "Run simulation"}</Button>
           </CardContent>
@@ -172,6 +184,9 @@ export default function PolicySimulator() {
               {result.budget_deficit !== undefined && result.budget_deficit > 0 && (
                 <Stat label="Deficit" value={`KES ${result.budget_deficit.toLocaleString()}`} />
               )}
+              {result.cohort_breakdown.map((row) => (
+                <Stat key={row.cohort} label={`${row.cohort.replace("_", " ")} funded`} value={`${row.beneficiaries} · KES ${row.total_allocation.toLocaleString()}`} />
+              ))}
             </CardContent>
           </Card>
         )}

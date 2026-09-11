@@ -8,11 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Seo } from "@/components/seo/Seo";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { maskName } from "@/lib/maskData";
-import { AlertCircle, Loader2, ShieldCheck, UserCog, Save } from "lucide-react";
+import { AlertCircle, Loader2, ShieldCheck, UserCog, Save, History, Flag } from "lucide-react";
 
 interface Parent {
   full_name?: string | null;
@@ -29,6 +30,8 @@ interface SavedStudent {
   institution_name?: string | null;
 }
 
+interface HistoryEntry { field: string; old_value: string | null; new_value: string | null; changed_at: string }
+
 export default function GuardianProfile() {
   const { toast } = useToast();
   const [nationalId, setNationalId] = useState("");
@@ -39,6 +42,10 @@ export default function GuardianProfile() {
   const [parent, setParent] = useState<Parent | null>(null);
   const [students, setStudents] = useState<SavedStudent[]>([]);
   const [form, setForm] = useState<Parent>({});
+  const [consent, setConsent] = useState(false);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [isStale, setIsStale] = useState(false);
+  const [confirmedAt, setConfirmedAt] = useState<string | null>(null);
 
   const verify = async () => {
     setError(null);
@@ -71,6 +78,13 @@ export default function GuardianProfile() {
     setParent(p);
     setForm(p);
     setStudents(((res.students ?? []) as SavedStudent[]) || []);
+    const { data: historyData } = await supabase.rpc("get_guardian_profile_history" as never, {
+      _national_id: nationalId.trim(), _phone: phone.trim(),
+    } as never);
+    const details = historyData as unknown as { history?: HistoryEntry[]; is_stale?: boolean; confirmed_at?: string | null } | null;
+    setHistory(details?.history ?? []);
+    setIsStale(details?.is_stale ?? true);
+    setConfirmedAt(details?.confirmed_at ?? null);
   };
 
   const save = async () => {
@@ -85,6 +99,7 @@ export default function GuardianProfile() {
         parent_county: form.county ?? "",
         parent_ward: form.ward ?? "",
       },
+      _consent: consent,
     } as never);
     setSaving(false);
     const res = data as unknown as { updated?: boolean; error?: string; parent?: Parent } | null;
@@ -93,8 +108,20 @@ export default function GuardianProfile() {
       return;
     }
     setParent(res.parent ?? form);
+    setIsStale(false);
+    setConfirmedAt(new Date().toISOString());
+    setConsent(false);
     if (res.parent?.phone) setPhone(res.parent.phone);
     toast({ title: "Profile updated", description: "Your saved details have been updated." });
+  };
+
+  const flagOutdated = async () => {
+    const { error: rpcErr } = await supabase.rpc("flag_guardian_profile_outdated" as never, {
+      _national_id: nationalId.trim(), _phone: phone.trim(),
+    } as never);
+    if (rpcErr) return toast({ title: "Could not flag details", variant: "destructive" });
+    setIsStale(true);
+    toast({ title: "Details flagged", description: "They will be marked for review before reuse." });
   };
 
   return (
@@ -179,14 +206,34 @@ export default function GuardianProfile() {
                   <Field label="County" value={form.county ?? ""} onChange={(v) => setForm({ ...form, county: v })} />
                   <Field label="Ward" value={form.ward ?? ""} onChange={(v) => setForm({ ...form, ward: v })} />
                 </div>
-                <Button onClick={save} disabled={saving}>
+                {isStale && <Alert><AlertCircle className="h-4 w-4" /><AlertDescription>These details may be outdated. Review every field before consenting to save or reuse them.</AlertDescription></Alert>}
+                <div className="flex items-start gap-2">
+                  <Checkbox id="profile-consent" checked={consent} onCheckedChange={(v) => setConsent(v === true)} />
+                  <Label htmlFor="profile-consent" className="font-normal leading-snug">I confirm these details are current and consent to saving them for future bursary applications.</Label>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                <Button onClick={save} disabled={saving || !consent}>
                   {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                   Save changes
                 </Button>
+                <Button variant="outline" onClick={flagOutdated}><Flag className="h-4 w-4 mr-2" />Flag as outdated</Button>
+                </div>
                 <p className="text-xs text-muted-foreground">
                   Household income, assessment answers and past decisions are never changed here — those are
                   declared afresh in each application.
                 </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader><CardTitle className="flex items-center gap-2"><History className="h-5 w-5 text-primary" />Version history</CardTitle><CardDescription>{confirmedAt ? `Last confirmed ${new Date(confirmedAt).toLocaleDateString()}` : "Not confirmed yet"}</CardDescription></CardHeader>
+              <CardContent className="space-y-2">
+                {history.length === 0 ? <p className="text-sm text-muted-foreground">No saved changes yet.</p> : history.map((entry, i) => (
+                  <div key={`${entry.changed_at}-${entry.field}-${i}`} className="rounded border p-3 text-sm">
+                    <p className="font-medium capitalize">{entry.field.replace("_", " ")}</p>
+                    <p className="text-muted-foreground">Updated {new Date(entry.changed_at).toLocaleString()}</p>
+                  </div>
+                ))}
               </CardContent>
             </Card>
 

@@ -2,9 +2,12 @@
 // Compares average allocation & score per cohort across cycle windows and
 // flags shifts that exceed a configurable threshold.
 
+export type GovernanceCohort = "secondary" | "university" | "college" | "tvet";
+
 export interface RecommendationSample {
   policy_version: string;
-  cohort: "secondary" | "higher_ed";
+  cohort: GovernanceCohort;
+  county?: string;
   needs_score: number;
   recommended_allocation: number;
   generated_at: string; // ISO
@@ -19,7 +22,7 @@ export interface DriftWindow {
 }
 
 export interface DriftReport {
-  cohort: "secondary" | "higher_ed";
+  cohort: GovernanceCohort;
   current: DriftWindow;
   previous: DriftWindow;
   score_delta: number;      // percentage points
@@ -51,7 +54,7 @@ export function computeDrift(
   const scoreT = opts.score_threshold_pp ?? 10;
   const allocT = opts.allocation_threshold_pct ?? 15;
 
-  const cohorts: Array<"secondary" | "higher_ed"> = ["secondary", "higher_ed"];
+  const cohorts: GovernanceCohort[] = ["secondary", "university", "college", "tvet"];
   const reports: DriftReport[] = [];
 
   for (const c of cohorts) {

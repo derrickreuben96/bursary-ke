@@ -1153,6 +1153,44 @@ export type Database = {
         }
         Relationships: []
       }
+      guardian_profile_history: {
+        Row: {
+          changed_at: string
+          field_name: string
+          household_id: string
+          id: string
+          new_value: string | null
+          old_value: string | null
+          source: string
+        }
+        Insert: {
+          changed_at?: string
+          field_name: string
+          household_id: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          source?: string
+        }
+        Update: {
+          changed_at?: string
+          field_name?: string
+          household_id?: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guardian_profile_history_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       household_child_codes: {
         Row: {
           child_code: string
@@ -1247,9 +1285,11 @@ export type Database = {
       households: {
         Row: {
           created_at: string
+          data_flagged_outdated_at: string | null
           household_tracking_id: string | null
           id: string
           parent_county: string | null
+          parent_data_confirmed_at: string | null
           parent_email: string | null
           parent_full_name: string | null
           parent_national_id: string
@@ -1259,9 +1299,11 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          data_flagged_outdated_at?: string | null
           household_tracking_id?: string | null
           id?: string
           parent_county?: string | null
+          parent_data_confirmed_at?: string | null
           parent_email?: string | null
           parent_full_name?: string | null
           parent_national_id: string
@@ -1271,9 +1313,11 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          data_flagged_outdated_at?: string | null
           household_tracking_id?: string | null
           id?: string
           parent_county?: string | null
+          parent_data_confirmed_at?: string | null
           parent_email?: string | null
           parent_full_name?: string | null
           parent_national_id?: string
@@ -2229,6 +2273,10 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      flag_guardian_profile_outdated: {
+        Args: { _national_id: string; _phone: string }
+        Returns: Json
+      }
       generate_household_tracking_id: { Args: never; Returns: string }
       generate_tracking_number: { Args: never; Returns: string }
       get_commissioner_applications: {
@@ -2260,6 +2308,10 @@ export type Database = {
           year_of_study: string
         }[]
       }
+      get_guardian_profile_history: {
+        Args: { _national_id: string; _phone: string }
+        Returns: Json
+      }
       get_household_by_id: {
         Args: { _household_id: string; _verifier: string }
         Returns: Json
@@ -2273,9 +2325,11 @@ export type Database = {
         Args: { _national_id: string; _parent?: Json }
         Returns: {
           created_at: string
+          data_flagged_outdated_at: string | null
           household_tracking_id: string | null
           id: string
           parent_county: string | null
+          parent_data_confirmed_at: string | null
           parent_email: string | null
           parent_full_name: string | null
           parent_national_id: string
@@ -2436,10 +2490,24 @@ export type Database = {
         Args: { _student_ids: string[] }
         Returns: Json
       }
-      update_guardian_profile: {
-        Args: { _national_id: string; _phone: string; _updates: Json }
+      treasury_mark_payment_processed: {
+        Args: { _disbursement_id: string }
         Returns: Json
       }
+      update_guardian_profile:
+        | {
+            Args: { _national_id: string; _phone: string; _updates: Json }
+            Returns: Json
+          }
+        | {
+            Args: {
+              _consent: boolean
+              _national_id: string
+              _phone: string
+              _updates: Json
+            }
+            Returns: Json
+          }
       workflow_backlog_snapshot: {
         Args: never
         Returns: {
