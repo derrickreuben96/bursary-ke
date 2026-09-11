@@ -51,6 +51,7 @@ export function ReturningGuardianPrefill({ onApply }: Props) {
   const [profile, setProfile] = useState<ReusableParentProfile | null>(null);
   const [students, setStudents] = useState<ReusableStudent[]>([]);
   const [lastAt, setLastAt] = useState<string | null>(null);
+  const [isStale, setIsStale] = useState(false);
 
   const lookup = async () => {
     setError(null);
@@ -88,6 +89,10 @@ export function ReturningGuardianPrefill({ onApply }: Props) {
     setProfile((res.parent ?? null) as ReusableParentProfile | null);
     setStudents(((res.students ?? []) as ReusableStudent[]) || []);
     setLastAt((res.last_application_at as string) ?? null);
+    const { data: historyData } = await supabase.rpc("get_guardian_profile_history" as never, {
+      _national_id: nationalId.trim(), _phone: phone.trim(),
+    } as never);
+    setIsStale(Boolean((historyData as unknown as { is_stale?: boolean } | null)?.is_stale));
   };
 
   const apply = async () => {
@@ -216,6 +221,9 @@ export function ReturningGuardianPrefill({ onApply }: Props) {
             Household income, poverty assessment answers and previous decisions are never reused —
             you will declare those again for this bursary window.
           </p>
+          {isStale && (
+            <Alert><AlertCircle className="h-4 w-4" /><AlertDescription>Your saved details may be outdated. Review them before reuse, or open your guardian profile to update them.</AlertDescription></Alert>
+          )}
 
           <div className="flex items-start gap-2">
             <Checkbox

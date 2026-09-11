@@ -5,10 +5,11 @@ import { Footer } from "@/components/layout/Footer";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Seo } from "@/components/seo/Seo";
 import { supabase } from "@/integrations/supabase/client";
 import { featureFlags } from "@/lib/featureFlags";
-import { computeDrift, type RecommendationSample } from "@/lib/ai/governance/drift";
+import { computeDrift, type GovernanceCohort, type RecommendationSample } from "@/lib/ai/governance/drift";
 import { Activity, Gauge, ShieldCheck, TrendingUp, Sliders, PlayCircle } from "lucide-react";
 
 interface PolicyRow { id: string; name: string; version: string; status: string; activated_at: string | null }
@@ -24,6 +25,9 @@ export default function AIGovernanceDashboard() {
   const [drift, setDrift] = useState<ReturnType<typeof computeDrift>>([]);
   const [notifs, setNotifs] = useState<Notif[]>([]);
   const [loading, setLoading] = useState(true);
+  const [county, setCounty] = useState("all");
+  const [samples, setSamples] = useState<RecommendationSample[]>([]);
+  const [counties, setCounties] = useState<string[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -45,29 +49,41 @@ export default function AIGovernanceDashboard() {
       const studentIds = Array.from(
         new Set(rows.map((r) => r.student_beneficiary_id).filter((x): x is string => !!x)),
       );
-      const cohortById = new Map<string, "secondary" | "higher_ed">();
+      const studentInfo = new Map<string, { cohort: GovernanceCohort; county: string }>();
       if (studentIds.length) {
         const { data: studs } = await supabase
           .from("student_beneficiaries" as never)
-          .select("id, student_type, education_category")
+          .select("id, student_type, education_category, parent_applications!inner(parent_county)")
           .in("id", studentIds);
-        for (const s of ((studs as Array<{ id: string; student_type: string | null; education_category: string | null }> | null) ?? [])) {
+        for (const s of ((studs as Array<{ id: string; student_type: string | null; education_category: string | null; parent_applications?: { parent_county?: string } | null }> | null) ?? [])) {
           const t = (s.education_category ?? s.student_type ?? "").toLowerCase();
-          cohortById.set(s.id, t === "secondary" || t === "high_school" ? "secondary" : "higher_ed");
+          const cohort: GovernanceCohort = t === "secondary" || t === "high_school" ? "secondary" : t === "college" || t === "tvet" ? t : "university";
+          studentInfo.set(s.id, { cohort, county: s.parent_applications?.parent_county ?? "Unknown" });
         }
       }
       const samples: RecommendationSample[] = rows.map((r) => ({
         policy_version: r.policy_version,
-        cohort: (r.student_beneficiary_id && cohortById.get(r.student_beneficiary_id)) || "secondary",
+        cohort: (r.student_beneficiary_id && studentInfo.get(r.student_beneficiary_id)?.cohort) || "secondary",
+        county: (r.student_beneficiary_id && studentInfo.get(r.student_beneficiary_id)?.county) || "Unknown",
         needs_score: r.needs_score,
         recommended_allocation: Number(r.recommended_allocation),
         generated_at: r.generated_at,
       }));
+      setSamples(samples);
+      setCounties(Array.from(new Set(samples.map((s) => s.county).filter((v): v is string => !!v))).sort());
       setDrift(computeDrift(samples));
       setNotifs((nf as Notif[] | null) ?? []);
       setLoading(false);
     })();
   }, []);
+
+  useEffect(() => {
+    const filtered = county === "all" ? samples : samples.filter((sample) => sample.county === county);
+    setDrift(computeDrift(filtered));
+    setRecCount(filtered.length);
+    setAvgScore(filtered.length ? Math.round(filtered.reduce((n, r) => n + r.needs_score, 0) / filtered.length) : 0);
+    setAvgAlloc(filtered.length ? Math.round(filtered.reduce((n, r) => n + r.recommended_allocation, 0) / filtered.length) : 0);
+  }, [county, samples]);
 
   if (!featureFlags.governance) {
     return (
@@ -101,6 +117,10 @@ export default function AIGovernanceDashboard() {
             <p className="text-muted-foreground">Policy versioning, simulation and health monitoring.</p>
           </div>
           <div className="flex gap-2">
+            <Select value={county} onValueChange={setCounty}>
+              <SelectTrigger className="w-44" aria-label="County view"><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="all">All counties</SelectItem>{counties.map((name) => <SelectItem key={name} value={name}>{name}</SelectItem>)}</SelectContent>
+            </Select>
             <Button variant="outline" onClick={() => navigate("/admin")}>Back to Admin</Button>
             <Button variant="secondary" onClick={() => navigate("/admin/governance/policies")}><Sliders className="h-4 w-4 mr-2" />Policies</Button>
             <Button variant="secondary" onClick={() => navigate("/admin/governance/simulator")}><PlayCircle className="h-4 w-4 mr-2" />Simulator</Button>

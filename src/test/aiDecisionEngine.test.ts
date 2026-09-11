@@ -107,6 +107,21 @@ describe("AI decision engine — HELB & scholarships reduce higher-ed score", ()
   });
 });
 
+describe("AI decision engine — category-specific awards", () => {
+  it("uses distinct university, college and TVET caps", () => {
+    const hh = household([
+      student({ id: "u", cohort: "higher_ed", student_type: "university" }),
+      student({ id: "c", cohort: "higher_ed", student_type: "college" }),
+      student({ id: "t", cohort: "higher_ed", student_type: "tvet" }),
+    ]);
+    const rich = { accommodation: "rental" as const, fee_balance: 100000 };
+    const rec = evaluateHousehold({ household: hh, household_ctx: { monthly_income: 1, parent_employment: "unemployed", dependents: 6 }, student_ctx: { u: rich, c: rich, t: rich } });
+    const amounts = Object.fromEntries(rec.per_student.map((r) => [r.student_id, r.recommended_allocation]));
+    expect(amounts.u).toBeGreaterThan(amounts.c);
+    expect(amounts.c).toBeGreaterThan(amounts.t);
+  });
+});
+
 describe("AI decision engine — budget optimization respects household cap", () => {
   it("scales down proportionally when total exceeds the household budget", () => {
     const hh = household([
