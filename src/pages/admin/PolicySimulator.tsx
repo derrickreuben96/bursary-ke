@@ -185,6 +185,18 @@ export default function PolicySimulator() {
           </CardContent>
         </Card>
 
+        {emptyCounty && (
+          <Card>
+            <CardHeader>
+              <CardTitle>No applications in {emptyCounty}</CardTitle>
+              <CardDescription>
+                This county has no applicant records yet, so no simulation was run. Demo data is never
+                substituted for a specific county, to avoid misleading funding figures.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        )}
+
         {result && (
           <Card>
             <CardHeader>
