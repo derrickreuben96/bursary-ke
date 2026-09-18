@@ -177,7 +177,7 @@ export default function PolicySimulator() {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All counties</SelectItem>
-                  {["Nairobi", "Mombasa", "Kisumu", "Nakuru", "Kiambu", "Uasin Gishu", "Kakamega", "Kilifi"].map((name) => <SelectItem key={name} value={name}>{name}</SelectItem>)}
+                  {countyNames.map((name) => <SelectItem key={name} value={name}>{name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
