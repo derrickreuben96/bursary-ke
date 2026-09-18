@@ -99,8 +99,23 @@ export default function PolicySimulator() {
 
   const run = async () => {
     setRunning(true);
+    setEmptyCounty(null);
     const b = Number(budget);
     const snapshot = await loadLiveSnapshot(200, county);
+    // When a specific county is chosen, never fall back to demo data —
+    // that would show figures for a county that isn't the one selected.
+    if (county !== "all" && snapshot.households.length === 0) {
+      setResult(null);
+      setSource(null);
+      setEmptyCounty(county);
+      setRunning(false);
+      toast({
+        title: "No applications for this county",
+        description: `There are no applicant records for ${county} yet. Pick another county or run the national view.`,
+        variant: "destructive",
+      });
+      return;
+    }
     const useLive = snapshot.households.length > 0;
     setSource(useLive ? "live" : "demo");
     const out = simulatePolicy({
