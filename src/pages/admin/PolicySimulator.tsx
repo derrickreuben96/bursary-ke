@@ -12,6 +12,7 @@ import { featureFlags } from "@/lib/featureFlags";
 import { DEFAULT_POLICY_PROFILE } from "@/lib/ai/policyProfile";
 import { simulatePolicy, type SimulationResult } from "@/lib/ai/simulator";
 import { loadLiveSnapshot } from "@/lib/ai/liveSnapshot";
+import { useKenyaLocations } from "@/lib/useKenyaLocations";
 import type { Household } from "@/lib/household/types";
 import { toast } from "@/hooks/use-toast";
 
@@ -75,11 +76,13 @@ const demoHouseholds: Household[] = [
 
 export default function PolicySimulator() {
   const navigate = useNavigate();
+  const { countyNames } = useKenyaLocations();
   const [budget, setBudget] = useState<string>("500000");
   const [result, setResult] = useState<SimulationResult | null>(null);
   const [running, setRunning] = useState(false);
   const [source, setSource] = useState<"live" | "demo" | null>(null);
   const [county, setCounty] = useState("all");
+  const [emptyCounty, setEmptyCounty] = useState<string | null>(null);
 
   if (!featureFlags.governance) {
     return (
@@ -96,8 +99,23 @@ export default function PolicySimulator() {
 
   const run = async () => {
     setRunning(true);
+    setEmptyCounty(null);
     const b = Number(budget);
     const snapshot = await loadLiveSnapshot(200, county);
+    // When a specific county is chosen, never fall back to demo data —
+    // that would show figures for a county that isn't the one selected.
+    if (county !== "all" && snapshot.households.length === 0) {
+      setResult(null);
+      setSource(null);
+      setEmptyCounty(county);
+      setRunning(false);
+      toast({
+        title: "No applications for this county",
+        description: `There are no applicant records for ${county} yet. Pick another county or run the national view.`,
+        variant: "destructive",
+      });
+      return;
+    }
     const useLive = snapshot.households.length > 0;
     setSource(useLive ? "live" : "demo");
     const out = simulatePolicy({
@@ -159,13 +177,25 @@ export default function PolicySimulator() {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All counties</SelectItem>
-                  {["Nairobi", "Mombasa", "Kisumu", "Nakuru", "Kiambu", "Uasin Gishu", "Kakamega", "Kilifi"].map((name) => <SelectItem key={name} value={name}>{name}</SelectItem>)}
+                  {countyNames.map((name) => <SelectItem key={name} value={name}>{name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <Button onClick={run} disabled={running}>{running ? "Running…" : "Run simulation"}</Button>
           </CardContent>
         </Card>
+
+        {emptyCounty && (
+          <Card>
+            <CardHeader>
+              <CardTitle>No applications in {emptyCounty}</CardTitle>
+              <CardDescription>
+                This county has no applicant records yet, so no simulation was run. Demo data is never
+                substituted for a specific county, to avoid misleading funding figures.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        )}
 
         {result && (
           <Card>
