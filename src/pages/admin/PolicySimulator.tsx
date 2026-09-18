@@ -75,11 +75,13 @@ const demoHouseholds: Household[] = [
 
 export default function PolicySimulator() {
   const navigate = useNavigate();
+  const { countyNames } = useKenyaLocations();
   const [budget, setBudget] = useState<string>("500000");
   const [result, setResult] = useState<SimulationResult | null>(null);
   const [running, setRunning] = useState(false);
   const [source, setSource] = useState<"live" | "demo" | null>(null);
   const [county, setCounty] = useState("all");
+  const [emptyCounty, setEmptyCounty] = useState<string | null>(null);
 
   if (!featureFlags.governance) {
     return (
