@@ -127,7 +127,12 @@ export default function GuardianProfile() {
     const res = data as unknown as { restored?: boolean } | null;
     if (rpcErr || !res?.restored) return toast({ title: "Could not restore", variant: "destructive" });
     toast({ title: "Previous value restored", description: `${entry.field.replace("_", " ")} has been rolled back.` });
-    if (entry.field === "phone" && entry.old_value) setPhone(entry.old_value);
+    if (entry.field === "phone" && entry.old_value) {
+      setPhone(entry.old_value);
+      setParent(null);
+      setError("Your phone number was restored. Verify again using the restored number.");
+      return;
+    }
     await verify();
   };
 
