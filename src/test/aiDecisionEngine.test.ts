@@ -166,3 +166,18 @@ describe("AI decision engine — eligibility gate", () => {
     expect(rec.per_student[0].recommended_allocation).toBe(0);
   });
 });
+
+describe("AI decision engine — cohort-specific needs", () => {
+  it("rewards TVET toolkits and uses a lower TVET fee threshold", () => {
+    const hh = household([student({ id: "t", cohort: "higher_ed", student_type: "tvet" })]);
+    const base = evaluateHousehold({ household: hh, student_ctx: { t: { fee_balance: 16000 } } });
+    const kit = evaluateHousehold({ household: hh, student_ctx: { t: { fee_balance: 16000, toolkit_required: true } } });
+    expect(base.per_student[0].reasons.some((r) => r.code === "outstanding_fees")).toBe(true);
+    expect(kit.per_student[0].needs_score).toBeGreaterThan(base.per_student[0].needs_score);
+  });
+  it("ignores toolkit signal for university students", () => {
+    const hh = household([student({ id: "u", cohort: "higher_ed", student_type: "university" })]);
+    const rec = evaluateHousehold({ household: hh, student_ctx: { u: { toolkit_required: true } } });
+    expect(rec.per_student[0].reasons.some((r) => r.code === "tvet_toolkit")).toBe(false);
+  });
+});

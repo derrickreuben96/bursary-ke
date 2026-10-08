@@ -41,6 +41,16 @@ export interface StudentContext {
   walking_km?: number | null;
   /** Prior cycles: "budget_exhausted" | "funded" | "rejected" | "new". */
   history?: "budget_exhausted" | "funded" | "rejected" | "new";
+  /** Daily commute required (higher-ed). */
+  commutes?: boolean;
+  /** Reports skipping meals / food insecurity. */
+  food_insecure?: boolean;
+  /** Ongoing medical needs. */
+  medical_need?: boolean;
+  /** TVET: course requires a practical toolkit / materials. */
+  toolkit_required?: boolean;
+  /** College: mandatory industrial attachment / practicum this year. */
+  attachment_required?: boolean;
 }
 
 export interface HouseholdContext {
@@ -162,8 +172,19 @@ function scoreHigherEd(
     default:
       break;
   }
-  if ((ctx.fee_balance ?? 0) >= 30000) {
+  // Category-specific fee thresholds reflect typical annual fees per cohort.
+  const feeThreshold = category === "tvet" ? 15000 : category === "college" ? 22000 : 30000;
+  if ((ctx.fee_balance ?? 0) >= feeThreshold) {
     rs.push({ code: "outstanding_fees", weight: w.outstanding_fees, message: "Outstanding tuition fees" });
+  }
+  if (ctx.commutes) rs.push({ code: "commute_cost", weight: w.transport, message: "Daily commuting costs" });
+  if (ctx.food_insecure) rs.push({ code: "food_insecurity", weight: w.food, message: "Food insecurity reported" });
+  if (ctx.medical_need) rs.push({ code: "medical_need", weight: w.medical, message: "Ongoing medical needs" });
+  if (category === "tvet" && ctx.toolkit_required) {
+    rs.push({ code: "tvet_toolkit", weight: 8, message: "Practical toolkit / materials required" });
+  }
+  if (category === "college" && ctx.attachment_required) {
+    rs.push({ code: "college_attachment", weight: 6, message: "Mandatory attachment / practicum costs" });
   }
   if (ctx.helb_received) {
     rs.push({ code: "helb_offset", weight: w.helb_offset, message: "HELB already received (score reduced)" });

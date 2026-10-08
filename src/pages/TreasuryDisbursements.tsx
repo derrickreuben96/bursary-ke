@@ -35,6 +35,7 @@ interface PaymentRow {
   payment_reference: string | null;
   triggered_at: string;
   completed_at: string | null;
+  paid_amount?: number | null;
 }
 
 export default function TreasuryDisbursements() {
@@ -53,7 +54,7 @@ export default function TreasuryDisbursements() {
       supabase.rpc("get_treasury_student_beneficiaries"),
       supabase
         .from("disbursements")
-        .select("id, student_id, school_name, county, amount, status, payment_reference, triggered_at, completed_at")
+        .select("id, student_id, school_name, county, amount, status, payment_reference, triggered_at, completed_at, paid_amount")
         .order("triggered_at", { ascending: false })
         .limit(500),
     ]);
@@ -115,11 +116,40 @@ export default function TreasuryDisbursements() {
     await load(true);
   };
 
+  const flagOverpaid = async (p: PaymentRow) => {
+    const input = window.prompt(`Amount actually paid for ${p.payment_reference} (allocated ${formatKES(Number(p.amount))}):`);
+    if (!input) return;
+    const paid = Number(input.replace(/[^0-9.]/g, ""));
+    if (!paid || paid <= Number(p.amount)) {
+      toast({ title: "Not an overpayment", description: "The amount paid must be higher than the allocation.", variant: "destructive" });
+      return;
+    }
+    setBusy(true);
+    const { data, error } = await supabase.rpc("treasury_flag_payment_overpaid" as never, { _disbursement_id: p.id, _paid_amount: paid } as never);
+    setBusy(false);
+    const res = data as unknown as { flagged?: boolean; excess?: number } | null;
+    if (error || !res?.flagged) {
+      toast({ title: "Could not flag payment", description: error?.message ?? "Please try again.", variant: "destructive" });
+      return;
+    }
+    toast({ title: "Marked as overpaid", description: `Excess of ${formatKES(Number(res.excess || 0))} recorded for recovery.` });
+    await load(true);
+  };
+
+  const stateLabel = (s: string) =>
+    s === "paid" ? "Processed" : s === "overpaid" ? "Overpaid" : s === "failed" ? "Failed" : "Pending";
+
+  const counts = {
+    pending: payments.filter((p) => p.status === "pending" || p.status === "processing").length,
+    processed: payments.filter((p) => p.status === "paid").length,
+    overpaid: payments.filter((p) => p.status === "overpaid").length,
+  };
+
   const totalSelected = pending
     .filter((p) => selected.has(p.id))
     .reduce((n, p) => n + Number(p.allocated_amount || 0), 0);
 
-  const totalPaid = payments.filter((p) => p.status === "paid").reduce((n, p) => n + Number(p.amount), 0);
+  const totalPaid = payments.filter((p) => p.status === "paid" || p.status === "overpaid").reduce((n, p) => n + Number(p.amount), 0);
 
   return (
     <div className="min-h-screen flex flex-col bg-secondary/30">
@@ -209,6 +239,11 @@ export default function TreasuryDisbursements() {
               <CardHeader>
                 <CardTitle>Payment records</CardTitle>
                 <CardDescription>Reference, amount and school for every payment made.</CardDescription>
+                <div className="flex flex-wrap gap-2 pt-2">
+                  <Badge variant="secondary">Pending: {counts.pending}</Badge>
+                  <Badge variant="default">Processed: {counts.processed}</Badge>
+                  <Badge variant="destructive">Overpaid: {counts.overpaid}</Badge>
+                </div>
               </CardHeader>
               <CardContent>
                 <Table>
@@ -232,9 +267,12 @@ export default function TreasuryDisbursements() {
                         <TableCell className="text-sm">{p.county}</TableCell>
                         <TableCell className="text-right">{formatKES(Number(p.amount))}</TableCell>
                         <TableCell>
-                          <Badge variant={p.status === "paid" ? "default" : p.status === "failed" ? "destructive" : "secondary"}>
-                            {p.status}
+                          <Badge variant={p.status === "paid" ? "default" : p.status === "failed" || p.status === "overpaid" ? "destructive" : "secondary"}>
+                            {stateLabel(p.status)}
                           </Badge>
+                          {p.status === "overpaid" && p.paid_amount != null && (
+                            <p className="text-xs text-destructive mt-1">+{formatKES(Number(p.paid_amount) - Number(p.amount))}</p>
+                          )}
                         </TableCell>
                         <TableCell className="text-sm">
                           {new Date(p.completed_at || p.triggered_at).toLocaleDateString()}
@@ -244,7 +282,9 @@ export default function TreasuryDisbursements() {
                             <Button size="sm" variant="outline" disabled={busy} onClick={() => markProcessed(p.id)}>
                               <CheckCircle2 className="h-4 w-4 mr-2" />Mark processed
                             </Button>
-                          ) : <span className="text-xs text-muted-foreground">Complete</span>}
+                          ) : p.status === "paid" ? (
+                            <Button size="sm" variant="ghost" disabled={busy} onClick={() => flagOverpaid(p)}>Flag overpaid</Button>
+                          ) : <span className="text-xs text-muted-foreground">{stateLabel(p.status)}</span>}
                         </TableCell>
                       </TableRow>
                     ))}
