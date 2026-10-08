@@ -30,7 +30,7 @@ interface SavedStudent {
   institution_name?: string | null;
 }
 
-interface HistoryEntry { field: string; old_value: string | null; new_value: string | null; changed_at: string }
+interface HistoryEntry { id?: string; source?: string; field: string; old_value: string | null; new_value: string | null; changed_at: string }
 
 export default function GuardianProfile() {
   const { toast } = useToast();
@@ -113,6 +113,22 @@ export default function GuardianProfile() {
     setConsent(false);
     if (res.parent?.phone) setPhone(res.parent.phone);
     toast({ title: "Profile updated", description: "Your saved details have been updated." });
+  };
+
+  const rollback = async (entry: HistoryEntry) => {
+    if (!entry.id) return;
+    if (!consent) {
+      toast({ title: "Consent needed", description: "Tick the consent box above before restoring a previous value.", variant: "destructive" });
+      return;
+    }
+    const { data, error: rpcErr } = await supabase.rpc("rollback_guardian_profile_field" as never, {
+      _national_id: nationalId.trim(), _phone: phone.trim(), _history_id: entry.id, _consent: true,
+    } as never);
+    const res = data as unknown as { restored?: boolean } | null;
+    if (rpcErr || !res?.restored) return toast({ title: "Could not restore", variant: "destructive" });
+    toast({ title: "Previous value restored", description: `${entry.field.replace("_", " ")} has been rolled back.` });
+    if (entry.field === "phone" && entry.old_value) setPhone(entry.old_value);
+    await verify();
   };
 
   const flagOutdated = async () => {
@@ -231,7 +247,17 @@ export default function GuardianProfile() {
                 {history.length === 0 ? <p className="text-sm text-muted-foreground">No saved changes yet.</p> : history.map((entry, i) => (
                   <div key={`${entry.changed_at}-${entry.field}-${i}`} className="rounded border p-3 text-sm">
                     <p className="font-medium capitalize">{entry.field.replace("_", " ")}</p>
-                    <p className="text-muted-foreground">Updated {new Date(entry.changed_at).toLocaleString()}</p>
+                    <p className="text-muted-foreground">
+                      {entry.source === "rollback" ? "Restored" : "Updated"} {new Date(entry.changed_at).toLocaleString()}
+                    </p>
+                    <p className="text-xs mt-1 break-words">
+                      <span className="line-through text-muted-foreground">{entry.old_value || "—"}</span> → <span>{entry.new_value || "—"}</span>
+                    </p>
+                    {entry.id && entry.old_value && (
+                      <Button size="sm" variant="outline" className="mt-2" onClick={() => rollback(entry)}>
+                        Restore previous value
+                      </Button>
+                    )}
                   </div>
                 ))}
               </CardContent>
