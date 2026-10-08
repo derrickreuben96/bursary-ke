@@ -683,6 +683,7 @@ export type Database = {
           created_at: string
           id: string
           last_error: string | null
+          paid_amount: number | null
           parent_application_id: string | null
           payment_reference: string | null
           provider: string | null
@@ -702,6 +703,7 @@ export type Database = {
           created_at?: string
           id?: string
           last_error?: string | null
+          paid_amount?: number | null
           parent_application_id?: string | null
           payment_reference?: string | null
           provider?: string | null
@@ -721,6 +723,7 @@ export type Database = {
           created_at?: string
           id?: string
           last_error?: string | null
+          paid_amount?: number | null
           parent_application_id?: string | null
           payment_reference?: string | null
           provider?: string | null
@@ -2468,6 +2471,15 @@ export type Database = {
           read_ct: number
         }[]
       }
+      rollback_guardian_profile_field: {
+        Args: {
+          _consent: boolean
+          _history_id: string
+          _national_id: string
+          _phone: string
+        }
+        Returns: Json
+      }
       submit_parent_application: {
         Args: {
           _advert_id: string
@@ -2488,6 +2500,10 @@ export type Database = {
       }
       treasury_disburse_students: {
         Args: { _student_ids: string[] }
+        Returns: Json
+      }
+      treasury_flag_payment_overpaid: {
+        Args: { _disbursement_id: string; _paid_amount: number }
         Returns: Json
       }
       treasury_mark_payment_processed: {
